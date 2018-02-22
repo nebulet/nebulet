@@ -1,0 +1,8 @@
+[package]
+name = "tools"
+version = "0.1.0"
+authors = ["Lachlan Sneff <lachlan.sneff@gmail.com>"]
+# never publish tasks
+publish = false
+
+[dependencies]

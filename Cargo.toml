@@ -1,0 +1,22 @@
+[package]
+name = "nebulet"
+version = "0.1.0"
+authors = ["Lachlan Sneff <lachlan.sneff@gmail.com>"]
+
+[workspace]
+members = ["tools"]
+
+[features]
+default = ["vga"]
+vga = []
+serial = []
+
+[dependencies]
+os_bootinfo = "0.2.0-alpha-005"
+spin = "0.4.6"
+x86_64 = "0.2.0-alpha-008"
+rlibc = "1.0.0"
+
+[dependencies.lazy_static]
+version = "1.0.0"
+features = ["spin_no_std"]

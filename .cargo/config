@@ -1,0 +1,2 @@
+[alias]
+boot = "run --package tools --bin boot"
