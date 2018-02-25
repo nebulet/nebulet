@@ -1,10 +1,11 @@
 
 pub mod serial;
+pub mod pic;
 
-pub fn init() {
-    // TODO: do stuff
+pub unsafe fn init() {
+    pic::init();
 }
 
 pub fn init_noncore() {
-    
+    // serial::init();
 }

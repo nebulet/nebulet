@@ -1,10 +1,7 @@
 //! Interrupt helpers
 
-// pub mod idt;
-
-pub fn init() {
-    // idt::init();
-}
+pub mod exception;
+pub mod irq;
 
 /// Disable interrupts
 #[inline(always)]

@@ -12,10 +12,15 @@ vga = []
 serial = []
 
 [dependencies]
-os_bootinfo = "0.2.0-alpha-005"
 spin = "0.4.6"
-x86_64 = "0.2.0-alpha-008"
 rlibc = "1.0.0"
+
+[dependencies.x86_64]
+git = "https://github.com/Nebulet/x86_64.git"
+branch = "rewrite"
+
+[dependencies.os_bootinfo]
+git = "https://github.com/Nebulet/os_bootinfo.git"
 
 [dependencies.lazy_static]
 version = "1.0.0"

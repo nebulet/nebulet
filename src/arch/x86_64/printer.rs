@@ -28,6 +28,9 @@ impl Printer {
                     ptr::write_volatile(VGA_BUFFER.add(self.index), character);
                 }
                 self.index += 1;
+                if self.index >= SCREEN_SIZE {
+                    self.index = 0;
+                }
             }
         }
     }
