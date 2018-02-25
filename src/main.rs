@@ -6,6 +6,7 @@
 #![feature(const_fn)]
 #![feature(decl_macro)]
 #![feature(pointer_methods)]
+#![feature(thread_local)]
 #![no_main]
 
 #[macro_use]
@@ -18,5 +19,32 @@ extern crate rlibc;
 mod arch;
 mod panic;
 mod memory;
+mod time;
 
 pub use arch::*;
+
+use macros::println;
+
+use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+
+/// A unique number that identifies the current CPU - used for scheduling
+#[thread_local]
+static CPU_ID: AtomicUsize = ATOMIC_USIZE_INIT;
+
+/// The count of all CPUs that can have work scheduled
+static CPU_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
+
+pub fn kmain(cpus: usize) -> ! {
+    CPU_ID.store(0, Ordering::SeqCst);
+    CPU_COUNT.store(cpus, Ordering::SeqCst);
+
+    println!("::kmain({})", cpus);
+
+    
+
+    loop {
+        unsafe {
+            interrupt::halt();
+        }
+    }
+}

@@ -14,6 +14,7 @@ pub macro println {
 
 pub macro interrupt($name:ident, $func:block) {
     use x86_64::structures::idt::ExceptionStackFrame;
+    #[allow(unused_unsafe)]
     pub extern "x86-interrupt" fn $name (_: &mut ExceptionStackFrame) {
         unsafe {
             $func
@@ -23,9 +24,38 @@ pub macro interrupt($name:ident, $func:block) {
 
 pub macro interrupt_stack($name:ident, $stack:ident, $func:block) {
     use x86_64::structures::idt::ExceptionStackFrame;
+    #[allow(unused_unsafe)]
     pub extern "x86-interrupt" fn $name ($stack: &mut ExceptionStackFrame) {
         unsafe {
             $func
         }
+        // for now, always dump the stack
+        println!("{:?}", $stack);
+    }
+}
+
+pub macro interrupt_stack_err($name:ident, $stack:ident, $error:ident, $func:block) {
+    use x86_64::structures::idt::ExceptionStackFrame;
+    #[allow(unused_unsafe)]
+    pub extern "x86-interrupt" fn $name ($stack: &mut ExceptionStackFrame, $error: u64) {
+        unsafe {
+            $func
+        }
+        // for now, always dump the stack
+        println!("{:?}", $stack);
+        println!("Error: {}", $error);
+    }
+}
+
+pub macro interrupt_stack_page($name:ident, $stack:ident, $error:ident, $func:block) {
+    use x86_64::structures::idt::{ExceptionStackFrame, PageFaultErrorCode};
+    #[allow(unused_unsafe)]
+    pub extern "x86-interrupt" fn $name ($stack: &mut ExceptionStackFrame, $error: PageFaultErrorCode) {
+        unsafe {
+            $func
+        }
+        // for now, always dump the stack
+        println!("{:?}", $stack);
+        println!("PageError: {:?}", $error);
     }
 }

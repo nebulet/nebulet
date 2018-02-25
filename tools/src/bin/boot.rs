@@ -29,7 +29,7 @@ fn run_qemu() -> io::Result<std::process::ExitStatus> {
 
     Command::new(qemu_path)
         .args(&["-hda", "bootimage.bin"])
-        .args(&["-d", "int", "-no-reboot"])
+        // .args(&["-d", "int", "-no-reboot"])
         .status()
 }
 

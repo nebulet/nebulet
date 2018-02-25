@@ -5,8 +5,6 @@ pub static mut SLAVE: Pic = Pic::new(0xA0);
 
 /// This remaps the PIC
 pub unsafe fn init() {
-    let master_mask = MASTER.data.read();
-    let slave_mask = SLAVE.data.read();
     // Start initialization
     MASTER.cmd.write(0x11);
     SLAVE.cmd.write(0x11);
@@ -23,7 +21,10 @@ pub unsafe fn init() {
     MASTER.data.write(1);
     SLAVE.data.write(1);
 
-    // Restore masks
+    let (master_mask, slave_mask) = mask_in![
+        0, 1, 8
+    ];
+    // Set masks
     MASTER.data.write(master_mask);
     SLAVE.data.write(slave_mask);
 
@@ -32,21 +33,19 @@ pub unsafe fn init() {
     SLAVE.ack();
 }
 
-pub unsafe fn set_mask(irq: u8) {
-    if irq < 8 {
-        MASTER.mask_set(irq);
-    } else {
-        SLAVE.mask_set(irq - 8);
-    }
-}
-
-pub unsafe fn clear_mask(irq: u8) {
-    if irq < 8 {
-        MASTER.mask_clear(irq);
-    } else {
-        SLAVE.mask_clear(irq);
-    }
-}
+macro mask_in($($irq:expr),*) {{
+    let mut master_mask: u8 = !0;
+    let mut slave_mask: u8 = !0;
+    $(
+        let irq: u8 = $irq;
+        if irq < 8 {
+            master_mask &= !(1 << irq);
+        } else {
+            slave_mask &= !(1 << (irq - 8));
+        }
+    )*
+    (master_mask, slave_mask)
+}}
 
 /// Mostly taken from Redox OS
 pub struct Pic {
