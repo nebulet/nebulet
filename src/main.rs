@@ -10,6 +10,7 @@
 #![feature(alloc)]
 #![feature(allocator_api)]
 #![feature(global_allocator)]
+#![feature(naked_functions)]
 #![no_main]
 
 #[macro_use]
@@ -33,6 +34,8 @@ mod time;
 mod common;
 mod allocator;
 mod consts;
+mod context;
+mod abi;
 
 pub use arch::*;
 pub use consts::*;
