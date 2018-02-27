@@ -5,37 +5,53 @@ pub static mut SLAVE: Pic = Pic::new(0xA0);
 
 /// This remaps the PIC
 pub unsafe fn init() {
+    let mut wait_port: Port<u8> = Port::new(0x80);
+    let mut wait = || wait_port.write(0);
+
+    // let master_mask = MASTER.data.read();
+    // let slave_mask = SLAVE.data.read();
+
     // Start initialization
     MASTER.cmd.write(0x11);
+    wait();
     SLAVE.cmd.write(0x11);
+    wait();
 
     // Set offsets
     MASTER.data.write(0x20);
+    wait();
     SLAVE.data.write(0x28);
+    wait();
 
     // Set up cascade
     MASTER.data.write(4);
+    wait();
     SLAVE.data.write(2);
+    wait();
 
     // Set up interrupt mode (1 is 8086/88 mode, 2 is auto EOI)
     MASTER.data.write(1);
+    wait();
     SLAVE.data.write(1);
+    wait();
 
     let (master_mask, slave_mask) = mask_in![
-        0, 1, 8
+        1
     ];
-    // Set masks
+
+    // println!("mask: {:b}:{:b}", master_mask, slave_mask);
+
+    // set masks
     MASTER.data.write(master_mask);
     SLAVE.data.write(slave_mask);
 
-    // Ack remaining interrupts
     MASTER.ack();
     SLAVE.ack();
 }
 
 macro mask_in($($irq:expr),*) {{
-    let mut master_mask: u8 = !0;
-    let mut slave_mask: u8 = !0;
+    let mut master_mask: u8 = 0xFF;
+    let mut slave_mask: u8 = 0xFF;
     $(
         let irq: u8 = $irq;
         if irq < 8 {
@@ -49,8 +65,8 @@ macro mask_in($($irq:expr),*) {{
 
 /// Mostly taken from Redox OS
 pub struct Pic {
-    cmd: Port<u8>,
-    data: Port<u8>,
+    pub cmd: Port<u8>,
+    pub data: Port<u8>,
 }
 
 impl Pic {

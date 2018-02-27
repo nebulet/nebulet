@@ -25,10 +25,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "linked_list_allocator"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "spin 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "nebulet"
 version = "0.1.0"
 dependencies = [
+ "bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "linked_list_allocator 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "os_bootinfo 0.2.0-alpha-005 (git+https://github.com/Nebulet/os_bootinfo.git)",
  "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "spin 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -43,7 +54,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "os_bootinfo"
 version = "0.2.0-alpha-005"
-source = "git+https://github.com/Nebulet/os_bootinfo.git#014deafc308cf77f57527857a43283a17f0304ee"
+source = "git+https://github.com/Nebulet/os_bootinfo.git#2676aeb9b0bc115791aac4097c2252351dc2de01"
 dependencies = [
  "arrayvec 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "x86_64 0.2.0-alpha-008 (git+https://github.com/Nebulet/x86_64.git?branch=rewrite)",
@@ -76,7 +87,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "x86_64"
 version = "0.2.0-alpha-008"
-source = "git+https://github.com/Nebulet/x86_64.git?branch=rewrite#9eddb2d9d2e5bff3184c415923384c4203d11276"
+source = "git+https://github.com/Nebulet/x86_64.git?branch=rewrite#a399b344bef108b1afba498cd8a90e262a75c2d9"
 dependencies = [
  "bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -89,6 +100,7 @@ dependencies = [
 "checksum bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ed8765909f9009617974ab6b7d332625b320b33c326b1e9321382ef1999b5d56"
 "checksum bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b3c30d3802dfb7281680d6285f2ccdaa8c2d8fee41f93805dba5c4cf50dc23cf"
 "checksum lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c8f31047daa365f19be14b47c29df4f7c3b581832407daabe6ae77397619237d"
+"checksum linked_list_allocator 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a6420a3167cee611c9d0f53663c339e85058bf05234e9862a47bf56920db8542"
 "checksum nodrop 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)" = "9a2228dca57108069a5262f2ed8bd2e82496d2e074a06d1ccc7ce1687b6ae0a2"
 "checksum os_bootinfo 0.2.0-alpha-005 (git+https://github.com/Nebulet/os_bootinfo.git)" = "<none>"
 "checksum rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"

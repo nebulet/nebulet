@@ -1,7 +1,11 @@
 
 use x86_64::structures::idt::Idt;
+use x86_64::structures::tss::TaskStateSegment;
 use interrupt::*;
-use interrupt;
+use spin::Once;
+use macros::println;
+
+const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
 lazy_static! {
     static ref IDT: Idt = {
@@ -30,18 +34,46 @@ lazy_static! {
         idt[32].set_handler_fn(irq::pit);
         idt[33].set_handler_fn(irq::keyboard);
 
-        idt[40].set_handler_fn(irq::rtc);
+        // idt[40].set_handler_fn(irq::rtc);
 
         idt
     };
 }
 
+static TSS: Once<TaskStateSegment> = Once::new();
+static GDT: Once<gdt::Gdt> = Once::new();
+
 pub fn init() {
-    IDT.load();
+    use x86_64::structures::gdt::SegmentSelector;
+    use x86_64::instructions::segmentation::set_cs;
+    use x86_64::instructions::tables::load_tss;
+    use x86_64::VirtAddr;
+
+    let tss = TSS.call_once(|| {
+        let mut tss = TaskStateSegment::new();
+        // tss.interrupt.stack_table[DOUBLE_FAULT_IST_INDEX] = VirtAddr::new()
+        tss
+    });
+
+    let mut code_selector = SegmentSelector(0);
+    let mut tss_selector = SegmentSelector(0);
+    let gdt = GDT.call_once(|| {
+        let mut gdt = gdt::Gdt::new();
+        code_selector = gdt.add_entry(gdt::Descriptor::kernel_code_segment());
+        tss_selector = gdt.add_entry(gdt::Descriptor::tss_segment(&tss));
+        gdt
+    });
+
+    // load the new GDT
+    gdt.load();
+    println!("GDT loaded");
 
     unsafe {
-        // for now disable interrupts
-        // TODO: Enable again after memory works
-        interrupt::enable_and_nop();
+        // reload code segment register
+        set_cs(code_selector);
+        // load TSS
+        load_tss(tss_selector);
     }
+
+    IDT.load();
 }

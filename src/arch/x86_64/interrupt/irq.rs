@@ -10,6 +10,7 @@ static CONTEXT_SWITCH_TICKS: usize = 10;
 #[inline]
 unsafe fn trigger(irq: u8) {
     if irq < 16 {
+        println!("acknowledged");
         if irq >= 8 {
             // pic::SLAVE.mask_set(irq - 8);
             pic::MASTER.ack();
@@ -20,7 +21,7 @@ unsafe fn trigger(irq: u8) {
         }
     }
 
-    // Actually do something
+    // TODO: Actually do something
 }
 
 interrupt!(pit, {
@@ -33,12 +34,14 @@ interrupt!(pit, {
         offset.0 += sum / 1_000_000_000;
     }
 
+    println!("PIT interrupt");
+
     // Saves CPU time by shortcutting
     pic::MASTER.ack();
 
-    if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= CONTEXT_SWITCH_TICKS {
-        // TODO: switch context
-    }
+    // if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= CONTEXT_SWITCH_TICKS {
+    //     // TODO: switch context
+    // }
 });
 
 interrupt!(keyboard, {
@@ -50,5 +53,6 @@ interrupt!(keyboard, {
 
 interrupt!(rtc, {
     println!("RTC interrupt");
+    
     trigger(8);
 });

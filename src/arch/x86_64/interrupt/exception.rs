@@ -33,7 +33,7 @@ interrupt_stack!(device_not_available, stack, {
 });
 
 interrupt_stack_err!(double_fault, stack, error, {
-    println!("Double Fault");
+    println!("Double Fault: {}|{:?}", error, stack);
 });
 
 interrupt_stack_err!(invalid_tss, stack, error, {
@@ -42,6 +42,7 @@ interrupt_stack_err!(invalid_tss, stack, error, {
 
 interrupt_stack_err!(segment_not_present, stack, error, {
     println!("Segment not present fault");
+    println!("{}|{:?}", error, stack);
 });
 
 interrupt_stack_err!(stack_segment_fault, stack, error, {
@@ -49,11 +50,11 @@ interrupt_stack_err!(stack_segment_fault, stack, error, {
 });
 
 interrupt_stack_err!(general_protection_fault, stack, error, {
-    println!("General Protection Fault: {}\n{:?}", error, stack);
+    println!("General Protection Fault");
 });
 
 interrupt_stack_page!(page_fault, stack, error, {
-    println!("Page Fault");
+    println!("Page Fault: {:?}", stack.instruction_pointer);
 });
 
 interrupt_stack!(x87_floating_point, stack, {

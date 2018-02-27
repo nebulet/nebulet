@@ -11,3 +11,5 @@ pub mod printer;
 pub mod macros;
 
 pub mod idt;
+
+pub mod paging;

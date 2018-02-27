@@ -33,8 +33,8 @@ impl Rtc {
     }
 
     unsafe fn wait(&mut self) {
-        while self.read(0xA) & 0x80 != 0x80 {}
-        while self.read(0xA) & 0x80 == 0x80 {}
+        // while self.read(0xA) & 0x80 != 0x80 {}
+        // while self.read(0xA) & 0x80 == 0x80 {}
     }
 
    /// Get Time

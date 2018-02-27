@@ -1,9 +1,16 @@
 #[cfg(feature = "vga")]
 use super::printer;
+#[cfg(feature = "serial")]
+use devices::serial;
+use interrupt;
 
 pub macro print($($arg:tt)*) {
-    #[cfg(feature = "vga")]
-    printer::_print(format_args!($($arg)*));
+    interrupt::disable_for(|| {
+        #[cfg(feature = "vga")]
+        printer::_print(format_args!($($arg)*));
+        #[cfg(feature = "serial")]
+        serial::_print(format_args!($($arg)*));
+    });
 }
 
 pub macro println {
@@ -30,7 +37,7 @@ pub macro interrupt_stack($name:ident, $stack:ident, $func:block) {
             $func
         }
         // for now, always dump the stack
-        println!("{:?}", $stack);
+        // println!("{:?}", $stack);
     }
 }
 
@@ -42,8 +49,8 @@ pub macro interrupt_stack_err($name:ident, $stack:ident, $error:ident, $func:blo
             $func
         }
         // for now, always dump the stack
-        println!("{:?}", $stack);
-        println!("Error: {}", $error);
+        // println!("{:?}", $stack);
+        // println!("Error: {}", $error);
     }
 }
 
@@ -55,7 +62,7 @@ pub macro interrupt_stack_page($name:ident, $stack:ident, $error:ident, $func:bl
             $func
         }
         // for now, always dump the stack
-        println!("{:?}", $stack);
-        println!("PageError: {:?}", $error);
+        // println!("{:?}", $stack);
+        // println!("PageError: {:?}", $error);
     }
 }

@@ -11,5 +11,6 @@ pub unsafe fn init() {
 pub unsafe fn init_noncore() {
     pit::init();
     rtc::init();
-    // serial::init();
+    #[cfg(feature = "serial")]
+    serial::init();
 }

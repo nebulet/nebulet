@@ -4,6 +4,8 @@ use interrupt;
 use devices;
 use memory;
 use macros::println;
+use paging;
+use allocator;
 
 /// Test of zero values in BSS.
 static BSS_TEST_ZERO: usize = 0x0;
@@ -25,16 +27,30 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
     
     memory::init(boot_info);
 
+    // Initialize paging
+    let mut active_table = paging::init();
+    
+    // Initialize dynamic memory allocation
+    allocator::init(&mut active_table);
+
     // Initialize the IDT
     idt::init();
 
+    println!("IDT initialized");
+
     // Initialize essential devices
     devices::init();
+
+    println!("Devices initialized");
 
     // Initialize non-essential devices
     devices::init_noncore();
 
     println!("OK");
+
+    interrupt::enable_and_nop();
+
+    println!("Interrupts enabled");
 
     ::kmain(1);
 }
