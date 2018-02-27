@@ -1,4 +1,4 @@
-use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT};
 use devices::pic;
 use time;
 use macros::{interrupt, println};
@@ -33,8 +33,6 @@ interrupt!(pit, {
         offset.1 = sum % 1_000_000_000;
         offset.0 += sum / 1_000_000_000;
     }
-
-    println!("PIT interrupt");
 
     // Saves CPU time by shortcutting
     pic::MASTER.ack();

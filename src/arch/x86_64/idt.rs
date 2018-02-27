@@ -47,10 +47,9 @@ pub fn init() {
     use x86_64::structures::gdt::SegmentSelector;
     use x86_64::instructions::segmentation::set_cs;
     use x86_64::instructions::tables::load_tss;
-    use x86_64::VirtAddr;
 
     let tss = TSS.call_once(|| {
-        let mut tss = TaskStateSegment::new();
+        let tss = TaskStateSegment::new();
         // tss.interrupt.stack_table[DOUBLE_FAULT_IST_INDEX] = VirtAddr::new()
         tss
     });

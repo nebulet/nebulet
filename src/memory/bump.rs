@@ -2,11 +2,10 @@
 //! Much is borrowed from Redox OS and [Phil Opp's Blog](http://os.phil-opp.com/allocating-frames.html)
 
 use x86_64::PhysAddr;
-use x86_64::structures::paging::{PhysFrame, PAGE_SIZE};
+use x86_64::structures::paging::PhysFrame;
 use os_bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 
 use super::FrameAllocator;
-use macros::println;
 
 pub struct BumpAllocator {
     next_free_frame: PhysFrame,

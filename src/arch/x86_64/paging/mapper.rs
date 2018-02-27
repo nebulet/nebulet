@@ -76,10 +76,10 @@ impl Mapper {
     }
 
     pub fn map_to(&mut self, page: Page, frame: PhysFrame, flags: PageTableFlags) {
-        let mut p3 = self.p4_mut()
+        let p3 = self.p4_mut()
                        .next_table_create(page.p4_index(), || memory::allocate_frames(1).unwrap());
-        let mut p2 = p3.next_table_create(page.p3_index(), || memory::allocate_frames(1).unwrap());
-        let mut p1 = p2.next_table_create(page.p2_index(), || memory::allocate_frames(1).unwrap());
+        let p2 = p3.next_table_create(page.p3_index(), || memory::allocate_frames(1).unwrap());
+        let p1 = p2.next_table_create(page.p2_index(), || memory::allocate_frames(1).unwrap());
 
         assert!(p1[page.p1_index()].is_unused());
         p1[page.p1_index()].set(frame, flags | PageTableFlags::PRESENT);

@@ -1,6 +1,5 @@
 use core::ops::{Deref, DerefMut};
-use x86_64::structures::paging::{PageTable, PageTableFlags, Level4, PhysFrame, Page};
-use x86_64::VirtAddr;
+use x86_64::structures::paging::{PageTable, PageTableFlags, Level4, PhysFrame};
 
 use self::mapper::Mapper;
 
@@ -10,7 +9,7 @@ mod temporary_page;
 pub const P4: *mut PageTable<Level4> = 0xffffffff_fffff000 as *mut _;
 
 pub unsafe fn init() -> ActivePageTable {
-    let mut active_table = ActivePageTable::new();
+    let active_table = ActivePageTable::new();
     
     // let mut new_table = {
     //     let frame = memory::allocate_frames(1).expect("Couldn't allocate frame for paging::init");

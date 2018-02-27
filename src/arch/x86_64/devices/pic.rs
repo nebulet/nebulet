@@ -8,9 +8,6 @@ pub unsafe fn init() {
     let mut wait_port: Port<u8> = Port::new(0x80);
     let mut wait = || wait_port.write(0);
 
-    // let master_mask = MASTER.data.read();
-    // let slave_mask = SLAVE.data.read();
-
     // Start initialization
     MASTER.cmd.write(0x11);
     wait();
@@ -35,33 +32,13 @@ pub unsafe fn init() {
     SLAVE.data.write(1);
     wait();
 
-    let (master_mask, slave_mask) = mask_in![
-        1
-    ];
-
-    // println!("mask: {:b}:{:b}", master_mask, slave_mask);
-
-    // set masks
-    MASTER.data.write(master_mask);
-    SLAVE.data.write(slave_mask);
+    // clear all masks
+    MASTER.data.write(0);
+    SLAVE.data.write(0);
 
     MASTER.ack();
     SLAVE.ack();
 }
-
-macro mask_in($($irq:expr),*) {{
-    let mut master_mask: u8 = 0xFF;
-    let mut slave_mask: u8 = 0xFF;
-    $(
-        let irq: u8 = $irq;
-        if irq < 8 {
-            master_mask &= !(1 << irq);
-        } else {
-            slave_mask &= !(1 << (irq - 8));
-        }
-    )*
-    (master_mask, slave_mask)
-}}
 
 /// Mostly taken from Redox OS
 pub struct Pic {
