@@ -3,10 +3,10 @@ use alloc::boxed::Box;
 use alloc::heap::Heap;
 use alloc::allocator::{Alloc, Layout};
 use alloc::arc::Arc;
-use core::mem;
 use spin::RwLock;
 
 use context::{Context, ContextId, State, INITIAL_STACK_SIZE};
+use super::context::context_return;
 
 // List of Contexts
 pub struct ContextList {
@@ -69,14 +69,14 @@ impl ContextList {
 
         // Create a stack (of 1KB initialially)
         let mut stack: Vec<u8> = vec![0; INITIAL_STACK_SIZE];
-        let offset = stack.len() - mem::size_of::<usize>();
         // Place the function on top of the stack
+        context.context.set_stack(stack.as_ptr() as usize);
         unsafe {
-            let fn_ptr = stack.as_mut_ptr().offset(offset as isize);
-            *(fn_ptr as *mut usize) = f as usize;
+            context.context.push_stack(context_return as usize);
+            context.context.push_stack(f as usize);
         }
         context.context.set_fx(fx.as_ptr() as usize);
-        context.context.set_stack(stack.as_ptr() as usize + offset);
+        
         context.kstack = Some(stack);
         context.name = Some(Arc::new(name.into_boxed_str()));
 

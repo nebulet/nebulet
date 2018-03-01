@@ -2,7 +2,7 @@ use alloc::Vec;
 use alloc::boxed::Box;
 use alloc::arc::Arc;
 
-use context::{arch, Memory};
+use context::{self, arch, Memory};
 use common::Encapsulate;
 use macros::println;
 
@@ -67,4 +67,8 @@ impl Context {
 pub unsafe extern "C" fn context_return() {
     // For now, just print that a Context returned
     println!("A Context returned!");
+
+    let scheduler = &context::SCHEDULER;
+    let current_id = scheduler.current_id();
+    scheduler.kill(current_id);
 }

@@ -53,15 +53,17 @@ static CPU_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
 pub fn kmain(cpus: usize) -> ! {
     CPU_COUNT.store(cpus, Ordering::SeqCst);
 
-    unsafe {
-        asm!("int3");
-    }
-
-    println!("Didn't crash");
+    context::SCHEDULER.spawn("test context1".into(), example_context).unwrap();
+    context::SCHEDULER.spawn("test context2".into(), example_context).unwrap();
+    context::SCHEDULER.spawn("test context3".into(), example_context).unwrap();
 
     loop {
         unsafe {
             interrupt::halt();
         }
     }
+}
+
+extern "C" fn example_context() {
+    println!("Context running!");
 }

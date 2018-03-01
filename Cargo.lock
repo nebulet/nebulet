@@ -40,11 +40,16 @@ dependencies = [
  "bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "linked_list_allocator 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nebulet_abi 0.1.0",
  "os_bootinfo 0.2.0-alpha-005 (git+https://github.com/Nebulet/os_bootinfo.git)",
  "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "spin 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "x86_64 0.2.0-alpha-008 (git+https://github.com/Nebulet/x86_64.git?branch=rewrite)",
 ]
+
+[[package]]
+name = "nebulet_abi"
+version = "0.1.0"
 
 [[package]]
 name = "nodrop"
@@ -54,7 +59,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "os_bootinfo"
 version = "0.2.0-alpha-005"
-source = "git+https://github.com/Nebulet/os_bootinfo.git#2676aeb9b0bc115791aac4097c2252351dc2de01"
+source = "git+https://github.com/Nebulet/os_bootinfo.git#fc62cfa2c27a1e2c98f3600f34f0771e557a0bff"
 dependencies = [
  "arrayvec 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "x86_64 0.2.0-alpha-008 (git+https://github.com/Nebulet/x86_64.git?branch=rewrite)",

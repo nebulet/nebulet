@@ -52,5 +52,7 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
 
     println!("Interrupts enabled");
 
+    // println!("Kernel stack: {:?}", boot_info.stack);
+
     ::kmain(1);
 }

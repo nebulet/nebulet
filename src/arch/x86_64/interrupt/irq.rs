@@ -1,6 +1,7 @@
-use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT};
+use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use devices::pic;
 use time;
+use context;
 use macros::{interrupt, println};
 use x86_64::instructions::port::Port;
 
@@ -37,9 +38,11 @@ interrupt!(pit, {
     // Saves CPU time by shortcutting
     pic::MASTER.ack();
 
-    // if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= CONTEXT_SWITCH_TICKS {
-    //     // TODO: switch context
-    // }
+    // switch context
+    if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= CONTEXT_SWITCH_TICKS {
+        context::SCHEDULER.switch();
+        PIT_TICKS.store(0, Ordering::SeqCst);
+    }
 });
 
 interrupt!(keyboard, {

@@ -38,5 +38,7 @@ fn build_image() -> io::Result<std::process::ExitStatus> {
     Command::new("bootimage")
         .arg("--target").arg(TARGET)
         .arg("--release")
+        // .arg("--build-bootloader")
+        // .arg("--git").arg("https://github.com/nebulet/bootloader")
         .status()
 }
