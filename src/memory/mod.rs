@@ -6,18 +6,18 @@ use x86_64::structures::paging::{PageTable, PageTableFlags, PhysFrame, Level4};
 use spin::Mutex;
 
 use self::bump::BumpAllocator;
+use self::cache::FrameCache;
 use interrupt;
 
-pub mod bump;
+mod bump;
+mod cache;
 
-type CurrentFrameAllocator = BumpAllocator;
-
-pub static FRAME_ALLOCATOR: Mutex<Option<CurrentFrameAllocator>> = Mutex::new(None);
+pub static FRAME_ALLOCATOR: Mutex<Option<FrameCache<BumpAllocator>>> = Mutex::new(None);
 
 pub fn init(boot_info: &mut BootInfo) {
     setup_recursive_paging(boot_info.p4_table);
 
-    *FRAME_ALLOCATOR.lock() = Some(BumpAllocator::new(boot_info.memory_map.clone()));
+    *FRAME_ALLOCATOR.lock() = Some(FrameCache::new(BumpAllocator::new(boot_info.memory_map.clone())));
 }
 
 fn setup_recursive_paging(p4_table: &mut PageTable<Level4>) {
@@ -30,20 +30,20 @@ fn setup_recursive_paging(p4_table: &mut PageTable<Level4>) {
     p4_table[511].set(p4_frame, flags);
 }
 
-pub fn allocate_frames(count: usize) -> Option<PhysFrame> {
+pub fn allocate_frame() -> Option<PhysFrame> {
     interrupt::disable_for(|| {
         if let Some(ref mut allocator) = *FRAME_ALLOCATOR.lock() {
-            allocator.allocate_frames(count)
+            allocator.allocate_frame()
         } else {
             panic!("frame allocator not initialized");
         }
     })
 }
 
-pub fn deallocate_frames(frame: PhysFrame, count: usize) {
+pub fn deallocate_frame(frame: PhysFrame) {
     interrupt::disable_for(|| {
         if let Some(ref mut allocator) = *FRAME_ALLOCATOR.lock() {
-            allocator.deallocate_frames(frame, count)
+            allocator.deallocate_frame(frame)
         } else {
             panic!("frame allocator not initialized");
         }
@@ -52,7 +52,7 @@ pub fn deallocate_frames(frame: PhysFrame, count: usize) {
 
 pub trait FrameAllocator {
     /// allocate `count` frames
-    fn allocate_frames(&mut self, count: usize) -> Option<PhysFrame>;
+    fn allocate_frame(&mut self) -> Option<PhysFrame>;
     /// deallocate `count` frames
-    fn deallocate_frames(&mut self, frame: PhysFrame, count: usize);
+    fn deallocate_frame(&mut self, frame: PhysFrame);
 }

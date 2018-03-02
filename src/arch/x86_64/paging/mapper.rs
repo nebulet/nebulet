@@ -77,16 +77,16 @@ impl Mapper {
 
     pub fn map_to(&mut self, page: Page, frame: PhysFrame, flags: PageTableFlags) {
         let p3 = self.p4_mut()
-                       .next_table_create(page.p4_index(), || memory::allocate_frames(1).unwrap());
-        let p2 = p3.next_table_create(page.p3_index(), || memory::allocate_frames(1).unwrap());
-        let p1 = p2.next_table_create(page.p2_index(), || memory::allocate_frames(1).unwrap());
+                       .next_table_create(page.p4_index(), || memory::allocate_frame().unwrap());
+        let p2 = p3.next_table_create(page.p3_index(), || memory::allocate_frame().unwrap());
+        let p1 = p2.next_table_create(page.p2_index(), || memory::allocate_frame().unwrap());
 
         assert!(p1[page.p1_index()].is_unused());
         p1[page.p1_index()].set(frame, flags | PageTableFlags::PRESENT);
     }
 
     pub fn map(&mut self, page: Page, flags: PageTableFlags) {
-        let frame = memory::allocate_frames(1).expect("could not allocate frame");
+        let frame = memory::allocate_frame().expect("could not allocate frame");
         self.map_to(page, frame, flags);
     }
 
@@ -109,6 +109,6 @@ impl Mapper {
         use x86_64::instructions::tlb;
         tlb::flush(page.start_address());
 
-        memory::deallocate_frames(frame, 1);
+        memory::deallocate_frame(frame);
     }
 }

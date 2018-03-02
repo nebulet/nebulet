@@ -42,12 +42,9 @@ impl BumpAllocator {
 }
 
 impl FrameAllocator for BumpAllocator {
-    fn allocate_frames(&mut self, count: usize) -> Option<PhysFrame> {
-        if count == 0 {
-            None
-        } else if let Some(region) = self.current_region {
-            let start_frame = self.next_free_frame.clone();
-            let end_frame = self.next_free_frame.clone() + count as u64 - 1;
+    fn allocate_frame(&mut self) -> Option<PhysFrame> {
+        if let Some(region) = self.current_region {
+            let found_frame = self.next_free_frame.clone();
 
             // the last frame of the current region
             let current_region_last_frame = {
@@ -55,22 +52,22 @@ impl FrameAllocator for BumpAllocator {
                 PhysFrame::containing_address(address)
             };
 
-            if end_frame > current_region_last_frame {
+            if found_frame > current_region_last_frame {
                 // all frames of current area are used, switch to next area
                 self.choose_next_area();
             } else {
                 // frame is unused, increment `next_free_frame` and return it
-                self.next_free_frame += count as u64;
-                return Some(start_frame);
+                self.next_free_frame += 1;
+                return Some(found_frame);
             }
             // `frame` was not valid, try again with the updated `next_free_frame`
-            self.allocate_frames(count)
+            self.allocate_frame()
         } else {
             None // no free frames left
         }
     }
 
-    fn deallocate_frames(&mut self, _frame: PhysFrame, _count: usize) {
+    fn deallocate_frame(&mut self, _frame: PhysFrame) {
         // do nothing, leaky
     }
 }
