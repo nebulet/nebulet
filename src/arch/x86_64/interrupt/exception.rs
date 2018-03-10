@@ -1,4 +1,6 @@
 use macros::{println, interrupt_stack, interrupt_stack_err, interrupt_stack_page};
+use x86_64::registers::control::Cr2;
+use x86_64::structures::paging::Page;
 
 interrupt_stack!(divide_by_zero, stack, {
     println!("Divide by zero fault");
@@ -54,7 +56,16 @@ interrupt_stack_err!(general_protection_fault, stack, error, {
 });
 
 interrupt_stack_page!(page_fault, stack, error, {
-    println!("Page Fault: {:?}", stack.instruction_pointer);
+    println!("Page fault");
+    // SCHEDULER.with_current(|ctx| {
+    //     if let Some(ref mut mem) = ctx.stack {
+    //         let faulting_addr = Cr2::read();
+    //         if mem.contains(faulting_addr) {
+    //             let page = Page::containing_address(faulting_addr);
+    //             mem.map(page);
+    //         }
+    //     }
+    // });
 });
 
 interrupt_stack!(x87_floating_point, stack, {

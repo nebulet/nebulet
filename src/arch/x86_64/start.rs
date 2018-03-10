@@ -6,6 +6,7 @@ use memory;
 use macros::println;
 use paging;
 use allocator;
+use mp;
 
 /// Test of zero values in BSS.
 static BSS_TEST_ZERO: usize = 0x0;
@@ -24,6 +25,8 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
         assert_eq!(BSS_TEST_ZERO, 0x0);
         assert_eq!(DATA_TEST_NONZERO, 0xFFFF_FFFF_FFFF_FFFF);
     }
+
+    interrupt::disable();
     
     memory::init(boot_info);
 
@@ -36,23 +39,17 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
     // Initialize the IDT
     idt::init();
 
-    println!("IDT initialized");
-
     // Initialize essential devices
     devices::init();
-
-    println!("Devices initialized");
 
     // Initialize non-essential devices
     devices::init_noncore();
 
+    // context::init();
+
+    mp::init();
+
     println!("OK");
-
-    interrupt::enable_and_nop();
-
-    println!("Interrupts enabled");
-
-    // println!("Kernel stack: {:?}", boot_info.stack);
 
     ::kmain(1);
 }

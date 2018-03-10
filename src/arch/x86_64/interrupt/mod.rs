@@ -16,8 +16,8 @@ pub fn disable_interrupts() -> (u8, u8) {
 
         let saved_masks = (pic::MASTER.data.read(), pic::SLAVE.data.read());
 
-        pic::MASTER.data.write(0xFF);
-        pic::SLAVE.data.write(0xFF);
+        pic::MASTER.data.write(0xff);
+        pic::SLAVE.data.write(0xff);
 
         saved_masks
     }

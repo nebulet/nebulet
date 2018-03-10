@@ -31,23 +31,19 @@ fn setup_recursive_paging(p4_table: &mut PageTable<Level4>) {
 }
 
 pub fn allocate_frame() -> Option<PhysFrame> {
-    interrupt::disable_for(|| {
-        if let Some(ref mut allocator) = *FRAME_ALLOCATOR.lock() {
-            allocator.allocate_frame()
-        } else {
-            panic!("frame allocator not initialized");
-        }
-    })
+    if let Some(ref mut allocator) = *FRAME_ALLOCATOR.lock() {
+        allocator.allocate_frame()
+    } else {
+        panic!("frame allocator not initialized");
+    }
 }
 
 pub fn deallocate_frame(frame: PhysFrame) {
-    interrupt::disable_for(|| {
-        if let Some(ref mut allocator) = *FRAME_ALLOCATOR.lock() {
-            allocator.deallocate_frame(frame)
-        } else {
-            panic!("frame allocator not initialized");
-        }
-    })
+    if let Some(ref mut allocator) = *FRAME_ALLOCATOR.lock() {
+        allocator.deallocate_frame(frame)
+    } else {
+        panic!("frame allocator not initialized");
+    }
 }
 
 pub trait FrameAllocator {

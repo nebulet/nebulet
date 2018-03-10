@@ -1,13 +1,10 @@
 //! The interface between running processes and the kernel
 //! 
 
-extern crate abi;
-
 // use context;
 use macros::println;
 
-pub use self::abi::error;
-use self::error::{Error, Result};
+use nabi::{Result, Error};
 
 pub macro define_abi {
     ($name:ident, |$arg0:ident: $arg0_type:ty| $code:block) => {

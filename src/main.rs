@@ -10,7 +10,9 @@
 #![feature(alloc)]
 #![feature(allocator_api)]
 #![feature(global_allocator)]
-#![feature(naked_functions)]
+#![feature(global_asm)]
+#![feature(core_intrinsics)]
+#![feature(integer_atomics)]
 #![no_main]
 
 #[macro_use]
@@ -26,7 +28,10 @@ extern crate bit_field;
 extern crate linked_list_allocator;
 #[macro_use]
 extern crate alloc;
+extern crate hashmap_core;
+extern crate nabi;
 
+#[macro_use]
 mod arch;
 mod panic;
 mod memory;
@@ -34,8 +39,9 @@ mod time;
 mod common;
 mod allocator;
 mod consts;
-mod context;
+mod task;
 mod abi;
+mod object;
 
 pub use arch::*;
 pub use consts::*;
@@ -50,20 +56,50 @@ static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 /// The count of all CPUs that can have work scheduled
 static CPU_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
 
+extern fn example_thread_entry(arg: usize) -> i32 {
+    println!("In example thread: {}", arg);
+
+    if (arg > 0) {
+        println!("Creating thread");
+        let thread = task::LockedThread::create(&format!("test thread {}", arg), example_thread_entry, arg - 1, 4096 * 4)
+            .expect("Could not create example thread");
+
+        thread.resume();
+    } else {
+        println!("Finished creating threads");
+    }
+
+    0
+}
+
 pub fn kmain(cpus: usize) -> ! {
     CPU_COUNT.store(cpus, Ordering::SeqCst);
 
-    context::SCHEDULER.spawn("test context1".into(), example_context).unwrap();
-    context::SCHEDULER.spawn("test context2".into(), example_context).unwrap();
-    context::SCHEDULER.spawn("test context3".into(), example_context).unwrap();
+    let thread = task::LockedThread::create("test thread 1", example_thread_entry, 10, 4096 * 4)
+        .expect("Could not create example thread");
 
-    loop {
-        unsafe {
-            interrupt::halt();
-        }
+    thread.resume();
+
+    task::resched();
+
+    unsafe {
+        interrupt::enable_and_nop();
     }
+    loop {}
 }
 
-extern "C" fn example_context() {
-    println!("Context running!");
+extern fn example_context1() {
+    println!("Context 1 running!");
+    loop {}
+}
+
+extern fn example_context2() {
+    println!("Context 2 running");
+    // loop {}
+}
+
+extern fn example_context3() {
+    loop {
+        println!("Context 3 running");
+    }
 }

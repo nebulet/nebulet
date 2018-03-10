@@ -1,9 +1,9 @@
 use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use devices::pic;
 use time;
-use context;
 use macros::{interrupt, println};
 use x86_64::instructions::port::Port;
+use interrupt;
 
 pub static PIT_TICKS: AtomicUsize = ATOMIC_USIZE_INIT;
 static CONTEXT_SWITCH_TICKS: usize = 10;
@@ -26,13 +26,13 @@ unsafe fn trigger(irq: u8) {
 }
 
 interrupt!(pit, {
-    const PIT_RATE: u64 = 2250286;
+    const PIT_RATE: u32 = 2250286;
 
     {
-        let mut offset = time::OFFSET.lock();
+        let mut offset = time::OFFSET.write();
         let sum = offset.1 + PIT_RATE;
         offset.1 = sum % 1_000_000_000;
-        offset.0 += sum / 1_000_000_000;
+        offset.0 += sum as u64 / 1_000_000_000;
     }
 
     // Saves CPU time by shortcutting
@@ -40,8 +40,7 @@ interrupt!(pit, {
 
     // switch context
     if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= CONTEXT_SWITCH_TICKS {
-        context::SCHEDULER.switch();
-        PIT_TICKS.store(0, Ordering::SeqCst);
+        // context::switch();
     }
 });
 

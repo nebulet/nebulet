@@ -6,7 +6,7 @@ use time;
 
 pub fn init() {
     let mut rtc = Rtc::new();
-    time::START.lock().0 = rtc.time();
+    time::START.write().0 = rtc.time();
 }
 
 fn cvt_bcd(value: usize) -> usize {

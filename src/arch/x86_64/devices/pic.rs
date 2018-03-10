@@ -1,4 +1,5 @@
 use x86_64::instructions::port::Port;
+use interrupt;
 
 pub static mut MASTER: Pic = Pic::new(0x20);
 pub static mut SLAVE: Pic = Pic::new(0xA0);

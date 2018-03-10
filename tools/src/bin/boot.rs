@@ -28,7 +28,7 @@ fn run_qemu() -> io::Result<std::process::ExitStatus> {
     };
 
     Command::new(qemu_path)
-        .args(&["-hda", "bootimage.bin"])
+        .args(&["-hda", "bootimage.bin", "-s"])
         .args(&["-serial", "stdio"])
         // .args(&["-d", "int", "-no-reboot"])
         .status()
@@ -37,7 +37,7 @@ fn run_qemu() -> io::Result<std::process::ExitStatus> {
 fn build_image() -> io::Result<std::process::ExitStatus> {
     Command::new("bootimage")
         .arg("--target").arg(TARGET)
-        .arg("--release")
+        // .arg("--release")
         // .arg("--build-bootloader")
         // .arg("--git").arg("https://github.com/nebulet/bootloader")
         .status()

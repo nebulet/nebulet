@@ -1,6 +1,9 @@
-pub mod devices;
+use core::fmt;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
+pub mod devices;
+pub mod bitarray;
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash)]
 pub struct Encapsulate<T>(T);
 
 impl<T> Encapsulate<T> {
@@ -10,5 +13,11 @@ impl<T> Encapsulate<T> {
 
     pub const fn from(value: T) -> Self {
         Encapsulate(value)
+    }
+}
+
+impl<T: fmt::Display> fmt::Display for Encapsulate<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

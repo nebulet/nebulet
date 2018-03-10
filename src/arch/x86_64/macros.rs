@@ -5,12 +5,10 @@ use devices::serial;
 use interrupt;
 
 pub macro print($($arg:tt)*) {
-    interrupt::disable_for(|| {
-        #[cfg(feature = "vga")]
-        printer::_print(format_args!($($arg)*));
-        #[cfg(feature = "serial")]
-        serial::_print(format_args!($($arg)*));
-    });
+    #[cfg(feature = "vga")]
+    printer::_print(format_args!($($arg)*));
+    #[cfg(feature = "serial")]
+    serial::_print(format_args!($($arg)*));
 }
 
 pub macro println {
@@ -65,4 +63,20 @@ pub macro interrupt_stack_page($name:ident, $stack:ident, $error:ident, $func:bl
         println!("{:?}", $stack);
         println!("PageError: {:?}", $error);
     }
+}
+
+macro_rules! likely {
+    ($e:expr) => {
+        unsafe {
+            ::core::intrinsics::likely($e)
+        }
+    };
+}
+
+macro_rules! unlikely {
+    ($e:expr) => {
+        unsafe {
+            ::core::intrinsics::unlikely($e)
+        }
+    };
 }

@@ -65,7 +65,6 @@ pub fn init() {
 
     // load the new GDT
     gdt.load();
-    println!("GDT loaded");
 
     unsafe {
         // reload code segment register
