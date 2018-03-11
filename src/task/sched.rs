@@ -29,7 +29,7 @@ impl Scheduler {
     /// This also creates a "null thread" that idles
     /// in the lowest priority.
     pub fn new() -> Scheduler {
-        let idle_thread_lock = LockedThread::create("[idle]", task::thread::idle_thread_entry, 0, 32)
+        let idle_thread_lock = LockedThread::create("[idle]", task::thread::idle_thread_entry, 0, 512)
                 .expect("Scheduler::new: Could not create the idle thread");
 
         {

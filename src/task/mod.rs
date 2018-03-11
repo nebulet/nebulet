@@ -5,16 +5,22 @@ pub mod sched;
 pub use self::thread::{LockedThread, Thread, ThreadPriority, ThreadFlags, ThreadState};
 pub use self::sched::Scheduler;
 
-use spin::{Once, RwLock, RwLockWriteGuard, RwLockReadGuard};
+static mut SCHEDULER: Option<Scheduler> = None;
 
-static SCHEDULER: Once<Scheduler> = Once::new();
-
-fn init_scheduler() -> Scheduler {
-    Scheduler::new()
+pub fn init() {
+    unsafe {
+        SCHEDULER = Some(Scheduler::new());
+    }
 }
 
 pub fn scheduler() -> &'static Scheduler {
-    SCHEDULER.call_once(init_scheduler)
+    unsafe {
+        if let Some(ref sched) = SCHEDULER {
+            sched
+        } else {
+            panic!("Scheduler not initialized");
+        }
+    }
 }
 
 pub fn resched() {

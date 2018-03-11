@@ -59,14 +59,15 @@ static CPU_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
 extern fn example_thread_entry(arg: usize) -> i32 {
     println!("In example thread: {}", arg);
 
-    if (arg > 0) {
-        println!("Creating thread");
-        let thread = task::LockedThread::create(&format!("test thread {}", arg), example_thread_entry, arg - 1, 4096 * 4)
-            .expect("Could not create example thread");
+    0
+}
 
+extern fn kernel_thread(_env: usize) -> i32 {
+    for i in 0..256 {
+        println!("Creating thread: {}", i);
+        let thread = task::LockedThread::create(&format!("example thread {}", i), example_thread_entry, i, 16 * 1024)
+            .expect("Could not create example thread");
         thread.resume();
-    } else {
-        println!("Finished creating threads");
     }
 
     0
@@ -75,31 +76,12 @@ extern fn example_thread_entry(arg: usize) -> i32 {
 pub fn kmain(cpus: usize) -> ! {
     CPU_COUNT.store(cpus, Ordering::SeqCst);
 
-    let thread = task::LockedThread::create("test thread 1", example_thread_entry, 10, 4096 * 4)
-        .expect("Could not create example thread");
-
-    thread.resume();
+    println!("Creating kernel thread");
+    let kthread = task::LockedThread::create("[init]", kernel_thread, 0, 16 * 1024)
+        .expect("Could not create kernel thread");
+    kthread.resume();
 
     task::resched();
 
-    unsafe {
-        interrupt::enable_and_nop();
-    }
     loop {}
-}
-
-extern fn example_context1() {
-    println!("Context 1 running!");
-    loop {}
-}
-
-extern fn example_context2() {
-    println!("Context 2 running");
-    // loop {}
-}
-
-extern fn example_context3() {
-    loop {
-        println!("Context 3 running");
-    }
 }

@@ -40,17 +40,24 @@ pub struct ContextSwitchFrame {
 }
 
 pub unsafe fn thread_initialize(thread: &mut Thread) {
+    fn round_down(addr: usize, align: usize) -> usize {
+        addr & !(align - 1)
+    }
+    
     let stack_top = {
         let mut stack_top = thread.stack.as_ptr() as usize + thread.stack.len();
         // round down to align at 16 bytes
-        stack_top = stack_top & !15;
+        stack_top = round_down(stack_top, 16);
         // make sure we start the frame 8 byte unaligned
         stack_top -= 8;
+
+        stack_top -= mem::size_of::<ContextSwitchFrame>();
 
         stack_top
     };
 
-    let frame_ptr = (stack_top as *mut ContextSwitchFrame).offset(-1);
+    // let frame_ptr = (stack_top as *mut ContextSwitchFrame).offset(-1);
+    let frame_ptr = stack_top as *mut ContextSwitchFrame;
 
     let frame = ContextSwitchFrame {
         r15: 0, r14: 0, r13: 0, r12: 0,
@@ -61,8 +68,6 @@ pub unsafe fn thread_initialize(thread: &mut Thread) {
     };
 
     ptr::write(frame_ptr, frame);
-
-    let debug_frame = &*frame_ptr;
 
     thread.arch.sp = frame_ptr as usize;
 }

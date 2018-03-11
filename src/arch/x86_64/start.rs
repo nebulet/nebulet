@@ -7,6 +7,7 @@ use macros::println;
 use paging;
 use allocator;
 use mp;
+use task;
 
 /// Test of zero values in BSS.
 static BSS_TEST_ZERO: usize = 0x0;
@@ -49,7 +50,11 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
 
     mp::init();
 
+    task::init();
+
     println!("OK");
+
+    interrupt::enable_and_nop();
 
     ::kmain(1);
 }

@@ -62,6 +62,7 @@ pub macro interrupt_stack_page($name:ident, $stack:ident, $error:ident, $func:bl
         // for now, always dump the stack
         println!("{:?}", $stack);
         println!("PageError: {:?}", $error);
+        loop {}
     }
 }
 
