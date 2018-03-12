@@ -15,6 +15,9 @@
 #![feature(integer_atomics)]
 #![no_main]
 
+#![allow(dead_code)]
+#![allow(unused_macros)]
+
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -31,6 +34,11 @@ extern crate alloc;
 extern crate hashmap_core;
 extern crate nabi;
 
+extern crate cton_wasm;
+extern crate cton_native;
+extern crate cretonne;
+extern crate wasmparser;
+
 #[macro_use]
 mod arch;
 mod panic;
@@ -42,6 +50,7 @@ mod consts;
 mod task;
 mod abi;
 mod object;
+mod wasm;
 
 pub use arch::*;
 pub use consts::*;
@@ -63,11 +72,11 @@ extern fn example_thread_entry(arg: usize) -> i32 {
 }
 
 extern fn kernel_thread(_env: usize) -> i32 {
-    for i in 0..256 {
+    for i in 0..160 {
         println!("Creating thread: {}", i);
         let thread = task::LockedThread::create(&format!("example thread {}", i), example_thread_entry, i, 16 * 1024)
             .expect("Could not create example thread");
-        thread.resume();
+        thread.resume().unwrap();
     }
 
     0
@@ -79,9 +88,7 @@ pub fn kmain(cpus: usize) -> ! {
     println!("Creating kernel thread");
     let kthread = task::LockedThread::create("[init]", kernel_thread, 0, 16 * 1024)
         .expect("Could not create kernel thread");
-    kthread.resume();
-
-    task::resched();
+    kthread.resume().unwrap();
 
     loop {}
 }

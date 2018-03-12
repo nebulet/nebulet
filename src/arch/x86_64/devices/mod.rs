@@ -1,4 +1,3 @@
-use interrupt;
 pub mod serial;
 pub mod pic;
 pub mod rtc;

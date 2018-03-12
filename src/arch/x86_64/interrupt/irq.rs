@@ -3,7 +3,7 @@ use devices::pic;
 use time;
 use macros::{interrupt, println};
 use x86_64::instructions::port::Port;
-use interrupt;
+use task;
 
 pub static PIT_TICKS: AtomicUsize = ATOMIC_USIZE_INIT;
 static CONTEXT_SWITCH_TICKS: usize = 10;
@@ -40,7 +40,7 @@ interrupt!(pit, {
 
     // switch context
     if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= CONTEXT_SWITCH_TICKS {
-        // context::switch();
+        task::resched();
     }
 });
 

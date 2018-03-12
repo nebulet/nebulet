@@ -77,7 +77,7 @@ pub unsafe fn context_switch(old_thread: &mut Thread, new_thread: &mut Thread) {
 }
 
 extern fn initial_thread_entry() -> ! {
-    let thread = unsafe { get_current_thread() };
+    let thread = get_current_thread();
     
     let ret = (thread.entry)(thread.arg);
 
@@ -89,7 +89,7 @@ extern fn initial_thread_entry() -> ! {
 }
 
 fn thread_exit(retcode: i32) {
-    let mut current_thread = get_current_thread();
+    let current_thread = get_current_thread();
     
     debug_assert!(current_thread.state == ThreadState::Running);
 

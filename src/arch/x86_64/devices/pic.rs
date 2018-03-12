@@ -1,5 +1,4 @@
 use x86_64::instructions::port::Port;
-use interrupt;
 
 pub static mut MASTER: Pic = Pic::new(0x20);
 pub static mut SLAVE: Pic = Pic::new(0xA0);
@@ -34,8 +33,8 @@ pub unsafe fn init() {
     wait();
 
     // clear all masks
-    MASTER.data.write(0xff);
-    SLAVE.data.write(0xff);
+    MASTER.data.write(0);
+    SLAVE.data.write(0);
 
     MASTER.ack();
     SLAVE.ack();

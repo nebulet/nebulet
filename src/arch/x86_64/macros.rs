@@ -2,7 +2,6 @@
 use super::printer;
 #[cfg(feature = "serial")]
 use devices::serial;
-use interrupt;
 
 pub macro print($($arg:tt)*) {
     #[cfg(feature = "vga")]

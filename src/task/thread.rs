@@ -5,11 +5,10 @@ use time::{Instant, Duration, INSTANT_INIT};
 
 use alloc::boxed::Box;
 use alloc::arc::Arc;
-use core::slice;
 use core::cmp::{max, min};
 use core::ops::{Deref, DerefMut};
 
-use nabi::{Result, Error, error};
+use nabi::Result;
 
 use macros::println;
 
@@ -208,9 +207,9 @@ impl LockedThread {
         {
             let mut t = self.write();
 
-            if (t.state == ThreadState::Suspended) {
+            if t.state == ThreadState::Suspended {
                 t.state = ThreadState::Ready;
-            } else if (t.state == ThreadState::Dead) {
+            } else if t.state == ThreadState::Dead {
                 // resuming a "dead" thread does nothing
                 return Ok(0)
             }

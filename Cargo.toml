@@ -5,7 +5,10 @@ authors = ["Lachlan Sneff <lachlan.sneff@gmail.com>"]
 
 [workspace]
 members = ["tools"]
-exclude = ["target/x86_64-nebulet/release/bootloader"]
+exclude = [
+    "target/x86_64-nebulet/release/bootloader",
+    "cretonne"
+]
 
 [features]
 default = ["linked_alloc", "serial"]
@@ -37,3 +40,28 @@ optional = true
 
 [dependencies.nebulet_abi]
 path = "nabi"
+
+# Cretonne compiler
+[dependencies.cretonne]
+path = "cretonne/lib/cretonne"
+default-features = false
+features = ["no_std"]
+
+[dependencies.cretonne-frontend]
+path = "cretonne/lib/frontend"
+default-features = false
+features = ["no_std"]
+
+[dependencies.cretonne-wasm]
+path = "cretonne/lib/wasm"
+default-features = false
+features = ["no_std"]
+
+[dependencies.cretonne-native]
+path = "cretonne/lib/native"
+default-features = false
+features = ["no_std"]
+
+[dependencies.wasmparser]
+git = "https://github.com/nebulet/wasmparser.rs.git"
+branch = "no_std"

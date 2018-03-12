@@ -1,6 +1,4 @@
 use macros::{println, interrupt_stack, interrupt_stack_err, interrupt_stack_page};
-use x86_64::registers::control::Cr2;
-use x86_64::structures::paging::Page;
 
 interrupt_stack!(divide_by_zero, stack, {
     println!("Divide by zero fault");

@@ -7,7 +7,6 @@ use spin::Mutex;
 
 use self::bump::BumpAllocator;
 use self::cache::FrameCache;
-use interrupt;
 
 mod bump;
 mod cache;

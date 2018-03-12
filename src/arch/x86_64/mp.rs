@@ -1,6 +1,5 @@
 use task::Thread;
 
-use spin::Once;
 use x86_64::registers::model_specific::Msr;
 use x86_64::registers::msr::IA32_GS_BASE;
 

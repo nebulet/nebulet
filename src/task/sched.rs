@@ -5,13 +5,11 @@ use time::{Instant, Duration};
 
 use alloc::LinkedList;
 use core::default::Default;
-use core::{mem, ptr};
+use core::mem;
 use core::cmp::min;
-use core::sync::atomic::{AtomicU32, ATOMIC_U32_INIT, AtomicPtr, Ordering};
+use core::sync::atomic::{AtomicU32, ATOMIC_U32_INIT, Ordering};
 
 use spin::RwLock;
-
-use macros::println;
 
 #[derive(Debug)]
 pub struct Scheduler {
@@ -102,8 +100,8 @@ impl Scheduler {
     }
 
     pub fn resched(&self) {
-        let mut old_thread_ptr: *mut Thread = ptr::null_mut();
-        let mut new_thread_ptr: *mut Thread = ptr::null_mut();
+        let old_thread_ptr: *mut Thread;
+        let new_thread_ptr: *mut Thread;
         {
             let new_thread_lock = self.get_top_thread();
             {
@@ -111,7 +109,7 @@ impl Scheduler {
 
                 new_thread.state = ThreadState::Running;
 
-                let mut old_thread = thread::get_current_thread();
+                let old_thread = thread::get_current_thread();
 
                 if &*new_thread as *const Thread as usize == &*old_thread as *const Thread as usize {
                     // if it's the same thread, return

@@ -3,7 +3,6 @@ use x86_64::structures::idt::Idt;
 use x86_64::structures::tss::TaskStateSegment;
 use interrupt::*;
 use spin::Once;
-use macros::println;
 
 const DOUBLE_FAULT_IST_INDEX: usize = 0;
 
