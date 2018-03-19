@@ -7,6 +7,7 @@ authors = ["Lachlan Sneff <lachlan.sneff@gmail.com>"]
 members = ["tools"]
 exclude = [
     "target/x86_64-nebulet/release/bootloader",
+    "target/x86_64-nebulet/debug/bootloader",
     "cretonne"
 ]
 
@@ -14,6 +15,7 @@ exclude = [
 default = ["linked_alloc", "serial"]
 vga = []
 serial = []
+bump_alloc = []
 linked_alloc = ["linked_list_allocator"]
 
 [dependencies]

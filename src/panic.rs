@@ -1,5 +1,3 @@
-
-use arch::macros::println;
 use core::fmt;
 
 #[lang = "panic_fmt"]

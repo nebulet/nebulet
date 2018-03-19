@@ -12,11 +12,9 @@
 #![feature(global_allocator)]
 #![feature(global_asm)]
 #![feature(core_intrinsics)]
-#![feature(integer_atomics)]
+#![feature(fn_must_use)]
+#![feature(naked_functions)]
 #![no_main]
-
-#![allow(dead_code)]
-#![allow(unused_macros)]
 
 #[macro_use]
 extern crate lazy_static;
@@ -40,55 +38,34 @@ extern crate cretonne;
 extern crate wasmparser;
 
 #[macro_use]
-mod arch;
-mod panic;
-mod memory;
-mod time;
-mod common;
-mod allocator;
-mod consts;
-mod task;
-mod abi;
-mod object;
-mod wasm;
+pub mod arch;
+pub mod panic;
+pub mod memory;
+pub mod time;
+pub mod common;
+pub mod allocator;
+pub mod consts;
+pub mod abi;
+pub mod object;
+pub mod strand;
+pub mod wasm;
 
-pub use arch::*;
 pub use consts::*;
-
-use macros::println;
 
 use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 #[global_allocator]
-static ALLOCATOR: allocator::Allocator = allocator::Allocator;
+pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 
 /// The count of all CPUs that can have work scheduled
 static CPU_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
 
-extern fn example_thread_entry(arg: usize) -> i32 {
-    println!("In example thread: {}", arg);
-
-    0
-}
-
-extern fn kernel_thread(_env: usize) -> i32 {
-    for i in 0..160 {
-        println!("Creating thread: {}", i);
-        let thread = task::LockedThread::create(&format!("example thread {}", i), example_thread_entry, i, 16 * 1024)
-            .expect("Could not create example thread");
-        thread.resume().unwrap();
-    }
-
-    0
-}
-
 pub fn kmain(cpus: usize) -> ! {
     CPU_COUNT.store(cpus, Ordering::SeqCst);
 
-    println!("Creating kernel thread");
-    let kthread = task::LockedThread::create("[init]", kernel_thread, 0, 16 * 1024)
-        .expect("Could not create kernel thread");
-    kthread.resume().unwrap();
+    println!("In kmain");
 
-    loop {}
+    loop {
+        unsafe { arch::interrupt::halt(); }
+    }
 }

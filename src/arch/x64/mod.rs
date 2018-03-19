@@ -1,5 +1,6 @@
 
 #[macro_use]
+#[allow(unused_macros)]
 pub mod macros;
 
 pub mod start;
@@ -15,10 +16,10 @@ pub mod idt;
 
 pub mod paging;
 
-pub mod thread;
-
 pub mod asm;
 
-pub mod mp;
+pub mod cpu;
 
-pub use self::thread::{Context, thread_initialize};
+pub mod lock;
+
+pub mod context;

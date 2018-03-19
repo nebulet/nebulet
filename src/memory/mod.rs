@@ -8,8 +8,11 @@ use spin::Mutex;
 use self::bump::BumpAllocator;
 use self::cache::FrameCache;
 
+pub use self::mem::Memory;
+
 mod bump;
 mod cache;
+mod mem;
 
 pub static FRAME_ALLOCATOR: Mutex<Option<FrameCache<BumpAllocator>>> = Mutex::new(None);
 

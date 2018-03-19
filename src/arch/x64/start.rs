@@ -1,13 +1,7 @@
 use os_bootinfo::BootInfo;
-use idt;
-use interrupt;
-use devices;
 use memory;
-use macros::println;
-use paging;
 use allocator;
-use mp;
-use task;
+use arch::{idt, interrupt, devices, paging, cpu};
 
 /// Test of zero values in BSS.
 static BSS_TEST_ZERO: usize = 0x0;
@@ -28,6 +22,8 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
     }
 
     interrupt::disable();
+
+    cpu::init();
     
     memory::init(boot_info);
 
@@ -46,15 +42,9 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
     // Initialize non-essential devices
     devices::init_noncore();
 
-    // context::init();
-
-    mp::init();
-
-    task::init();
-
     println!("OK");
 
-    interrupt::enable_and_nop();
+    interrupt::enable();
 
     ::kmain(1);
 }

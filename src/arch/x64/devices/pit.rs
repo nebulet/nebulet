@@ -1,5 +1,4 @@
 use x86_64::instructions::port::Port;
-use macros::println;
 
 // Mostly taken from Redox OS
 

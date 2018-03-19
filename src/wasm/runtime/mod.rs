@@ -179,7 +179,7 @@ pub struct FuncEnvironment<'module_environment> {
     pub current_memory_extfunc: Option<FuncRef>,
 
     /// The external function declartion for implementing `grow_memory`
-    pub grow_memory_extfunc: Option<FuncRef>,  
+    pub grow_memory_extfunc: Option<FuncRef>,
 }
 
 impl<'module_environment> FuncEnvironment<'module_environment> {

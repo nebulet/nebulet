@@ -1,7 +1,7 @@
 
 use x86_64::structures::idt::Idt;
 use x86_64::structures::tss::TaskStateSegment;
-use interrupt::*;
+use arch::interrupt::*;
 use spin::Once;
 
 const DOUBLE_FAULT_IST_INDEX: usize = 0;

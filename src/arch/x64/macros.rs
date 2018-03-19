@@ -1,19 +1,19 @@
-#[cfg(feature = "vga")]
-use super::printer;
-#[cfg(feature = "serial")]
-use devices::serial;
 
-pub macro print($($arg:tt)*) {
-    #[cfg(feature = "vga")]
-    printer::_print(format_args!($($arg)*));
-    #[cfg(feature = "serial")]
-    serial::_print(format_args!($($arg)*));
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => {{
+        #[cfg(feature = "vga")]
+        $crate::arch::printer::_print(format_args!($($arg)*));
+        #[cfg(feature = "serial")]
+        $crate::arch::devices::serial::_print(format_args!($($arg)*));
+    }};
 }
 
-pub macro println {
-    () => (print!("\n")),
-    ($fmt:expr) => (print!(concat!($fmt, "\n"))),
-    ($fmt:expr, $($arg:tt)*) => (print!(concat!($fmt, "\n"), $($arg)*))
+#[macro_export]
+macro_rules! println {
+    () => (print!("\n"));
+    ($fmt:expr) => (print!(concat!($fmt, "\n")));
+    ($fmt:expr, $($arg:tt)*) => (print!(concat!($fmt, "\n"), $($arg)*));
 }
 
 pub macro interrupt($name:ident, $func:block) {
@@ -33,8 +33,6 @@ pub macro interrupt_stack($name:ident, $stack:ident, $func:block) {
         unsafe {
             $func
         }
-        // for now, always dump the stack
-        println!("{:?}", $stack);
     }
 }
 
@@ -45,9 +43,6 @@ pub macro interrupt_stack_err($name:ident, $stack:ident, $error:ident, $func:blo
         unsafe {
             $func
         }
-        // for now, always dump the stack
-        println!("{:?}", $stack);
-        println!("Error: {}", $error);
     }
 }
 
@@ -58,10 +53,6 @@ pub macro interrupt_stack_page($name:ident, $stack:ident, $error:ident, $func:bl
         unsafe {
             $func
         }
-        // for now, always dump the stack
-        println!("{:?}", $stack);
-        println!("PageError: {:?}", $error);
-        loop {}
     }
 }
 
@@ -79,4 +70,11 @@ macro_rules! unlikely {
             ::core::intrinsics::unlikely($e)
         }
     };
+}
+
+macro_rules! offset_of {
+    ($ty:ty => $field:ident) => {
+        #[allow(unused_unsafe)]
+        unsafe { &(*(0 as *const $ty)).$field as *const _ as usize }
+    }
 }

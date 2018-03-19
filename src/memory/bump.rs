@@ -34,9 +34,7 @@ impl BumpAllocator {
 
         if let Some(region) = self.current_region {
             let start_frame = PhysFrame::containing_address(region.start_addr);
-            if self.next_free_frame < start_frame {
-                self.next_free_frame = start_frame;
-            }
+            self.next_free_frame = start_frame;
         }
     }
 }

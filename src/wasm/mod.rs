@@ -5,3 +5,4 @@
 //! - https://github.com/sunfishcode/wasmstandalone
 
 pub mod runtime;
+pub mod execute;

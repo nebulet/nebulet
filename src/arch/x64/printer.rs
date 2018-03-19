@@ -1,11 +1,12 @@
 use core::fmt::{Write, Result};
 use core::ptr;
-use spin::Mutex;
+
+use arch::lock::PreemptLock;
 
 const VGA_BUFFER: *mut u16 = 0xb8000 as *mut _;
 const SCREEN_SIZE: usize = 80 * 25;
 
-pub static PRINTER: Mutex<Printer> = Mutex::new(Printer::new());
+pub static PRINTER: PreemptLock<Printer> = PreemptLock::new(Printer::new());
 
 pub struct Printer {
     index: usize,
