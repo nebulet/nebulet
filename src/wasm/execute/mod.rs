@@ -93,6 +93,8 @@ pub fn execute(compliation: &Compilation, instance: &mut Instance) -> Result<(),
         mem::transmute::<_, fn(*const *mut u8)>(code_buf.as_ptr())
     };
 
+    println!("Function count: {}", compliation.functions.len());
+
     start_func(vmctx.as_ptr());
 
     // if this returned safely, yay!

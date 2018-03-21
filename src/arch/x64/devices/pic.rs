@@ -33,8 +33,8 @@ pub unsafe fn init() {
     wait();
 
     // clear all masks
-    MASTER.data.write(0xff);
-    SLAVE.data.write(0xff);
+    MASTER.data.write(0);
+    SLAVE.data.write(0);
 
     MASTER.ack();
     SLAVE.ack();

@@ -24,7 +24,7 @@ impl Printer {
         match byte {
             b'\n' => self.newline(),
             _ => {
-                let character = byte as u16 | 0xb << 8;
+                let character = byte as u16 | 0xf << 8;
                 unsafe {
                     ptr::write_volatile(VGA_BUFFER.add(self.index), character);
                 }

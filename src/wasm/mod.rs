@@ -26,7 +26,9 @@ pub fn wasm_test() {
     translate_module(CALL_WASM, &mut environ).unwrap();
 
     let translation = environ.finish_translation();
+    println!("Compiling WASM");
     let compliation = compile_module(&*isa, &translation).unwrap();
+    println!("WASM compiled!");
     let mut instance = Instance::new(compliation.module, &translation.lazy.data_initializers);
 
     println!("Attempting to execute");
