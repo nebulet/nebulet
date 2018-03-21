@@ -1,8 +1,40 @@
 use x86_64::{VirtAddr, PhysAddr};
 use x86_64::structures::paging::{Page, PageTable, Level4, PhysFrame, PageTableFlags, PAGE_SIZE};
 use core::ptr::NonNull;
+use core::mem;
 
-use memory;
+use super::ActivePageTable;
+use arch::memory;
+
+/// In order to enforce correct paging operations in the kernel, these types
+/// are returned on any mapping operation to get the code involved to specify
+/// how it intends to flush changes to a page table
+#[must_use = "The page table must be flushed, or the changes unsafely ignored"]
+pub struct MapperFlush(Page);
+
+impl MapperFlush {
+    /// Create a new flush promise
+    pub fn new(page: Page) -> Self {
+        MapperFlush(page)
+    }
+
+    /// Flush this page in the active table
+    pub fn flush(self, table: &mut ActivePageTable) {
+        table.flush(self.0.clone());
+        mem::forget(self);
+    }
+
+    /// Ignore this. Unsafe and requires a reason for doing so
+    pub unsafe fn ignore(self) {
+        mem::forget(self);
+    }
+}
+
+impl Drop for MapperFlush {
+    fn drop(&mut self) {
+        panic!("Mapper flush was not used!");
+    }
+}
 
 pub struct Mapper {
     p4: NonNull<PageTable<Level4>>,
@@ -75,7 +107,7 @@ impl Mapper {
         .or_else(huge_page)
     }
 
-    pub fn map_to(&mut self, page: Page, frame: PhysFrame, flags: PageTableFlags) {
+    pub fn map_to(&mut self, page: Page, frame: PhysFrame, flags: PageTableFlags) -> MapperFlush {
         let p3 = self.p4_mut()
                    .next_table_create(page.p4_index(), || memory::allocate_frame().unwrap());
         let p2 = p3.next_table_create(page.p3_index(), || memory::allocate_frame().unwrap());
@@ -83,30 +115,31 @@ impl Mapper {
 
         assert!(p1[page.p1_index()].is_unused());
         p1[page.p1_index()].set(frame, flags | PageTableFlags::PRESENT);
+        MapperFlush::new(page)
     }
 
-    pub fn map(&mut self, page: Page, flags: PageTableFlags) {
+    pub fn map(&mut self, page: Page, flags: PageTableFlags) -> MapperFlush {
         let frame = memory::allocate_frame().expect("could not allocate frame");
-        self.map_to(page, frame, flags);
+        self.map_to(page, frame, flags)
     }
 
-    pub fn remap(&mut self, page: Page, flags: PageTableFlags) {
+    pub fn remap(&mut self, page: Page, flags: PageTableFlags) -> MapperFlush {
         let p3 = self.p4_mut()
                    .next_table_create(page.p4_index(), || memory::allocate_frame().unwrap());
         let p2 = p3.next_table_create(page.p3_index(), || memory::allocate_frame().unwrap());
         let p1 = p2.next_table_create(page.p2_index(), || memory::allocate_frame().unwrap());
-        let mut entry = p1[page.p1_index()];
 
-        let frame = PhysFrame::containing_address(entry.points_to().unwrap());
-        entry.set(frame, flags | PageTableFlags::PRESENT);
+        let frame = PhysFrame::containing_address(p1[page.p1_index()].points_to().unwrap());
+        p1[page.p1_index()].set(frame, flags | PageTableFlags::PRESENT);
+        MapperFlush::new(page)
     }
 
-    pub fn identity_map(&mut self, frame: PhysFrame, flags: PageTableFlags) {
+    pub fn identity_map(&mut self, frame: PhysFrame, flags: PageTableFlags) -> MapperFlush {
         let page = Page::containing_address(VirtAddr::new(frame.start_address().as_u64()));
-        self.map_to(page, frame, flags);
+        self.map_to(page, frame, flags)
     }
 
-    pub fn unmap(&mut self, page: Page) {
+    pub fn unmap(&mut self, page: Page) -> MapperFlush {
         assert!(self.translate(page.start_address()).is_some());
 
         let p1 = self.p4_mut()
@@ -121,5 +154,7 @@ impl Mapper {
         tlb::flush(page.start_address());
 
         memory::deallocate_frame(frame);
+
+        MapperFlush::new(page)
     }
 }

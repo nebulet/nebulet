@@ -28,10 +28,10 @@ fn run_qemu() -> io::Result<std::process::ExitStatus> {
     };
 
     Command::new(qemu_path)
-        .args(&["-hda", "bootimage.bin", "-s"])
+        .args(&["-hda", "bootimage.bin", "-s", "-S"])
         .args(&["-serial", "stdio"])
         // .args(&["-chardev", "socket,id=qemu-monitor,host=localhost,port=7777,server,nowait,telnet", "-mon", "qemu-monitor,mode=readline"])
-        // .args(&["-d", "int", "-no-reboot"])
+        .args(&["-d", "int", "-no-reboot"])
         .status()
 }
 

@@ -25,6 +25,9 @@ bitflags = "1.0.1"
 bit_field = "0.9.0"
 hashmap_core = "0.1.2"
 
+[dependencies.compiler_builtins]
+git = "https://github.com/rust-lang-nursery/compiler-builtins"
+
 [dependencies.x86_64]
 git = "https://github.com/Nebulet/x86_64.git"
 branch = "rewrite"

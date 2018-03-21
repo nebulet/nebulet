@@ -1,5 +1,5 @@
 use os_bootinfo::BootInfo;
-use memory;
+use arch::memory;
 use allocator;
 use arch::{idt, interrupt, devices, paging, cpu};
 

@@ -23,3 +23,5 @@ pub mod cpu;
 pub mod lock;
 
 pub mod context;
+
+pub mod memory;

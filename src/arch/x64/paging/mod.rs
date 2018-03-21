@@ -1,5 +1,6 @@
 use core::ops::{Deref, DerefMut};
-use x86_64::structures::paging::{PageTable, PageTableFlags, Level4, PhysFrame};
+use x86_64::structures::paging::{PageTable, Page, PageTableFlags, Level4, PhysFrame};
+use x86_64::instructions::tlb;
 
 use self::mapper::Mapper;
 
@@ -33,7 +34,6 @@ impl ActivePageTable {
     pub fn with<F>(&mut self, table: &mut InactivePageTable, temp_page: &mut temporary_page::TemporaryPage, f: F)
         where F: FnOnce(&mut Mapper)
     {
-        use x86_64::instructions::tlb;
         use x86_64::registers::control::Cr3;
         {
             let backup = Cr3::read().0;
@@ -54,6 +54,12 @@ impl ActivePageTable {
         }
 
         temp_page.unmap(self);
+    }
+
+    pub fn flush(&mut self, page: Page) {
+        unsafe {
+            tlb::flush(page.start_address());
+        }
     }
 }
 

@@ -25,44 +25,55 @@ use wasmparser;
 
 use alloc::{Vec, String};
 
-/// Compute a `ir::ExternalName` for a given wasm function index
-pub fn get_func_name(func_index: FunctionIndex) -> ExternalName {
-    ExternalName::user(0, func_index as u32)
+/// Compute a `ir::ExternalName` for a given wasm function index.
+pub fn get_func_name(func_index: FunctionIndex) -> cretonne::ir::ExternalName {
+    debug_assert!(func_index as u32 as FunctionIndex == func_index);
+    ir::ExternalName::user(0, func_index as u32)
 }
 
-/// An entity to export
+/// An entity to export.
 pub enum Export {
-    /// Function export
+    /// Function export.
     Function(FunctionIndex),
-    /// Table export
+    /// Table export.
     Table(TableIndex),
-    /// Memory export
+    /// Memory export.
     Memory(MemoryIndex),
-    /// Global export
+    /// Global export.
     Global(GlobalIndex),
 }
 
 /// Implementation of a relocation sink that just saves all the information for later
 pub struct RelocSink<'func> {
-    func: &'func Function,
-    /// Relocations recorded for the function
+    func: &'func ir::Function,
+    /// Relocations recorded for the function.
     pub func_relocs: Vec<Relocation>,
 }
 
 impl<'func> binemit::RelocSink for RelocSink<'func> {
-    fn reloc_ebb(&mut self, _offset: binemit::CodeOffset, _reloc: binemit::Reloc, _ebb_offset: binemit::CodeOffset) {
-        unimplemented!();
+    fn reloc_ebb(
+        &mut self,
+        _offset: binemit::CodeOffset,
+        _reloc: binemit::Reloc,
+        _ebb_offset: binemit::CodeOffset,
+    ) {
+        // This should use the `offsets` field of `ir::Function`.
+        panic!("ebb headers not yet implemented");
     }
-
-    fn reloc_external(&mut self, offset: binemit::CodeOffset, reloc: binemit::Reloc, name: &ExternalName, addend: binemit::Addend) {
-        // TODO: Handle grow_memory/current_memory
+    fn reloc_external(
+        &mut self,
+        offset: binemit::CodeOffset,
+        reloc: binemit::Reloc,
+        name: &ExternalName,
+        addend: binemit::Addend,
+    ) {
+        // FIXME: Handle grow_memory/current_memory.
         let func_index = if let ExternalName::User { namespace, index } = *name {
             debug_assert!(namespace == 0);
             index
         } else {
-            panic!("unrecognized external name");
+            panic!("unrecognized external name")
         } as usize;
-
         self.func_relocs.push(Relocation {
             reloc,
             func_index,
@@ -70,9 +81,14 @@ impl<'func> binemit::RelocSink for RelocSink<'func> {
             addend,
         });
     }
-
-    fn reloc_jt(&mut self, _offset: binemit::CodeOffset, _reloc: binemit::Reloc, _jt: ir::JumpTable) {
-        unimplemented!();
+    fn reloc_jt(
+        &mut self,
+        _offset: binemit::CodeOffset,
+        _reloc: binemit::Reloc,
+        jt: ir::JumpTable,
+    ) {
+        let _jump_table = &self.func.jump_tables[jt];
+        panic!("jump tables not yet implemented");
     }
 }
 
@@ -85,31 +101,31 @@ impl<'func> RelocSink<'func> {
     }
 }
 
-/// A data initializer for linear memory
+/// A data initializer for linear memory.
 pub struct DataInitializer<'data> {
-    /// The index of the memory to initialize
+    /// The index of the memory to initialize.
     pub memory_index: MemoryIndex,
-    /// Optionally, a globalvar base to initialize at.
+    /// Optionally a globalvar base to initialize at.
     pub base: Option<GlobalIndex>,
     /// A constant offset to initialize at.
     pub offset: usize,
-    /// The initialization data
+    /// The initialization data.
     pub data: &'data [u8],
 }
 
-/// References to the input wasm data buffer to be decoded and processed later,
-/// seperately from the main module translation.
+/// References to the input wasm data buffer to be decoded and processed later.
+/// separately from the main module translation.
 pub struct LazyContents<'data> {
-    /// References to the function bodies
+    /// References to the function bodies.
     pub function_body_inputs: Vec<&'data [u8]>,
 
-    /// References to the data initializers
+    /// References to the data initializers.
     pub data_initializers: Vec<DataInitializer<'data>>,
 }
 
 impl<'data> LazyContents<'data> {
-    fn new() -> LazyContents<'data> {
-        LazyContents {
+    fn new() -> Self {
+        Self {
             function_body_inputs: Vec::new(),
             data_initializers: Vec::new(),
         }
@@ -119,20 +135,20 @@ impl<'data> LazyContents<'data> {
 /// Object containing the standalone runtime information. To be passed after creation as argument
 /// to `cton_wasm::translatemodule`.
 pub struct ModuleEnvironment<'data, 'module> {
-    /// Compliation setting flags
+    /// Compilation setting flags.
     pub flags: &'module settings::Flags,
 
-    /// Module information
+    /// Module information.
     pub module: &'module mut Module,
 
-    /// References to information to be decoded later
+    /// References to information to be decoded later.
     pub lazy: LazyContents<'data>,
 }
 
 impl<'data, 'module> ModuleEnvironment<'data, 'module> {
-    /// Allocates the runtime data structures with the given isa
-    pub fn new(flags: &'module settings::Flags, module: &'module mut Module) -> ModuleEnvironment<'data, 'module> {
-        ModuleEnvironment {
+    /// Allocates the runtime data structures with the given isa.
+    pub fn new(flags: &'module settings::Flags, module: &'module mut Module) -> Self {
+        Self {
             flags,
             module,
             lazy: LazyContents::new(),
@@ -161,30 +177,33 @@ impl<'data, 'module> ModuleEnvironment<'data, 'module> {
     }
 }
 
-/// The FuncEnvironment implementation for use by the `ModuleEnvironment`
+/// The FuncEnvironment implementation for use by the `ModuleEnvironment`.
 pub struct FuncEnvironment<'module_environment> {
-    /// Compilation setting flags
+    /// Compilation setting flags.
     settings_flags: &'module_environment settings::Flags,
 
-    /// The module-level environment which this function-level environment belongs to
+    /// The module-level environment which this function-level environment belongs to.
     pub module: &'module_environment Module,
 
-    /// The Cretonne global holding the base address of the memories vector
+    /// The Cretonne global holding the base address of the memories vector.
     pub memories_base: Option<ir::GlobalVar>,
 
-    /// The Cretonne global holding the base address of the globals vector
+    /// The Cretonne global holding the base address of the globals vector.
     pub globals_base: Option<ir::GlobalVar>,
 
-    /// The external function declaration for implementing `current_memory`
+    /// The external function declaration for implementing wasm's `current_memory`.
     pub current_memory_extfunc: Option<FuncRef>,
 
-    /// The external function declartion for implementing `grow_memory`
+    /// The external function declaration for implementing wasm's `grow_memory`.
     pub grow_memory_extfunc: Option<FuncRef>,
 }
 
 impl<'module_environment> FuncEnvironment<'module_environment> {
-    fn new(flags: &'module_environment settings::Flags, module: &'module_environment Module) -> FuncEnvironment<'module_environment> {
-        FuncEnvironment {
+    fn new(
+        flags: &'module_environment settings::Flags,
+        module: &'module_environment Module,
+    ) -> Self {
+        Self {
             settings_flags: flags,
             module,
             memories_base: None,
@@ -194,7 +213,7 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
         }
     }
 
-    /// Transform the call argument list in preparation for making a call
+    /// Transform the call argument list in preparation for making a call.
     fn get_real_call_args(func: &Function, call_args: &[ir::Value]) -> Vec<ir::Value> {
         let mut real_call_args = Vec::with_capacity(call_args.len() + 1);
         real_call_args.extend_from_slice(call_args);
@@ -213,24 +232,27 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
     }
 
     fn make_global(&mut self, func: &mut ir::Function, index: GlobalIndex) -> GlobalValue {
+        let ptr_size = self.ptr_size();
         let globals_base = self.globals_base.unwrap_or_else(|| {
+            let offset = 0 * ptr_size;
+            let offset32 = offset as i32;
+            debug_assert_eq!(offset32 as usize, offset);
             let new_base = func.create_global_var(
-                ir::GlobalVarData::VmCtx { offset: Offset32::new(0) },
+                ir::GlobalVarData::VmCtx { offset: Offset32::new(offset32) },
             );
             self.globals_base = Some(new_base);
             new_base
         });
-
         let offset = index as usize * 8;
         let offset32 = offset as i32;
-
+        debug_assert_eq!(offset32 as usize, offset);
         let gv = func.create_global_var(ir::GlobalVarData::Deref {
             base: globals_base,
             offset: Offset32::new(offset32),
         });
         GlobalValue::Memory {
             gv,
-            ty: self.module.globals[index].ty
+            ty: self.module.globals[index].ty,
         }
     }
 
@@ -243,21 +265,20 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
             self.globals_base = Some(new_base);
             new_base
         });
-
         let offset = index as usize * ptr_size;
         let offset32 = offset as i32;
-
+        debug_assert_eq!(offset32 as usize, offset);
         let heap_base = func.create_global_var(ir::GlobalVarData::Deref {
             base: memories_base,
             offset: Offset32::new(offset32),
         });
-        
-        func.create_heap(ir::HeapData {
+        let h = func.create_heap(ir::HeapData {
             base: ir::HeapBase::GlobalVar(heap_base),
             min_size: 0.into(),
             guard_size: 0x8000_0000.into(),
             style: ir::HeapStyle::Static { bound: 0x1_0000_0000.into() },
-        })
+        });
+        h
     }
 
     fn make_indirect_sig(&mut self, func: &mut ir::Function, index: SignatureIndex) -> ir::SigRef {
@@ -280,9 +301,9 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
         callee: ir::Value,
         call_args: &[ir::Value],
     ) -> ir::Inst {
-        // TODO: Implement bounds and signature checking
-        // TODO: Implement nebulet ABI
-        debug_assert!(table_index == 0, "non-default tables not supported yet");
+        // TODO: Cretonne's call_indirect doesn't implement bounds checking
+        // or signature checking, so we need to implement it ourselves.
+        debug_assert_eq!(table_index, 0, "non-default tables not supported yet");
         let real_call_args = FuncEnvironment::get_real_call_args(pos.func, call_args);
         pos.ins().call_indirect(sig_ref, callee, &real_call_args)
     }
@@ -305,23 +326,22 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
         _heap: ir::Heap,
         val: ir::Value,
     ) -> ir::Value {
-        debug_assert!(index == 0, "non-default memories not supported yet");
-        let grow_memory_func = self.grow_memory_extfunc.unwrap_or_else(|| {
+        debug_assert_eq!(index, 0, "non-default memories not supported yet");
+        let grow_mem_func = self.grow_memory_extfunc.unwrap_or_else(|| {
             let sig_ref = pos.func.import_signature(Signature {
                 call_conv: CallConv::Native,
                 argument_bytes: None,
                 params: vec![AbiParam::new(I32)],
                 returns: vec![AbiParam::new(I32)],
             });
-            // TODO: Use a real ExternalName system
+            // FIXME: Use a real ExternalName system.
             pos.func.import_function(ExtFuncData {
                 name: ExternalName::testcase("grow_memory"),
                 signature: sig_ref,
             })
         });
-
-        self.grow_memory_extfunc = Some(grow_memory_func);
-        let call_inst = pos.ins().call(grow_memory_func, &[val]);
+        self.grow_memory_extfunc = Some(grow_mem_func);
+        let call_inst = pos.ins().call(grow_mem_func, &[val]);
         *pos.func.dfg.inst_results(call_inst).first().unwrap()
     }
 
@@ -331,23 +351,22 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
         index: MemoryIndex,
         _heap: ir::Heap,
     ) -> ir::Value {
-        debug_assert!(index == 0, "non-default memories not supported yet");
-        let curr_memory_func = self.current_memory_extfunc.unwrap_or_else(|| {
+        debug_assert_eq!(index, 0, "non-default memories not supported yet");
+        let cur_mem_func = self.current_memory_extfunc.unwrap_or_else(|| {
             let sig_ref = pos.func.import_signature(Signature {
                 call_conv: CallConv::Native,
                 argument_bytes: None,
-                params: vec![],
+                params: Vec::new(),
                 returns: vec![AbiParam::new(I32)],
             });
-            // TODO: Use a real ExternalName system
+            // FIXME: Use a real ExternalName system.
             pos.func.import_function(ExtFuncData {
                 name: ExternalName::testcase("current_memory"),
                 signature: sig_ref,
             })
         });
-
-        self.current_memory_extfunc = Some(curr_memory_func);
-        let call_inst = pos.ins().call(curr_memory_func, &[]);
+        self.current_memory_extfunc = Some(cur_mem_func);
+        let call_inst = pos.ins().call(cur_mem_func, &[]);
         *pos.func.dfg.inst_results(call_inst).first().unwrap()
     }
 }
@@ -357,7 +376,7 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
 /// tells how to translate runtime-dependent wasm instructions. These functions should not be
 /// called by the user.
 impl<'data, 'module> cton_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'data, 'module> {
-    fn get_func_name(&self, func_index: FunctionIndex) -> ExternalName {
+    fn get_func_name(&self, func_index: FunctionIndex) -> cretonne::ir::ExternalName {
         get_func_name(func_index)
     }
 
@@ -369,6 +388,7 @@ impl<'data, 'module> cton_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'
             extension: ArgumentExtension::None,
             location: ArgumentLoc::Unassigned,
         });
+        // TODO: Deduplicate signatures.
         self.module.signatures.push(sig);
     }
 
@@ -382,7 +402,6 @@ impl<'data, 'module> cton_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'
             self.module.imported_funcs.len(),
             "Imported functions must be declared first"
         );
-
         self.module.functions.push(sig_index);
 
         self.module.imported_funcs.push((
@@ -407,7 +426,7 @@ impl<'data, 'module> cton_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'
         self.module.globals.push(global);
     }
 
-    fn get_global(&self, global_index: GlobalIndex) -> &Global {
+    fn get_global(&self, global_index: GlobalIndex) -> &cton_wasm::Global {
         &self.module.globals[global_index]
     }
 
@@ -423,7 +442,6 @@ impl<'data, 'module> cton_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'
         elements: Vec<FunctionIndex>,
     ) {
         debug_assert!(base.is_none(), "global-value offsets not supported yet");
-
         self.module.table_elements.push(module::TableElements {
             table_index,
             base,
@@ -441,10 +459,9 @@ impl<'data, 'module> cton_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'
         memory_index: MemoryIndex,
         base: Option<GlobalIndex>,
         offset: usize,
-        data: &'data [u8]
+        data: &'data [u8],
     ) {
         debug_assert!(base.is_none(), "global-value offsets not supported yet");
-
         self.lazy.data_initializers.push(DataInitializer {
             memory_index,
             base,
@@ -495,60 +512,61 @@ impl<'data, 'module> cton_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'
 /// A record of a relocation to perform.
 #[derive(Debug)]
 pub struct Relocation {
-    /// The relocation code
+    /// The relocation code.
     pub reloc: binemit::Reloc,
-    /// The function index
+    /// The function index.
     pub func_index: FunctionIndex,
-    /// The offset where to apply the relocation
+    /// The offset where to apply the relocation.
     pub offset: binemit::CodeOffset,
-    /// The addend to add to the relocation value
+    /// The addend to add to the relocation value.
     pub addend: binemit::Addend,
 }
 
-/// Relocations to apply to function bodies
+/// Relocations to apply to function bodies.
 pub type Relocations = Vec<Vec<Relocation>>;
 
-/// The result of translating via `ModuleEnvironment`
+/// The result of translating via `ModuleEnvironment`.
 pub struct ModuleTranslation<'data, 'module> {
-    /// The compilation settings flags
+    /// Compilation setting flags.
     pub flags: &'module settings::Flags,
 
-    /// Module information
+    /// Module information.
     pub module: &'module Module,
 
-    /// Pointers into the raw data buffers
+    /// Pointers into the raw data buffer.
     pub lazy: LazyContents<'data>,
 }
 
-/// Convenience functions for the user to be called after execution for debug purposes
+/// Convenience functions for the user to be called after execution for debug purposes.
 impl<'data, 'module> ModuleTranslation<'data, 'module> {
     fn func_env(&self) -> FuncEnvironment {
         FuncEnvironment::new(&self.flags, &self.module)
     }
 
-    /// Compile the module producing a compilation result with associated 
-    /// relocations
+    /// Compile the module, producing a compilation result with associated
+    /// relocations.
     pub fn compile(
         &self,
         isa: &isa::TargetIsa,
     ) -> Result<(Compilation<'module>, Relocations), String> {
         let mut functions = Vec::new();
         let mut relocations = Vec::new();
-
         for (func_index, input) in self.lazy.function_body_inputs.iter().enumerate() {
             let mut context = cretonne::Context::new();
             context.func.name = get_func_name(func_index);
             context.func.signature = self.module.signatures[self.module.functions[func_index]]
                 .clone();
-            
+
             let mut trans = FuncTranslator::new();
             let reader = wasmparser::BinaryReader::new(input);
             trans
                 .translate_from_reader(reader, &mut context.func, &mut self.func_env())
                 .map_err(|e| format!("{}", e))?;
 
-            let code_size = context.compile(isa).map_err(|e| format!("{}", e))? as usize;
-            let mut code_buf: Vec<u8> = Vec::with_capacity(code_size);
+            let code_size = context.compile(isa).map_err(
+                |e| format!("{}", e)
+            )? as usize;
+            let mut code_buf: Vec<u8> = Vec::with_capacity(code_size as usize);
             let mut reloc_sink = RelocSink::new(&context.func);
             code_buf.resize(code_size, 0);
             context.emit_to_memory(code_buf.as_mut_ptr(), &mut reloc_sink, isa);

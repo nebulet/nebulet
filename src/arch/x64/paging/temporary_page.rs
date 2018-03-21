@@ -19,13 +19,13 @@ impl TemporaryPage {
         assert!(active_table.translate_page(self.page.clone()).is_none(),
             "temporary page already mapped");
         
-        active_table.map_to(self.page.clone(), frame, PageTableFlags::WRITABLE);
+        active_table.map_to(self.page.clone(), frame, PageTableFlags::WRITABLE).flush(active_table);
         self.page.start_address()
     }
 
     /// Unmaps the temporary page in the active table
     pub fn unmap(&mut self, active_table: &mut ActivePageTable) {
-        active_table.unmap(self.page.clone());
+        active_table.unmap(self.page.clone()).flush(active_table);
     }
 
     /// Maps the temporary page to the given page table frame in the active

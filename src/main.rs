@@ -14,7 +14,9 @@
 #![feature(core_intrinsics)]
 #![feature(fn_must_use)]
 #![feature(naked_functions)]
+#![feature(compiler_builtins_lib)]
 #![no_main]
+#![deny(unused_must_use)]
 
 #[macro_use]
 extern crate lazy_static;
@@ -25,6 +27,7 @@ extern crate x86_64;
 extern crate spin;
 extern crate rlibc;
 extern crate bit_field;
+extern crate compiler_builtins;
 #[cfg(feature = "linked_alloc")]
 extern crate linked_list_allocator;
 #[macro_use]
@@ -64,6 +67,8 @@ pub fn kmain(cpus: usize) -> ! {
     CPU_COUNT.store(cpus, Ordering::SeqCst);
 
     println!("In kmain");
+
+    wasm::wasm_test();
 
     loop {
         unsafe { arch::interrupt::halt(); }

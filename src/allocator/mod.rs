@@ -22,7 +22,7 @@ unsafe fn map_heap(active_table: &mut ActivePageTable, offset: usize, size: usiz
     let heap_end_page = Page::containing_address(VirtAddr::new((offset + size - 1) as u64));
     let flags = PageTableFlags::PRESENT | PageTableFlags::GLOBAL | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
-        active_table.map(page, flags);
+        active_table.map(page, flags).flush(active_table);
     }
 }
 
