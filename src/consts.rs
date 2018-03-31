@@ -1,5 +1,12 @@
 /// This file contains various constants
 
+/// Version
+pub const VERSION: &'static str = concat!(
+    env!("CARGO_PKG_VERSION_MAJOR"),
+    ".",
+    env!("CARGO_PKG_VERSION_MINOR"),
+);
+
 /// Memory mapping
 /// Top entry of P4 (511) is reserved for recursive mapping
 /// Second from top entry of P4 is reserved for the kernel

@@ -66,7 +66,7 @@ static CPU_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
 pub fn kmain(cpus: usize) -> ! {
     CPU_COUNT.store(cpus, Ordering::SeqCst);
 
-    println!("In kmain");
+    println!("Nebulet v{}", VERSION);
 
     wasm::wasm_test();
 
