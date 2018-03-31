@@ -1,4 +1,13 @@
 # nebulet
 
 ## Building & Running
-`cargo boot`
+```
+# install bootimage
+$> cargo install bootimage
+
+# compile the kernel
+$> bootimage build
+
+# run qemu
+$> cargo boot
+```

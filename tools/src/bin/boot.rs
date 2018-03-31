@@ -2,11 +2,9 @@ use std::process::Command;
 use std::io::{self, Read};
 use std::fs::File;
 
-const TARGET: &'static str = "x86_64-nebulet";
-
 fn main() -> io::Result<()> {
-    let exit_status = build_image()?;
-    if !exit_status.success() { panic!("something went wrong with bootimage"); }
+    // let exit_status = build_image()?;
+    // if !exit_status.success() { panic!("something went wrong with bootimage"); }
 
     run_qemu()?;
 
@@ -32,11 +30,11 @@ fn run_qemu() -> io::Result<std::process::ExitStatus> {
         .status()
 }
 
-fn build_image() -> io::Result<std::process::ExitStatus> {
-    Command::new("bootimage")
-        .arg("--target").arg(TARGET)
-        // .arg("--release")
-        // .arg("--build-bootloader")
-        // .arg("--git").arg("https://github.com/rust-osdev/bootloader")
-        .status()
-}
+// fn build_image() -> io::Result<std::process::ExitStatus> {
+//     Command::new("bootimage")
+//         .arg("build")
+//         // .arg("--release")
+//         // .arg("--build-bootloader")
+//         // .arg("--git").arg("https://github.com/rust-osdev/bootloader")
+//         .status()
+// }
