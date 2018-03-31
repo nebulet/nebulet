@@ -8,7 +8,6 @@ static BSS_TEST_ZERO: usize = 0x0;
 /// Test of non-zero values in data.
 static DATA_TEST_NONZERO: usize = 0xFFFF_FFFF_FFFF_FFFF;
 
-
 /// This function is extremely unsafe
 /// Thus, it is marked unsafe
 #[no_mangle]
@@ -29,7 +28,7 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
 
     // Initialize paging
     let mut active_table = paging::init();
-    
+
     // Initialize dynamic memory allocation
     allocator::init(&mut active_table);
 

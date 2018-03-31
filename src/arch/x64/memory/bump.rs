@@ -10,27 +10,25 @@ use super::FrameAllocator;
 pub struct BumpAllocator {
     next_free_frame: PhysFrame,
     current_region: Option<MemoryRegion>,
-    regions: MemoryMap,
+    regions: &'static MemoryMap,
 }
 
 impl BumpAllocator {
-    pub fn new(memory_map: MemoryMap) -> BumpAllocator {
+    pub fn new(regions: &'static MemoryMap) -> BumpAllocator {
         let mut allocator = BumpAllocator {
-            // start at two frames from 0
-            next_free_frame: PhysFrame::containing_address(PhysAddr::new(4096 * 2)),
+            next_free_frame: PhysFrame::containing_address(PhysAddr::new(0)),
             current_region: None,
-            regions: memory_map,
+            regions,
         };
         allocator.choose_next_area();
         allocator
     }
 
     fn choose_next_area(&mut self) {
-        self.current_region = self.regions.clone().into_iter().find(|region| {
-            // let address = region.start_addr + region.len - 1;
-            PhysFrame::containing_address(region.start_addr + region.len - 1) >= self.next_free_frame
-                && region.region_type == MemoryRegionType::Usable
-        });
+        self.current_region = self.regions.into_iter().find(|region| {
+            region.region_type == MemoryRegionType::Usable
+                && PhysFrame::containing_address(region.start_addr + region.len - 1) >= self.next_free_frame
+        }).map(|r| r.clone());
 
         if let Some(region) = self.current_region {
             let start_frame = PhysFrame::containing_address(region.start_addr);

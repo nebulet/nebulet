@@ -27,9 +27,6 @@ pub const KERNEL_HEAP_SIZE: usize = 20 * 1024 * 1024; // 1MB
 /// and bumps up.
 /// 
 /// This starts at 1 GiB.
-pub const SIP_HEAP_OFFSET: usize = 1 << 30;
-/// The size of each SIP Heap.
-/// The physical memory is not allocated, just the virtual memory.
-/// 
-/// Each SIP Heap is 4GiB.
-pub const SIP_HEAP_SIZE: usize = 4 << 30;
+pub const SIP_MEM_OFFSET: usize = KERNEL_HEAP_OFFSET - PML4_SIZE;
+
+pub const SIP_MEM_SIZE: usize = KERNEL_HEAP_OFFSET - SIP_MEM_OFFSET;

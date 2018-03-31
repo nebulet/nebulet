@@ -1,6 +1,3 @@
-
-#![feature(termination_trait)]
-
 use std::process::Command;
 use std::io::{self, Read};
 use std::fs::File;
@@ -40,6 +37,6 @@ fn build_image() -> io::Result<std::process::ExitStatus> {
         .arg("--target").arg(TARGET)
         // .arg("--release")
         // .arg("--build-bootloader")
-        // .arg("--git").arg("https://github.com/nebulet/bootloader")
+        // .arg("--git").arg("https://github.com/rust-osdev/bootloader")
         .status()
 }

@@ -70,6 +70,14 @@ pub fn kmain(cpus: usize) -> ! {
 
     wasm::wasm_test();
 
+    // use core::mem;
+
+    // for i in 0.. {
+    //     println!("i = {}", i);
+    //     let v: Vec<u8> = vec![0; 16 * 1024];
+    //     mem::forget(v);
+    // }
+
     loop {
         unsafe { arch::interrupt::halt(); }
     }

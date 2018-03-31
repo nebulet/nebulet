@@ -13,10 +13,12 @@ mod cache;
 
 pub static FRAME_ALLOCATOR: Mutex<Option<FrameCache<BumpAllocator>>> = Mutex::new(None);
 
-pub fn init(boot_info: &mut BootInfo) {
+pub fn init(boot_info: &'static mut BootInfo) {
     setup_recursive_paging(boot_info.p4_table);
 
-    *FRAME_ALLOCATOR.lock() = Some(FrameCache::new(BumpAllocator::new(boot_info.memory_map.clone())));
+    boot_info.sort_memory_map();
+
+    *FRAME_ALLOCATOR.lock() = Some(FrameCache::new(BumpAllocator::new(&boot_info.memory_map)));
 }
 
 fn setup_recursive_paging(p4_table: &mut PageTable<Level4>) {

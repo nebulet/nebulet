@@ -10,8 +10,8 @@ pub mod instance;
 pub mod compilation;
 
 pub use self::module::Module;
-pub use self::compilation::Compilation;
-pub use self::instance::{Instance, PAGE_SIZE};
+pub use self::compilation::{Compilation, Compiler};
+pub use self::instance::Instance;
 
 use cton_wasm::{self, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
                 GlobalValue, SignatureIndex, FuncTranslator};
@@ -22,6 +22,8 @@ use cretonne::ir::immediates::Offset32;
 use cretonne::cursor::FuncCursor;
 use cretonne::{self, isa, settings, binemit};
 use wasmparser;
+
+use nabi;
 
 use alloc::{Vec, String};
 
@@ -257,6 +259,7 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
     }
 
     fn make_heap(&mut self, func: &mut ir::Function, index: MemoryIndex) -> ir::Heap {
+        use memory::WasmMemory;
         let ptr_size = self.ptr_size();
         let memories_base = self.memories_base.unwrap_or_else(|| {
             let new_base = func.create_global_var(ir::GlobalVarData::VmCtx {
@@ -275,8 +278,8 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
         let h = func.create_heap(ir::HeapData {
             base: ir::HeapBase::GlobalVar(heap_base),
             min_size: 0.into(),
-            guard_size: 0x8000_0000.into(),
-            style: ir::HeapStyle::Static { bound: 0x1_0000_0000.into() },
+            guard_size: (WasmMemory::DEFAULT_GUARD_SIZE as i64).into(),
+            style: ir::HeapStyle::Static { bound: (WasmMemory::DEFAULT_HEAP_SIZE as i64).into() },
         });
         h
     }
@@ -548,31 +551,22 @@ impl<'data, 'module> ModuleTranslation<'data, 'module> {
     pub fn compile(
         &self,
         isa: &isa::TargetIsa,
-    ) -> Result<(Compilation<'module>, Relocations), String> {
-        let mut functions = Vec::new();
-        let mut relocations = Vec::new();
+    ) -> Result<Compilation<'module>, nabi::Error> {
+        let mut compiler = Compiler::with_capacity(&self.module, isa, self.lazy.function_body_inputs.len());
+
         for (func_index, input) in self.lazy.function_body_inputs.iter().enumerate() {
             let mut context = cretonne::Context::new();
             context.func.name = get_func_name(func_index);
-            context.func.signature = self.module.signatures[self.module.functions[func_index]]
-                .clone();
+            context.func.signature = self.module.signatures[self.module.functions[func_index]].clone();
 
             let mut trans = FuncTranslator::new();
             let reader = wasmparser::BinaryReader::new(input);
-            trans
-                .translate_from_reader(reader, &mut context.func, &mut self.func_env())
-                .map_err(|e| format!("{}", e))?;
-
-            let code_size = context.compile(isa).map_err(
-                |e| format!("{}", e)
-            )? as usize;
-            let mut code_buf: Vec<u8> = Vec::with_capacity(code_size as usize);
-            let mut reloc_sink = RelocSink::new(&context.func);
-            code_buf.resize(code_size, 0);
-            context.emit_to_memory(code_buf.as_mut_ptr(), &mut reloc_sink, isa);
-            functions.push(code_buf);
-            relocations.push(reloc_sink.func_relocs);
+            trans.translate_from_reader(reader, &mut context.func, &mut self.func_env())
+                .map_err(|_| nabi::Error::INTERNAL)?;
+            
+            compiler.define_function(context)?;
         }
-        Ok((Compilation::new(self.module, functions), relocations))
+
+        compiler.compile(&self.lazy.data_initializers)
     }
 }

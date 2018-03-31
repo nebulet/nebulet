@@ -12,9 +12,9 @@ exclude = [
 ]
 
 [features]
-default = ["linked_alloc", "vga"]
-vga = []
-serial = []
+default = ["linked_alloc", "serial"]
+vga = [] # log to vga
+serial = [] # log to serial
 bump_alloc = []
 linked_alloc = ["linked_list_allocator"]
 
@@ -25,15 +25,15 @@ bitflags = "1.0.1"
 bit_field = "0.9.0"
 hashmap_core = "0.1.2"
 
-[dependencies.compiler_builtins]
-git = "https://github.com/rust-lang-nursery/compiler-builtins"
-
 [dependencies.x86_64]
-git = "https://github.com/Nebulet/x86_64.git"
+git = "https://github.com/nebulet/x86_64.git"
 branch = "rewrite"
 
 [dependencies.os_bootinfo]
-git = "https://github.com/Nebulet/os_bootinfo.git"
+git = "https://github.com/nebulet/os_bootinfo.git"
+
+[dependencies.compiler_builtins]
+git = "https://github.com/rust-lang-nursery/compiler-builtins"
 
 [dependencies.lazy_static]
 version = "1.0.0"
