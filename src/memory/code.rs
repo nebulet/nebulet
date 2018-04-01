@@ -9,16 +9,16 @@ use wasm::runtime::Module;
 use memory::Region;
 
 /// Represents the area of memory that contains compiled code
-pub struct Code<'module> {
-    module: &'module Module,
+pub struct Code {
+    module: Module,
     instance: Instance,
     region: Region,
     start_func: *const u8,
     vmctx: VmCtx,
 }
 
-impl<'module> Code<'module> {
-    pub fn new(module: &'module Module, mut region: Region, instance: Instance, vmctx: VmCtx, start_func: *const u8) -> Self {
+impl Code {
+    pub fn new(module: Module, mut region: Region, instance: Instance, vmctx: VmCtx, start_func: *const u8) -> Self {
         let flags = PageTableFlags::PRESENT | PageTableFlags::GLOBAL;
         region.remap(flags);
 
@@ -31,7 +31,7 @@ impl<'module> Code<'module> {
         }
     }
 
-    pub fn execute(self) {
+    pub fn execute(&self) {
         let start_func = unsafe {
             mem::transmute::<_, fn(*const VmCtx)>(self.start_func)
         };

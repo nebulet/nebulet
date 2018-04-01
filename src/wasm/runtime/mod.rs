@@ -136,20 +136,20 @@ impl<'data> LazyContents<'data> {
 
 /// Object containing the standalone runtime information. To be passed after creation as argument
 /// to `cton_wasm::translatemodule`.
-pub struct ModuleEnvironment<'data, 'module> {
+pub struct ModuleEnvironment<'data, 'flags> {
     /// Compilation setting flags.
-    pub flags: &'module settings::Flags,
+    pub flags: &'flags settings::Flags,
 
     /// Module information.
-    pub module: &'module mut Module,
+    pub module: Module,
 
     /// References to information to be decoded later.
     pub lazy: LazyContents<'data>,
 }
 
-impl<'data, 'module> ModuleEnvironment<'data, 'module> {
+impl<'data, 'flags> ModuleEnvironment<'data, 'flags> {
     /// Allocates the runtime data structures with the given isa.
-    pub fn new(flags: &'module settings::Flags, module: &'module mut Module) -> Self {
+    pub fn new(flags: &'flags settings::Flags, module: Module) -> Self {
         Self {
             flags,
             module,
@@ -170,7 +170,7 @@ impl<'data, 'module> ModuleEnvironment<'data, 'module> {
     /// `ModuleEnvironment` with its mutable reference to the `Module` and
     /// produces a `ModuleTranslation` with an immutable reference to the
     /// `Module`.
-    pub fn finish_translation(self) -> ModuleTranslation<'data, 'module> {
+    pub fn finish_translation(self) -> ModuleTranslation<'data, 'flags> {
         ModuleTranslation {
             flags: self.flags,
             module: self.module,
@@ -378,7 +378,7 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
 /// `cton_wasm::translatemodule` because it
 /// tells how to translate runtime-dependent wasm instructions. These functions should not be
 /// called by the user.
-impl<'data, 'module> cton_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'data, 'module> {
+impl<'data, 'flags> cton_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'data, 'flags> {
     fn get_func_name(&self, func_index: FunctionIndex) -> cretonne::ir::ExternalName {
         get_func_name(func_index)
     }
@@ -529,19 +529,19 @@ pub struct Relocation {
 pub type Relocations = Vec<Vec<Relocation>>;
 
 /// The result of translating via `ModuleEnvironment`.
-pub struct ModuleTranslation<'data, 'module> {
+pub struct ModuleTranslation<'data, 'flags> {
     /// Compilation setting flags.
-    pub flags: &'module settings::Flags,
+    pub flags: &'flags settings::Flags,
 
     /// Module information.
-    pub module: &'module Module,
+    pub module: Module,
 
     /// Pointers into the raw data buffer.
     pub lazy: LazyContents<'data>,
 }
 
 /// Convenience functions for the user to be called after execution for debug purposes.
-impl<'data, 'module> ModuleTranslation<'data, 'module> {
+impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
     fn func_env(&self) -> FuncEnvironment {
         FuncEnvironment::new(&self.flags, &self.module)
     }
@@ -549,10 +549,10 @@ impl<'data, 'module> ModuleTranslation<'data, 'module> {
     /// Compile the module, producing a compilation result with associated
     /// relocations.
     pub fn compile(
-        &self,
+        self,
         isa: &isa::TargetIsa,
-    ) -> Result<Compilation<'module>, nabi::Error> {
-        let mut compiler = Compiler::with_capacity(&self.module, isa, self.lazy.function_body_inputs.len());
+    ) -> Result<Compilation, nabi::Error> {
+        let mut compiler = Compiler::with_capacity(isa, self.lazy.function_body_inputs.len());
 
         for (func_index, input) in self.lazy.function_body_inputs.iter().enumerate() {
             let mut context = cretonne::Context::new();
@@ -567,6 +567,6 @@ impl<'data, 'module> ModuleTranslation<'data, 'module> {
             compiler.define_function(context)?;
         }
 
-        compiler.compile(&self.lazy.data_initializers)
+        compiler.compile(self.module, &self.lazy.data_initializers)
     }
 }

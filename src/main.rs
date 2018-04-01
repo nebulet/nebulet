@@ -15,6 +15,8 @@
 #![feature(fn_must_use)]
 #![feature(naked_functions)]
 #![feature(compiler_builtins_lib)]
+#![feature(nll)]
+
 #![no_main]
 #![deny(unused_must_use)]
 

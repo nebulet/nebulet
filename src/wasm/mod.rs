@@ -11,33 +11,58 @@ use cton_native;
 use self::runtime::{Instance, Module, ModuleEnvironment};
 use cretonne::{result::CtonError, isa::TargetIsa};
 use cretonne::settings::{self, Configurable};
+use memory::Code;
+
+use nabi::{Result, Error};
+
+use alloc::Vec;
 
 pub fn wasm_test() {
+    let codes: Vec<Result<Code>> = WASM_TESTS
+        .iter()
+        .map(|wasm| compile(*wasm))
+        .collect();
+
+    for (i, code_opt) in codes.iter().enumerate() {
+        match code_opt {
+            Ok(code) => {
+                println!("Executing wasm test #{}", i);
+                code.execute();
+            },
+            Err(err) => {
+                println!("Wasm test #{} failed to compile: {:?}", i, err);
+            }
+        }
+    }
+    println!("Didn't crash!");
+}
+
+pub fn compile(wasm: &[u8]) -> Result<Code> {
     let (mut flag_builder, isa_builder) = cton_native::builders()
         .expect("Host machine not supported.");
 
-    flag_builder.set("opt_level", "best").unwrap();
+    flag_builder.set("opt_level", "best")
+        .map_err(|_| Error::INTERNAL)?;
 
     let isa = isa_builder.finish(settings::Flags::new(&flag_builder));
 
     let mut module = Module::new();
-    let mut environ = ModuleEnvironment::new(isa.flags(), &mut module);
-    translate_module(MEMORY_WASM, &mut environ).unwrap();
+    let mut environ = ModuleEnvironment::new(isa.flags(), module);
 
+    translate_module(wasm, &mut environ)
+        .map_err(|_| Error::INTERNAL)?;
+    
     let translation = environ.finish_translation();
-    println!("Compiling WASM");
-    let compliation = translation.compile(&*isa)
-        .unwrap();
-    println!("WASM compiled!");
+    let compliation = translation.compile(&*isa)?;
 
-    let code = compliation.emit();
-
-    println!("Attempting to execute");
-
-    code.execute();
-
-    println!("It didn't crash!");
+    Ok(compliation.emit())
 }
 
-static CALL_WASM: &'static [u8] = include_bytes!("call.wasm");
-static MEMORY_WASM: &'static [u8] = include_bytes!("memory.wasm");
+static WASM_TESTS: [&'static [u8]; 6] = [
+    include_bytes!("wasmtests/arith.wasm"),
+    include_bytes!("wasmtests/call.wasm"),
+    include_bytes!("wasmtests/fibonacci.wasm"),
+    include_bytes!("wasmtests/globals.wasm"),
+    include_bytes!("wasmtests/memory.wasm"),
+    &[0x42, 0x43, 0x44, 0x45],
+];
