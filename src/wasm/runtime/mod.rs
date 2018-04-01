@@ -60,7 +60,7 @@ impl<'func> binemit::RelocSink for RelocSink<'func> {
         _ebb_offset: binemit::CodeOffset,
     ) {
         // This should use the `offsets` field of `ir::Function`.
-        panic!("ebb headers not yet implemented");
+        unimplemented!();
     }
     fn reloc_external(
         &mut self,
@@ -69,19 +69,22 @@ impl<'func> binemit::RelocSink for RelocSink<'func> {
         name: &ExternalName,
         addend: binemit::Addend,
     ) {
-        // FIXME: Handle grow_memory/current_memory.
-        let func_index = if let ExternalName::User { namespace, index } = *name {
-            debug_assert!(namespace == 0);
-            index
-        } else {
-            panic!("unrecognized external name")
-        } as usize;
-        self.func_relocs.push(Relocation {
-            reloc,
-            func_index,
-            offset,
-            addend,
-        });
+        match *name {
+            ExternalName::User {
+                namespace: 0,
+                index,
+            } => {
+                self.func_relocs.push(Relocation {
+                    reloc,
+                    func_index: index as usize,
+                    offset,
+                    addend,
+                });
+            },
+            _ => {
+                unimplemented!();
+            }
+        }
     }
     fn reloc_jt(
         &mut self,
@@ -89,8 +92,7 @@ impl<'func> binemit::RelocSink for RelocSink<'func> {
         _reloc: binemit::Reloc,
         jt: ir::JumpTable,
     ) {
-        let _jump_table = &self.func.jump_tables[jt];
-        panic!("jump tables not yet implemented");
+        unimplemented!();
     }
 }
 
@@ -314,12 +316,26 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
     fn translate_call(
         &mut self,
         mut pos: FuncCursor,
-        _callee_index: FunctionIndex,
+        callee_index: FunctionIndex,
         callee: ir::FuncRef,
         call_args: &[ir::Value],
     ) -> ir::Inst {
         let real_call_args = FuncEnvironment::get_real_call_args(pos.func, call_args);
-        pos.ins().call(callee, &real_call_args)
+        // Since imported functions are declared first,
+        // this will be true if the callee is an imported function
+        if callee_index < self.module.imported_funcs.len() { // external function
+            let sig_ref = pos.func.dfg.ext_funcs[callee].signature;
+            // convert callee into value needed for `call_indirect`
+            let callee_value = pos.ins()
+                .func_addr(self.native_pointer(), callee);
+
+            pos.ins()
+                .call_indirect(sig_ref, callee_value, &real_call_args)
+        } else { // internal function
+
+            pos.ins()
+                .call(callee, &real_call_args)
+        }
     }
 
     fn translate_grow_memory(

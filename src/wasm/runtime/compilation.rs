@@ -13,7 +13,23 @@ use nabi::{Result, Error};
 
 use core::slice;
 use core::ptr::{write_unaligned, NonNull};
-use alloc::Vec;
+use alloc::{Vec, String};
+
+extern "C" fn test_external_func(arg: u64) {
+    println!("Called from wasm! arg = {}", arg);
+}
+
+#[derive(Debug)]
+enum FunctionType {
+    Local {
+        offset: usize,
+        size: usize,
+    },
+    External {
+        module: String,
+        name: String,
+    }
+}
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -26,7 +42,9 @@ pub struct Compilation {
 
     /// Compiled machine code for the function bodies
     /// This is mapped onto `self.region`.
-    functions: Vec<(usize, usize)>,
+    functions: Vec<FunctionType>,
+
+    first_local_function: usize,
 
     /// The computed relocations
     relocations: Relocations,
@@ -34,12 +52,20 @@ pub struct Compilation {
 
 impl Compilation {
     /// Allocates the runtime data structures with the given flags
-    pub fn new(module: Module, region: Region, functions: Vec<(usize, usize)>, relocations: Relocations, instance: Instance) -> Self {
+    fn new(module: Module, region: Region, functions: Vec<FunctionType>, relocations: Relocations, instance: Instance) -> Self {
+        let first_local_function = functions
+            .iter()
+            .position(|f| match f {
+                FunctionType::Local {..} => true,
+                _ => false,
+            }).unwrap();
+
         Compilation {
             module,
             region,
             instance,
             functions,
+            first_local_function,
             relocations,
         }
     }
@@ -50,23 +76,43 @@ impl Compilation {
         // TODO: Support architectures other than x86_64, and other reloc kinds.
         for (i, function_relocs) in self.relocations.iter().enumerate() {
             for ref r in function_relocs {
-                let target_func_addr: isize = self.get_function(r.func_index).as_ptr() as isize;
-                let body = self.get_function(i);
-                unsafe {
-                    let reloc_addr = body.as_ptr().offset(r.offset as isize) as isize;
+                let (target_func_addr, is_local) = self.get_function_addr(r.func_index);
+                // let target_func_addr: isize = self.get_function_addr(r.func_index) as isize;
+                let body_addr = self.get_function_addr(i + self.first_local_function).0;
+
+                let (reloc_addr, reloc_delta) = if is_local {
+                    let reloc_addr = unsafe { body_addr.offset(r.offset as isize) as isize };
                     let reloc_addend = r.addend as isize - 4;
-                    let reloc_delta_i32 = (target_func_addr - reloc_addr + reloc_addend) as i32;
-                    write_unaligned(reloc_addr as *mut i32, reloc_delta_i32);
+                    let reloc_delta = (target_func_addr as isize - reloc_addr + reloc_addend) as i32;
+                    (reloc_addr, reloc_delta)
+                } else {
+                    let reloc_addr = unsafe { body_addr.offset(r.offset as isize) as isize };
+                    (reloc_addr, target_func_addr as i32)
+                };
+
+                unsafe {
+                    write_unaligned(reloc_addr as *mut i32, reloc_delta);
                 }
             }
         }
     }
 
-    fn get_function(&self, index: usize) -> &[u8] {
-        let region_start = self.region.start().as_u64() as *mut u8;
-        let (offset, size) = self.functions[index];
-        unsafe {
-            slice::from_raw_parts(region_start.add(offset), size)
+    fn get_function_addr(&self, index: usize) -> (*mut u8, bool) {
+        match self.functions[index] {
+            FunctionType::Local {
+                offset,
+                size,
+            } => {
+                ((self.region.start().as_u64() as usize + offset) as *mut u8, true)
+            },
+            FunctionType::External {
+                ref module,
+                ref name,
+            } => {
+                // TODO: Lookup `module` and `name` to find external address
+                // For now, hardcode to single function
+                (test_external_func as *mut u8, false)
+            }
         }
     } 
 
@@ -78,8 +124,7 @@ impl Compilation {
 
         let start_index = self.module.start_func
             .expect("No start function");
-        
-        let start_ptr = self.get_function(start_index).as_ptr();
+        let start_ptr = self.get_function_addr(start_index).0;
 
         Code::new(self.module, self.region, self.instance, vmctx, start_ptr)
     }
@@ -111,7 +156,10 @@ impl<'isa> Compiler<'isa> {
     /// Define a function. This also compiles the function.
     pub fn define_function(&mut self, mut ctx: cretonne::Context) -> Result<()> {
         let code_size = ctx.compile(self.isa)
-            .map_err(|_| Error::INTERNAL)? as usize;
+            .map_err(|e| {
+                println!("Compile error: {:?}", e);
+                Error::INTERNAL
+            })? as usize;
 
         self.contexts.push((ctx, code_size));
 
@@ -130,17 +178,27 @@ impl<'isa> Compiler<'isa> {
         let mut region = sip::allocate_region(self.total_size)
             .ok_or(Error::NO_MEMORY)?;
 
-        let mut functions = Vec::with_capacity(self.contexts.len());
+        let mut functions = Vec::with_capacity(module.functions.len());
         let mut relocs = Vec::with_capacity(self.contexts.len());
 
         let mut offset = 0;
         let region_start = region.start().as_u64() as usize;
+
+        for (module, name) in module.imported_funcs.iter().cloned() {
+            functions.push(FunctionType::External {
+                module,
+                name,
+            });
+        }
         
         // emit functions to memory
         for (ref ctx, size) in self.contexts.iter() {
             let mut reloc_sink = RelocSink::new(&ctx.func);
             ctx.emit_to_memory((region_start + offset) as *mut u8, &mut reloc_sink, self.isa);
-            functions.push((offset, *size));
+            functions.push(FunctionType::Local {
+                offset,
+                size: *size,
+            });
             relocs.push(reloc_sink.func_relocs);
 
             offset += size;
