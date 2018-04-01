@@ -18,21 +18,18 @@ use nabi::{Result, Error};
 use alloc::Vec;
 
 pub fn wasm_test() {
-    let codes: Vec<Result<Code>> = WASM_TESTS
-        .iter()
-        .map(|wasm| compile(*wasm))
-        .collect();
-
-    for (i, code_opt) in codes.iter().enumerate() {
-        match code_opt {
-            Ok(code) => {
-                println!("Executing wasm test #{}", i);
-                code.execute();
-            },
-            Err(err) => {
-                println!("Wasm test #{} failed to compile: {:?}", i, err);
-            }
+    let mut codes = Vec::new();
+    for (i, wasm) in WASM_TESTS.iter().enumerate() {
+        match compile(wasm) {
+            Ok(code) => codes.push((i, code)),
+            Err(err) => println!("Wasm test #{} failed to compile: {:?}", i, err),
         }
+    }
+
+
+    for (i, code) in codes.iter() {
+        println!("Executing wasm test #{}", i);
+        code.execute();
     }
     println!("Didn't crash!");
 }
@@ -64,5 +61,4 @@ static WASM_TESTS: [&'static [u8]; 6] = [
     include_bytes!("wasmtests/fibonacci.wasm"),
     include_bytes!("wasmtests/globals.wasm"),
     include_bytes!("wasmtests/memory.wasm"),
-    &[0x42, 0x43, 0x44, 0x45],
 ];
