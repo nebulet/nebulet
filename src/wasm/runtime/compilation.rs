@@ -6,6 +6,7 @@ use super::instance::Instance;
 use super::{Relocations, Relocation, DataInitializer};
 use cretonne::{self, result::CtonError, isa::TargetIsa};
 use super::RelocSink;
+use super::abi::ABI_MAP;
 
 use memory::{Code, Region, sip};
 
@@ -71,14 +72,14 @@ impl Compilation {
     }
 
     /// Relocate the compliation.
-    fn relocate(&mut self) {
+    fn relocate(&mut self) -> Result<()> {
         // The relocations are relative to the relocation's address plus four bytes
         // TODO: Support architectures other than x86_64, and other reloc kinds.
         for (i, function_relocs) in self.relocations.iter().enumerate() {
             for ref r in function_relocs {
-                let (target_func_addr, is_local) = self.get_function_addr(r.func_index);
+                let (target_func_addr, is_local) = self.get_function_addr(r.func_index)?;
                 // let target_func_addr: isize = self.get_function_addr(r.func_index) as isize;
-                let body_addr = self.get_function_addr(i + self.first_local_function).0;
+                let body_addr = self.get_function_addr(i + self.first_local_function)?.0;
 
                 let (reloc_addr, reloc_delta) = if is_local {
                     let reloc_addr = unsafe { body_addr.offset(r.offset as isize) as isize };
@@ -95,38 +96,45 @@ impl Compilation {
                 }
             }
         }
+
+        Ok(())
     }
 
-    fn get_function_addr(&self, index: usize) -> (*mut u8, bool) {
+    fn get_function_addr(&self, index: usize) -> Result<(*mut u8, bool)> {
         match self.functions[index] {
             FunctionType::Local {
                 offset,
                 size,
             } => {
-                ((self.region.start().as_u64() as usize + offset) as *mut u8, true)
+                Ok(((self.region.start().as_u64() as usize + offset) as *mut u8, true))
             },
             FunctionType::External {
                 ref module,
                 ref name,
             } => {
+                println!("Attempting to load {}:{}", module, name);
                 // TODO: Lookup `module` and `name` to find external address
                 // For now, hardcode to single function
-                (test_external_func as *mut u8, false)
+                if module != "abi" {
+                    return Err(Error::INTERNAL);
+                }
+
+                let external_func_ptr = ABI_MAP.get(name.as_str())?;
+                Ok((*external_func_ptr as *mut u8, false))
             }
         }
     } 
 
     /// Emit a `Code` instance
-    pub fn emit(mut self) -> Code {
-        self.relocate();
+    pub fn emit(mut self) -> Result<Code> {
+        self.relocate()?;
 
         let vmctx = self.instance.generate_vmctx();
 
-        let start_index = self.module.start_func
-            .expect("No start function");
-        let start_ptr = self.get_function_addr(start_index).0;
+        let start_index = self.module.start_func?;
+        let start_ptr = self.get_function_addr(start_index)?.0;
 
-        Code::new(self.module, self.region, self.instance, vmctx, start_ptr)
+        Ok(Code::new(self.module, self.region, self.instance, vmctx, start_ptr))
     }
 }
 

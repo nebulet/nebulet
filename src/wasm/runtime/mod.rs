@@ -8,6 +8,7 @@
 pub mod module;
 pub mod instance;
 pub mod compilation;
+mod abi;
 
 pub use self::module::Module;
 pub use self::compilation::{Compilation, Compiler};
@@ -321,6 +322,7 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
         call_args: &[ir::Value],
     ) -> ir::Inst {
         let real_call_args = FuncEnvironment::get_real_call_args(pos.func, call_args);
+
         // Since imported functions are declared first,
         // this will be true if the callee is an imported function
         if callee_index < self.module.imported_funcs.len() { // external function
@@ -332,7 +334,6 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
             pos.ins()
                 .call_indirect(sig_ref, callee_value, &real_call_args)
         } else { // internal function
-
             pos.ins()
                 .call(callee, &real_call_args)
         }
