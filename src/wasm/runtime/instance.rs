@@ -33,7 +33,7 @@ pub struct Instance {
     /// WebAssembly global variable data
     pub globals: Vec<u8>,
 
-    memory_array_backing: Vec<*mut u8>, 
+    memory_array_backing: Vec<*mut u8>,
 }
 
 impl Instance {

@@ -100,27 +100,37 @@ impl Compilation {
         Ok(())
     }
 
-    fn get_function_addr(&self, index: usize) -> Result<(*mut u8, bool)> {
+    fn get_function_addr(&self, index: usize) -> Result<(*const u8, bool)> {
         match self.functions[index] {
             FunctionType::Local {
                 offset,
                 size,
             } => {
-                Ok(((self.region.start().as_u64() as usize + offset) as *mut u8, true))
+                Ok(((self.region.start().as_u64() as usize + offset) as *const u8, true))
             },
             FunctionType::External {
                 ref module,
                 ref name,
             } => {
-                println!("Attempting to load {}:{}", module, name);
                 // TODO: Lookup `module` and `name` to find external address
-                // For now, hardcode to single function
+                // For now, hardcode to single module
+                // TODO: Design an api surface
                 if module != "abi" {
                     return Err(Error::INTERNAL);
                 }
 
-                let external_func_ptr = ABI_MAP.get(name.as_str())?;
-                Ok((*external_func_ptr as *mut u8, false))
+                let abi_func = ABI_MAP.get(name.as_str())?;
+
+                let imported_sig = &self.module.signatures[index];
+
+                if !abi_func.same_sig(imported_sig) {
+                    println!("Incorrect signature");
+                    println!("ABI sig: {:?}", abi_func);
+                    println!("Import sig: {:?}", imported_sig);
+                    return Err(Error::INTERNAL);
+                }
+
+                Ok((abi_func.ptr, false))
             }
         }
     } 

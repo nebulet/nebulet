@@ -8,7 +8,10 @@
 pub mod module;
 pub mod instance;
 pub mod compilation;
+#[macro_use]
+mod abi_types;
 mod abi;
+
 
 pub use self::module::Module;
 pub use self::compilation::{Compilation, Compiler};

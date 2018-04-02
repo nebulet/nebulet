@@ -1,24 +1,12 @@
-use hashmap_core::HashMap;
-
 use abi;
+pub use super::abi_types::AbiFunction;
 
-macro_rules! abi_map {
-    ( $($name:ident: $func:path,)* ) => {
-        lazy_static! {
-            pub static ref ABI_MAP: HashMap<&'static str, usize> = {
-                let mut m = HashMap::new();
-                $(
-                    m.insert(stringify!($name), $func as _);
-                )*
-                m
-            };
-        }
-    };
-    ( $($name:ident: $func:path),* ) => {
-        abi_map!{$($name: $func,)*}
-    };
-}
-
+// TODO: Verify function signatures so we don't
+// throw bad data at functions and crash everything.
 abi_map! {
-    exit: abi::output_test,
+    exit: { // eventually will exit maybe, right now is just for testing
+        params: [I64],
+        returns: VOID, // indicates no return
+        abi::output_test,
+    },
 }
