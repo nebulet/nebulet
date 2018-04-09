@@ -28,7 +28,7 @@ impl BumpAllocator {
         self.current_region = self.regions.into_iter().find(|region| {
             region.region_type == MemoryRegionType::Usable
                 && PhysFrame::containing_address(region.start_addr + region.len - 1) >= self.next_free_frame
-        }).map(|r| r.clone());
+        }).cloned();
 
         if let Some(region) = self.current_region {
             let start_frame = PhysFrame::containing_address(region.start_addr);

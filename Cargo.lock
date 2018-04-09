@@ -14,17 +14,12 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "compiler_builtins"
-version = "0.1.0"
-source = "git+https://github.com/rust-lang-nursery/compiler-builtins#2a2f6d96c8dc578d2474742f14c9bab0b36b0408"
-
-[[package]]
 name = "cretonne"
 version = "0.4.1"
 dependencies = [
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "hashmap_core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hashmap_core 0.1.3 (git+https://github.com/nebulet/hashmap_core.git)",
 ]
 
 [[package]]
@@ -48,7 +43,7 @@ version = "0.4.1"
 dependencies = [
  "cretonne 0.4.1",
  "cretonne-frontend 0.4.1",
- "hashmap_core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hashmap_core 0.1.3 (git+https://github.com/nebulet/hashmap_core.git)",
  "wasmparser 0.15.0 (git+https://github.com/nebulet/wasmparser.rs.git?branch=no_std)",
 ]
 
@@ -77,8 +72,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "hashmap_core"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.1.3"
+source = "git+https://github.com/nebulet/hashmap_core.git#481d2b2ffa1b286c63c0a4468c40e821c2202244"
 
 [[package]]
 name = "lazy_static"
@@ -102,16 +97,15 @@ version = "0.1.0"
 dependencies = [
  "bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)",
  "cretonne 0.4.1",
  "cretonne-frontend 0.4.1",
  "cretonne-native 0.4.1",
  "cretonne-wasm 0.4.1",
- "hashmap_core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hashmap_core 0.1.3 (git+https://github.com/nebulet/hashmap_core.git)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "linked_list_allocator 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "nebulet_abi 0.1.0",
- "os_bootinfo 0.2.0-alpha-009 (git+https://github.com/nebulet/os_bootinfo.git)",
+ "os_bootinfo 0.2.0-alpha-010 (git+https://github.com/nebulet/os_bootinfo.git)",
  "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "spin 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasmparser 0.15.0 (git+https://github.com/nebulet/wasmparser.rs.git?branch=no_std)",
@@ -124,8 +118,8 @@ version = "0.1.0"
 
 [[package]]
 name = "os_bootinfo"
-version = "0.2.0-alpha-009"
-source = "git+https://github.com/nebulet/os_bootinfo.git#0d66a4158645b8c742aa7dcb0af2979356cc3225"
+version = "0.2.0-alpha-010"
+source = "git+https://github.com/nebulet/os_bootinfo.git#ddee896d850ee933e9238cfc2f39848af7d30561"
 dependencies = [
  "x86_64 0.2.0-alpha-008 (git+https://github.com/nebulet/x86_64.git?branch=rewrite)",
 ]
@@ -203,15 +197,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "wasmparser"
 version = "0.15.0"
-source = "git+https://github.com/nebulet/wasmparser.rs.git?branch=no_std#aa82675b6d6e4f0a0a70df7a10c4886df6057e06"
+source = "git+https://github.com/nebulet/wasmparser.rs.git?branch=no_std#97f5516588592b868d51b752d23e863d1bc8c22f"
 dependencies = [
- "hashmap_core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hashmap_core 0.1.3 (git+https://github.com/nebulet/hashmap_core.git)",
 ]
 
 [[package]]
 name = "x86_64"
 version = "0.2.0-alpha-008"
-source = "git+https://github.com/nebulet/x86_64.git?branch=rewrite#2778bac97ce9e288ef48190e35b075e6904b39d8"
+source = "git+https://github.com/nebulet/x86_64.git?branch=rewrite#80bb9ddbc2f5621ff027fec3238aea8c053a1958"
 dependencies = [
  "bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -223,14 +217,13 @@ dependencies = [
 "checksum bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ed8765909f9009617974ab6b7d332625b320b33c326b1e9321382ef1999b5d56"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b3c30d3802dfb7281680d6285f2ccdaa8c2d8fee41f93805dba5c4cf50dc23cf"
-"checksum compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)" = "<none>"
 "checksum failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "934799b6c1de475a012a02dab0ace1ace43789ee4b99bcfbf1a2e3e8ced5de82"
 "checksum failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c7cdda555bb90c9bb67a3b670a0f42de8e73f5981524123ad8578aafec8ddb8b"
 "checksum gcc 0.3.54 (registry+https://github.com/rust-lang/crates.io-index)" = "5e33ec290da0d127825013597dbdfc28bee4964690c7ce1166cbc2a7bd08b1bb"
-"checksum hashmap_core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "75919d1685421dc9ea9491c285bc0c0cf5525d166eec8a0f6d5462486d82ca89"
+"checksum hashmap_core 0.1.3 (git+https://github.com/nebulet/hashmap_core.git)" = "<none>"
 "checksum lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c8f31047daa365f19be14b47c29df4f7c3b581832407daabe6ae77397619237d"
 "checksum linked_list_allocator 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a6420a3167cee611c9d0f53663c339e85058bf05234e9862a47bf56920db8542"
-"checksum os_bootinfo 0.2.0-alpha-009 (git+https://github.com/nebulet/os_bootinfo.git)" = "<none>"
+"checksum os_bootinfo 0.2.0-alpha-010 (git+https://github.com/nebulet/os_bootinfo.git)" = "<none>"
 "checksum quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)" = "7a6e920b65c65f10b2ae65c831a81a073a89edd28c7cce89475bff467ab4167a"
 "checksum raw-cpuid 3.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "779585861d55e586db9d6abe4352cd9466e09a3319342c417baf34b2740af74e"
 "checksum rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"

@@ -18,13 +18,9 @@ impl AbiFunction {
 
         if sig.returns.len() > 1 {
             return false;
-        }
-
-        if self.returns == types::VOID && sig.returns.len() != 0 {
+        } else if self.returns == types::VOID && sig.returns.len() != 0 {
             return false;
         } else if sig.returns.len() == 1 && sig.returns[0].value_type != self.returns {
-            return false;
-        } else if sig.returns.len() > 1 {
             return false;
         }
 

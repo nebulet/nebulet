@@ -16,8 +16,6 @@ pub static FRAME_ALLOCATOR: Mutex<Option<FrameCache<BumpAllocator>>> = Mutex::ne
 pub fn init(boot_info: &'static mut BootInfo) {
     setup_recursive_paging(boot_info.p4_table);
 
-    boot_info.sort_memory_map();
-
     *FRAME_ALLOCATOR.lock() = Some(FrameCache::new(BumpAllocator::new(&boot_info.memory_map)));
 }
 

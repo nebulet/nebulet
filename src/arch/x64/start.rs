@@ -14,6 +14,8 @@ static DATA_TEST_NONZERO: usize = 0xFFFF_FFFF_FFFF_FFFF;
 pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
     let boot_info = &mut*boot_info_ptr;
 
+    boot_info.check_version().unwrap();
+
     // .bss section should be zeroed
     {
         assert_eq!(BSS_TEST_ZERO, 0x0);

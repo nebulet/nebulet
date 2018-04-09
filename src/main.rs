@@ -29,7 +29,6 @@ extern crate x86_64;
 extern crate spin;
 extern crate rlibc;
 extern crate bit_field;
-extern crate compiler_builtins;
 #[cfg(feature = "linked_alloc")]
 extern crate linked_list_allocator;
 #[macro_use]

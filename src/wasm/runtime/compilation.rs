@@ -112,26 +112,27 @@ impl Compilation {
                 ref module,
                 ref name,
             } => {
-                // TODO: Lookup `module` and `name` to find external address
-                // For now, hardcode to single module
-                // TODO: Design an api surface
-                if module != "abi" {
-                    return Err(Error::INTERNAL);
+                match module.as_str() {
+                    "abi" => {
+                        let abi_func = ABI_MAP.get(name.as_str())?;
+
+                        let imported_sig = &self.module.signatures[index];
+
+                        if abi_func.same_sig(imported_sig) {
+                            Ok((abi_func.ptr, false))
+                        } else {
+                            println!("Incorrect signature");
+                            println!("ABI sig: {:?}", abi_func);
+                            println!("Import sig: {:?}", imported_sig);
+                            Err(Error::INTERNAL)
+                        }
+                    },
+                    "wso" => {
+                        Err(Error::INTERNAL)
+                    },
+                    _ => Err(Error::INTERNAL),
                 }
-
-                let abi_func = ABI_MAP.get(name.as_str())?;
-
-                let imported_sig = &self.module.signatures[index];
-
-                if !abi_func.same_sig(imported_sig) {
-                    println!("Incorrect signature");
-                    println!("ABI sig: {:?}", abi_func);
-                    println!("Import sig: {:?}", imported_sig);
-                    return Err(Error::INTERNAL);
-                }
-
-                Ok((abi_func.ptr, false))
-            }
+            },
         }
     } 
 
