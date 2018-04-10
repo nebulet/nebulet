@@ -19,7 +19,7 @@ exclude = [
 ]
 
 [features]
-default = ["linked_alloc", "serial"]
+default = ["linked_alloc", "vga"]
 vga = [] # log to vga
 serial = [] # log to serial
 bump_alloc = []
