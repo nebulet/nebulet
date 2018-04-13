@@ -1,9 +1,9 @@
-use alloc::{Vec, String};
+use alloc::String;
 use strand::Stack;
 use arch::context::Context;
 use arch::cpu;
 
-use nabi::{Result, Error};
+use nabi::{Result};
 
 /// The current state of a process.
 #[derive(Debug, PartialEq, Eq)]

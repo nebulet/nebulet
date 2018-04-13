@@ -3,8 +3,8 @@
 
 use super::module::Module;
 use super::instance::Instance;
-use super::{Relocations, Relocation, DataInitializer};
-use cretonne::{self, result::CtonError, isa::TargetIsa};
+use super::{Relocations, DataInitializer};
+use cretonne::{self, isa::TargetIsa};
 use super::RelocSink;
 use super::abi::ABI_MAP;
 
@@ -12,8 +12,7 @@ use memory::{Code, Region, sip};
 
 use nabi::{Result, Error};
 
-use core::slice;
-use core::ptr::{write_unaligned, NonNull};
+use core::ptr::write_unaligned;
 use alloc::{Vec, String};
 
 extern "C" fn test_external_func(arg: u64) {

@@ -2,9 +2,7 @@ use alloc::LinkedList;
 use alloc::arc::Arc;
 
 use arch::lock::Spinlock;
-use strand::{Strand, Stack, State};
-
-use nabi::Result;
+use strand::Strand;
 
 /// Per-cpu strand list
 pub struct StrandList {
