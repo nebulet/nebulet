@@ -4,8 +4,6 @@ use x86_64::structures::tss::TaskStateSegment;
 use arch::interrupt::*;
 use spin::Once;
 
-const DOUBLE_FAULT_IST_INDEX: usize = 0;
-
 lazy_static! {
     static ref IDT: Idt = {
         let mut idt = Idt::new();
