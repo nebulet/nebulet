@@ -57,9 +57,7 @@ impl ActivePageTable {
     }
 
     pub fn flush(&mut self, page: Page) {
-        unsafe {
-            tlb::flush(page.start_address());
-        }
+        tlb::flush(page.start_address());
     }
 }
 

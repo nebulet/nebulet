@@ -1,4 +1,4 @@
-use x86_64::structures::paging::{Page, PAGE_SIZE, PageTableFlags};
+use x86_64::structures::paging::{PAGE_SIZE, PageTableFlags};
 use x86_64::VirtAddr;
 
 use core::ops::{Deref, DerefMut};

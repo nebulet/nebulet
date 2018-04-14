@@ -3,8 +3,8 @@
 
 use super::module::Module;
 use super::instance::Instance;
-use super::{Relocations, Relocation, DataInitializer};
-use cretonne::{self, result::CtonError, isa::TargetIsa};
+use super::{Relocations, DataInitializer};
+use cretonne::{self, isa::TargetIsa};
 use super::RelocSink;
 use super::abi::ABI_MAP;
 
@@ -12,8 +12,7 @@ use memory::{Code, Region, sip};
 
 use nabi::{Result, Error};
 
-use core::slice;
-use core::ptr::{write_unaligned, NonNull};
+use core::ptr::write_unaligned;
 use alloc::{Vec, String};
 
 extern "C" fn test_external_func(arg: u64) {
@@ -104,7 +103,7 @@ impl Compilation {
         match self.functions[index] {
             FunctionType::Local {
                 offset,
-                size,
+                size: _,
             } => {
                 Ok(((self.region.start().as_u64() as usize + offset) as *const u8, true))
             },
@@ -186,15 +185,15 @@ impl<'isa> Compiler<'isa> {
 
         Ok(())
     }
-    
+
     /// This allocates a region from the Sip memory allocator
     /// and emits all the functions into that.
-    /// 
+    ///
     /// This assumes that the functions don't need a specific
     /// alignment, which is true on x86_64, but may not
     /// be true on other architectures.
     pub fn compile(self, module: Module, data_initializers: &[DataInitializer]) -> Result<Compilation> {
-        let mut region = sip::allocate_region(self.total_size)
+        let region = sip::allocate_region(self.total_size)
             .ok_or(Error::NO_MEMORY)?;
 
         let mut functions = Vec::with_capacity(module.functions.len());
@@ -209,7 +208,7 @@ impl<'isa> Compiler<'isa> {
                 name,
             });
         }
-        
+
         // emit functions to memory
         for (ref ctx, size) in self.contexts.iter() {
             let mut reloc_sink = RelocSink::new(&ctx.func);

@@ -1,6 +1,6 @@
 //! The wasm compiler and runtime
 //! Uses Cretonne as the compiler
-//! 
+//!
 //! Some code is taken from wasmstandalone
 //! - https://github.com/sunfishcode/wasmstandalone
 
@@ -8,8 +8,7 @@ pub mod runtime;
 
 use cton_wasm::translate_module;
 use cton_native;
-use self::runtime::{Instance, Module, ModuleEnvironment};
-use cretonne::{result::CtonError, isa::TargetIsa};
+use self::runtime::{Module, ModuleEnvironment};
 use cretonne::settings::{self, Configurable};
 use memory::Code;
 
@@ -44,12 +43,12 @@ pub fn compile(wasm: &[u8]) -> Result<Code> {
 
     let isa = isa_builder.finish(settings::Flags::new(&flag_builder));
 
-    let mut module = Module::new();
+    let module = Module::new();
     let mut environ = ModuleEnvironment::new(isa.flags(), module);
 
     translate_module(wasm, &mut environ)
         .map_err(|_| Error::INTERNAL)?;
-    
+
     let translation = environ.finish_translation();
     let compliation = translation.compile(&*isa)?;
 

@@ -1,6 +1,6 @@
 
 use x86_64::VirtAddr;
-use x86_64::structures::paging::{Page, PageIter, PAGE_SIZE, PageTableFlags};
+use x86_64::structures::paging::{Page, PageIter, PageTableFlags};
 
 use arch::paging::ActivePageTable;
 

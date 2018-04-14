@@ -2,9 +2,7 @@ use alloc::LinkedList;
 use alloc::arc::Arc;
 
 use arch::lock::Spinlock;
-use strand::{Strand, Stack, State};
-
-use nabi::Result;
+use strand::Strand;
 
 /// Per-cpu strand list
 pub struct StrandList {
@@ -15,7 +13,7 @@ pub struct StrandList {
 impl StrandList {
     /// Creates a new, empty list.
     pub fn new() -> StrandList {
-        let mut list = LinkedList::new();
+        let list = LinkedList::new();
 
         // initial idle strand
         // let mut idle_strand = Strand::new("[idle]", entry)
@@ -32,5 +30,4 @@ extern fn idle_strand_entry(_: usize) -> i32 {
     loop {
         unsafe { halt(); }
     }
-    0
 }

@@ -1,4 +1,3 @@
-use core::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
 use core::mem;
 
 #[derive(Debug)]

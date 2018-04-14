@@ -1,9 +1,9 @@
-use alloc::{Vec, String};
+use alloc::String;
 use strand::Stack;
 use arch::context::Context;
 use arch::cpu;
 
-use nabi::{Result, Error};
+use nabi::{Result};
 
 /// The current state of a process.
 #[derive(Debug, PartialEq, Eq)]
@@ -52,16 +52,16 @@ impl Strand {
 }
 
 pub extern fn common_strand_entry() -> ! {
-    let mut strand = cpu::strand::get();
+    let strand = cpu::strand::get();
 
     debug_assert!(strand.state == State::Suspended);
 
     // Execute the strand.
-    let ret = (strand.entry)(strand.arg);
+    let _ret = (strand.entry)(strand.arg);
 
     // TODO: Exit the current strand.
     // This should never return.
-    
+
     loop {}
 
     unreachable!();

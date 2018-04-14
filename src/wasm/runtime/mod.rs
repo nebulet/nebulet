@@ -94,7 +94,7 @@ impl<'func> binemit::RelocSink for RelocSink<'func> {
         &mut self,
         _offset: binemit::CodeOffset,
         _reloc: binemit::Reloc,
-        jt: ir::JumpTable,
+        _jt: ir::JumpTable,
     ) {
         unimplemented!();
     }
