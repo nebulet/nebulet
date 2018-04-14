@@ -4,7 +4,7 @@
 
 ## What is Nebulet?
 
-Nebulet is a microkernel that executes web assembly modules instead of elf binaries. Furthermore, it does so in ring 0 and in the same address space as the kernel, instead of in ring 3. Normally, this would be super dangerous, but web assembly is designed to run safely on remote computers, so it can be securely sandboxed without loosing performance.
+Nebulet is a microkernel that executes web assembly modules instead of elf binaries. Furthermore, it does so in ring 0 and in the same address space as the kernel, instead of in ring 3. Normally, this would be super dangerous, but web assembly is designed to run safely on remote computers, so it can be securely sandboxed without losing performance.
 
 Eventually, once the cretonne compiler matures, applications running on Nebulet could be faster than their counterparts running on Linux due to syscalls just being function calls, low context-switch overhead, and exotic optimizations that aren't possible on conventional operating systems.
 
