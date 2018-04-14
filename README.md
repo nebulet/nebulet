@@ -2,7 +2,6 @@
 
 [![Join the chat at https://gitter.im/nebulet/nebulet](https://badges.gitter.im/nebulet/nebulet.svg)](https://gitter.im/nebulet/nebulet?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
----
 ## What is Nebulet?
 
 Nebulet is a microkernel that executes web assembly modules instead of elf binaries. Furthermore, it does so in ring 0 and in the same address space as the kernel, instead of in ring 3. Normally, this would be super dangerous, but web assembly is designed to run safely on remote computers, so it can be securely sandboxed without loosing performance.
