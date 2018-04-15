@@ -6,3 +6,5 @@ pub extern fn panic_fmt(msg: fmt::Arguments, file: &'static str, line: u32, col:
     println!("panic: {} in {} at line {}:{}", msg, file, line, col);
     loop {}
 }
+
+#[lang = "eh_personality"] extern fn eh_personality() {}

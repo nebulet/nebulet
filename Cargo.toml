@@ -8,7 +8,12 @@ default-target = "x86_64-nebulet"
 output = "bootimage.bin"
 
 [package.metadata.bootimage.bootloader]
-git = "https://github.com/rust-osdev/bootloader.git"
+version = "0.2.0-alpha-004"
+
+# We're pulling down the pre-compiled bootloader, so no
+# need to build it. (Also avoids a bug in xargo)
+#[package.metadata.bootimage.bootloader]
+#git = "https://github.com/rust-osdev/bootloader.git"
 
 [workspace]
 members = ["tools"]
@@ -31,15 +36,12 @@ rlibc = "1.0.0"
 bitflags = "1.0.1"
 bit_field = "0.9.0"
 
+x86_64 = "0.2.0-alpha-019"
+os_bootinfo = "0.2.0"
+
+
 [dependencies.hashmap_core]
 git = "https://github.com/nebulet/hashmap_core.git"
-
-[dependencies.x86_64]
-git = "https://github.com/nebulet/x86_64.git"
-branch = "rewrite"
-
-[dependencies.os_bootinfo]
-git = "https://github.com/nebulet/os_bootinfo.git"
 
 [dependencies.lazy_static]
 version = "1.0.0"

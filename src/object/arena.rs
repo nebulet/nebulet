@@ -1,6 +1,8 @@
-use alloc::Vec;
+use alloc::{Vec, BTreeMap};
 use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use core::mem;
+
+type ChunkId = usize;
 
 enum Slot<T> {
     /// Vacant slot, containing index to the next vacant slot
@@ -9,13 +11,24 @@ enum Slot<T> {
     Occupied(T),
 }
 
-pub struct Arena<T> {
-    /// Object slots
+struct Chunk<T> {
     slots: Vec<Slot<T>>,
-    /// number of occupied slots
-    len: AtomicUsize,
-    /// Index of first vacant slot
-    head: AtomicUsize,
+    num_vacant: AtomicUsize,
+}
+
+pub struct Entry {
+    chunk_id: ChunkId,
+    index: usize,
+}
+
+struct ChunkMap<T> {
+    chunks: BTreeMap<ChunkId, Chunk<T>>,
+    next_id: AtomicUsize,
+}
+
+/// A lock-free arena.
+pub struct Arena<T> {
+    /// Map of chunk id to 
 }
 
 impl<T> Arena<T> {

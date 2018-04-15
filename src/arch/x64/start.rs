@@ -29,10 +29,10 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
     memory::init(boot_info);
 
     // Initialize paging
-    let mut active_table = paging::init();
+    let mut page_mapper = paging::init();
 
     // Initialize dynamic memory allocation
-    allocator::init(&mut active_table);
+    allocator::init(&mut page_mapper);
 
     // Initialize the IDT
     idt::init();

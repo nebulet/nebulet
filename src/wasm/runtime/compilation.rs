@@ -144,7 +144,7 @@ impl Compilation {
         let start_index = self.module.start_func?;
         let start_ptr = self.get_function_addr(start_index)?.0;
 
-        Ok(Code::new(self.module, self.region, self.instance, vmctx, start_ptr))
+        Code::new(self.module, self.region, self.instance, vmctx, start_ptr)
     }
 }
 

@@ -1,6 +1,7 @@
-use arch::paging::ActivePageTable;
 use x86_64::VirtAddr;
 use x86_64::structures::paging::{Page, PageTableFlags};
+
+use arch::paging::PageMapper;
 
 #[cfg(feature = "linked_alloc")]
 pub use self::linked_list::Allocator;
@@ -17,21 +18,23 @@ mod linked_list;
 mod bump;
 // mod tree;
 
-unsafe fn map_heap(active_table: &mut ActivePageTable, offset: usize, size: usize) {
+unsafe fn map_heap(mapper: &mut PageMapper, offset: usize, size: usize) {
     let heap_start_page = Page::containing_address(VirtAddr::new(offset as u64));
     let heap_end_page = Page::containing_address(VirtAddr::new((offset + size - 1) as u64));
     let flags = PageTableFlags::PRESENT | PageTableFlags::GLOBAL | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
     for page in Page::range_inclusive(heap_start_page, heap_end_page) {
-        active_table.map(page, flags).flush(active_table);
+        mapper.map(page, flags)
+            .unwrap()
+            .flush();
     }
 }
 
-pub unsafe fn init(active_table: &mut ActivePageTable) {
+pub unsafe fn init(mapper: &mut PageMapper) {
     let offset = ::KERNEL_HEAP_OFFSET;
     let size = ::KERNEL_HEAP_SIZE;
 
     // map heap pages
-    map_heap(active_table, offset, size);
+    map_heap(mapper, offset, size);
 
     // initialize global heap allocator
     Allocator::init(offset, size);

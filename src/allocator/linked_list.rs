@@ -2,7 +2,7 @@ use alloc::heap::{Alloc, AllocErr, Layout};
 use linked_list_allocator::Heap;
 
 use arch::lock::PreemptLock;
-use arch::paging::ActivePageTable;
+use arch::paging::PageMapper;
 
 static HEAP: PreemptLock<Heap> = PreemptLock::new(Heap::empty());
 
@@ -25,7 +25,7 @@ unsafe impl<'a> Alloc for &'a Allocator {
                     
                     let size = HEAP.lock().size();
 
-                    super::map_heap(&mut ActivePageTable::new(), ::KERNEL_HEAP_OFFSET + size, ::KERNEL_HEAP_SIZE);
+                    super::map_heap(&mut PageMapper::new(), ::KERNEL_HEAP_OFFSET + size, ::KERNEL_HEAP_SIZE);
 
                     HEAP.lock().extend(::KERNEL_HEAP_SIZE);
                 },

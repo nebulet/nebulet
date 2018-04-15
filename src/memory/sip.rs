@@ -1,4 +1,4 @@
-use x86_64::structures::paging::{PAGE_SIZE, PageTableFlags};
+use x86_64::structures::paging::{Size4KB, PageSize, PageTableFlags};
 use x86_64::VirtAddr;
 
 use core::ops::{Deref, DerefMut};
@@ -33,8 +33,8 @@ impl SipAllocator {
     /// `size` will be rounded up to a multiple of 4KiB.
     fn allocate_region(&mut self, size: usize) -> Option<Region> {
         let allocated_size = {
-            let rem = size % PAGE_SIZE as usize;
-            size + PAGE_SIZE as usize - rem
+            let rem = size % Size4KB::SIZE as usize;
+            size + Size4KB::SIZE as usize - rem
         };
 
         if self.bump + allocated_size > self.end {
@@ -42,8 +42,8 @@ impl SipAllocator {
         } else {
             let virt_addr = VirtAddr::new(self.bump as u64);
             self.bump += allocated_size;
-            let flags = PageTableFlags::WRITABLE;
-            Some(Region::new(virt_addr, allocated_size, flags, true))
+            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+            Region::new(virt_addr, allocated_size, flags, true).ok()
         }
     }
 
@@ -58,7 +58,7 @@ impl SipAllocator {
 
             self.bump += allocated_size;
 
-            Some(WasmMemory::new(virt_addr))
+            WasmMemory::new(virt_addr).ok()
         }
     }
 }
@@ -81,18 +81,18 @@ impl WasmMemory {
 
     /// Create a completely unmapped `Memory` with unmapped size of `size`.
     /// The mapped size to start is `0`.
-    pub fn with_capacity(start: VirtAddr, unmapped_size: usize, mapped_size: usize) -> Self {
+    pub fn with_capacity(start: VirtAddr, unmapped_size: usize, mapped_size: usize) -> Result<Self> {
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
-        let region = Region::new(start, mapped_size, flags, true);
+        let region = Region::new(start, mapped_size, flags, true)?;
 
-        WasmMemory {
+        Ok(WasmMemory {
             region,
             total_size: unmapped_size + mapped_size,
-        }
+        })
     }
 
     /// Create a new `Memory` with an unmapped size of 4 + 2 GiB and a mapped size of `0`.
-    pub fn new(start: VirtAddr) -> Self {
+    pub fn new(start: VirtAddr) -> Result<Self> {
         Self::with_capacity(start, Self::DEFAULT_SIZE, 0)
     }
 
@@ -103,7 +103,7 @@ impl WasmMemory {
         if new_size > self.total_size {
             Err(Error::INTERNAL)
         } else {
-            self.region.resize(new_size, true);
+            self.region.resize(new_size, true)?;
             Ok(())
         }
     }

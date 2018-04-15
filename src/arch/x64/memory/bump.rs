@@ -2,15 +2,15 @@
 //! Much is borrowed from Redox OS and [Phil Opp's Blog](http://os.phil-opp.com/allocating-frames.html)
 
 use x86_64::PhysAddr;
-use x86_64::structures::paging::PhysFrame;
+use x86_64::structures::paging::{PhysFrame, Size4KB, PhysFrameRange};
 use os_bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 
 use super::FrameAllocator;
 
 pub struct BumpAllocator {
-    next_free_frame: PhysFrame,
+    next_free_frame: PhysFrame<Size4KB>,
     current_region: Option<MemoryRegion>,
-    regions: &'static MemoryMap,
+    regions: &'static [MemoryRegion],
 }
 
 impl BumpAllocator {
@@ -26,27 +26,26 @@ impl BumpAllocator {
 
     fn choose_next_area(&mut self) {
         self.current_region = self.regions.into_iter().find(|region| {
+            let range: PhysFrameRange = region.range.into();
             region.region_type == MemoryRegionType::Usable
-                && PhysFrame::containing_address(region.start_addr + region.len - 1) >= self.next_free_frame
+                && range.end >= self.next_free_frame
         }).cloned();
 
         if let Some(region) = self.current_region {
-            let start_frame = PhysFrame::containing_address(region.start_addr);
-            self.next_free_frame = start_frame;
+            let range: PhysFrameRange = region.range.into();
+            self.next_free_frame = range.start;
         }
     }
 }
 
 impl FrameAllocator for BumpAllocator {
-    fn allocate_frame(&mut self) -> Option<PhysFrame> {
+    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KB>> {
         if let Some(region) = self.current_region {
-            let found_frame = self.next_free_frame.clone();
+            let found_frame = self.next_free_frame;
 
             // the last frame of the current region
-            let current_region_last_frame = {
-                let address = region.start_addr + region.len - 1;
-                PhysFrame::containing_address(address)
-            };
+            let range: PhysFrameRange = region.range.into();
+            let current_region_last_frame = range.end - 1;
 
             if found_frame > current_region_last_frame {
                 // all frames of current area are used, switch to next area

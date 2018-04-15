@@ -1,5 +1,5 @@
 use x86_64::{VirtAddr, PhysAddr};
-use x86_64::structures::paging::{Page, PageTable, Level4, PhysFrame, PageTableFlags, PAGE_SIZE};
+use x86_64::structures::paging::{Page, PageTable, PhysFrame, PageTableFlags, PAGE_SIZE};
 use core::ptr::NonNull;
 use core::mem;
 
@@ -37,7 +37,7 @@ impl Drop for MapperFlush {
 }
 
 pub struct Mapper {
-    p4: NonNull<PageTable<Level4>>,
+    p4: NonNull<PageTable>,
 }
 
 impl Mapper {

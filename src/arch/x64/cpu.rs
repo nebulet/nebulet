@@ -6,7 +6,6 @@ use core::ptr;
 use core::sync::atomic::{fence, Ordering};
 
 use x86_64::registers::model_specific::Msr;
-use x86_64::registers::msr::IA32_GS_BASE;
 
 static mut CPU0: Cpu = Cpu {
     direct: ptr::null_mut(),
@@ -40,9 +39,8 @@ pub struct Cpu {
 pub unsafe fn init() {
     CPU0.direct = &mut CPU0 as *mut Cpu;
 
-    let mut msr = Msr(IA32_GS_BASE);
-
-    msr.write(CPU0.direct as u64);
+    Msr::new(0xC0000101)
+        .write(CPU0.direct as u64);
 }
 
 /// cpu functions
