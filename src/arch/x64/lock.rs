@@ -107,6 +107,16 @@ impl<T> PreemptLock<T> {
     }
 }
 
+impl PreemptLock<()> {
+    pub unsafe fn unguarded_lock(&self) {
+        cpu::preempt::disable();
+    }
+
+    pub unsafe fn unguarded_release(&self) {
+        cpu::preempt::enable();
+    }
+}
+
 impl<T: ?Sized + Default> Default for PreemptLock<T> {
     fn default() -> PreemptLock<T> {
         PreemptLock::new(Default::default())

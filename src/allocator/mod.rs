@@ -9,16 +9,17 @@ pub use self::linked_list::Allocator;
 #[cfg(feature = "bump_alloc")]
 pub use self::bump::Allocator;
 
-// #[cfg(feature = "tree_alloc")]
-// pub use self::tree::Allocator;
+#[cfg(feature = "dlmalloc_rs")]
+pub use self::dlmalloc_rs::Allocator;
 
 #[cfg(feature = "linked_alloc")]
 mod linked_list;
 #[cfg(feature = "bump_alloc")]
 mod bump;
-// mod tree;
+#[cfg(feature = "dlmalloc_rs")]
+mod dlmalloc_rs;
 
-unsafe fn map_heap(mapper: &mut PageMapper, offset: usize, size: usize) {
+unsafe fn map_heap(mapper: &mut PageMapper, offset: usize, size: usize) -> (*mut u8, usize) {
     let heap_start_page = Page::containing_address(VirtAddr::new(offset as u64));
     let heap_end_page = Page::containing_address(VirtAddr::new((offset + size - 1) as u64));
     let flags = PageTableFlags::PRESENT | PageTableFlags::GLOBAL | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
@@ -27,6 +28,7 @@ unsafe fn map_heap(mapper: &mut PageMapper, offset: usize, size: usize) {
             .unwrap()
             .flush();
     }
+    (heap_start_page.start_address().as_u64() as *mut u8, (heap_end_page - heap_start_page) as usize * 4096)
 }
 
 pub unsafe fn init(mapper: &mut PageMapper) {
@@ -34,6 +36,7 @@ pub unsafe fn init(mapper: &mut PageMapper) {
     let size = ::KERNEL_HEAP_SIZE;
 
     // map heap pages
+    #[cfg(not(feature = "dlmalloc_rs"))]
     map_heap(mapper, offset, size);
 
     // initialize global heap allocator

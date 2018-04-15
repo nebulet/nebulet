@@ -24,10 +24,11 @@ exclude = [
 ]
 
 [features]
-default = ["linked_alloc", "vga"]
+default = ["dlmalloc_rs", "vga"]
 vga = [] # log to vga
 serial = [] # log to serial
 bump_alloc = []
+dlmalloc_rs = []
 linked_alloc = ["linked_list_allocator"]
 
 [dependencies]

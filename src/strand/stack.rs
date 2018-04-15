@@ -2,7 +2,7 @@ use core::ptr::NonNull;
 use alloc::allocator::{Alloc, Layout};
 use ALLOCATOR;
 
-use nabi::{Result, Error, ERR_NO_MEMORY};
+use nabi::{Result, Error};
 
 #[derive(Debug)]
 pub struct Stack {
@@ -22,12 +22,11 @@ impl Stack {
     pub fn new() -> Result<Stack> {
         let ptr = unsafe {
             let ptr = (&ALLOCATOR).alloc(Self::layout())
-                .map_err(|_| Error::new(ERR_NO_MEMORY))?;
-            ptr.write_bytes(0, Self::SIZE);
+                .map_err(|_| Error::NO_MEMORY)?;
+            (ptr.as_ptr() as *mut u8).write_bytes(0, Self::SIZE);
             ptr
         };
-        let ptr = NonNull::new(ptr as *mut _)?;
-        Ok(Stack { ptr })
+        Ok(Stack { ptr: ptr.cast() })
     }
 
     unsafe fn as_mut_ptr(&self) -> *mut u8 {
@@ -46,7 +45,7 @@ impl Stack {
 impl Drop for Stack {
     fn drop(&mut self) {
         unsafe {
-            (&ALLOCATOR).dealloc(self.as_mut_ptr(), Self::layout());
+            (&ALLOCATOR).dealloc(NonNull::new_unchecked(self.as_mut_ptr() as _), Self::layout());
         }
     }
 }

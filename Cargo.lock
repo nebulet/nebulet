@@ -73,7 +73,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "hashmap_core"
 version = "0.1.3"
-source = "git+https://github.com/nebulet/hashmap_core.git#481d2b2ffa1b286c63c0a4468c40e821c2202244"
+source = "git+https://github.com/nebulet/hashmap_core.git#cb347586384498e23e1b70171208490b3a80df37"
 
 [[package]]
 name = "lazy_static"
