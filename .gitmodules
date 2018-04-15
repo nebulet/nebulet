@@ -1,7 +1,7 @@
 [submodule "nabi"]
 	path = nabi
-	url = git@github.com:nebulet/abi.git
+	url = https://github.com/nebulet/abi.git
 [submodule "cretonne"]
 	path = cretonne
-	url = git@github.com:nebulet/cretonne.git
+	url = https://github.com/nebulet/cretonne.git
 	branch = no_std
