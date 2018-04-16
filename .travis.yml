@@ -3,6 +3,9 @@ language: rust
 rust:
 - nightly
 
+env:
+- CARGO_INCREMENTAL=0
+
 os: linux
 
 cache:
