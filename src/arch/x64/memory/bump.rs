@@ -28,7 +28,7 @@ impl BumpAllocator {
         self.current_region = self.regions.into_iter().find(|region| {
             let range: PhysFrameRange = region.range.into();
             region.region_type == MemoryRegionType::Usable
-                && range.end >= self.next_free_frame
+                && range.end > self.next_free_frame
         }).cloned();
 
         if let Some(region) = self.current_region {
@@ -45,10 +45,10 @@ impl FrameAllocator for BumpAllocator {
 
             // the last frame of the current region
             let range: PhysFrameRange = region.range.into();
-            let current_region_last_frame = range.end - 1;
 
-            if found_frame > current_region_last_frame {
+            if found_frame >= range.end {
                 // all frames of current area are used, switch to next area
+                println!("Switching to next area");
                 self.choose_next_area();
             } else {
                 // frame is unused, increment `next_free_frame` and return it

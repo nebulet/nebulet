@@ -21,9 +21,9 @@ mod dlmalloc_rs;
 
 unsafe fn map_heap(mapper: &mut PageMapper, offset: usize, size: usize) -> (*mut u8, usize) {
     let heap_start_page = Page::containing_address(VirtAddr::new(offset as u64));
-    let heap_end_page = Page::containing_address(VirtAddr::new((offset + size - 1) as u64));
-    let flags = PageTableFlags::PRESENT | PageTableFlags::GLOBAL | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
-    for page in Page::range_inclusive(heap_start_page, heap_end_page) {
+    let heap_end_page = Page::containing_address(VirtAddr::new((offset + size) as u64));
+    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+    for page in Page::range(heap_start_page, heap_end_page) {
         mapper.map(page, flags)
             .unwrap()
             .flush();

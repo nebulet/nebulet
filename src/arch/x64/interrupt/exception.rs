@@ -56,6 +56,9 @@ interrupt_stack_err!(general_protection_fault, _stack, _error, {
 interrupt_stack_page!(page_fault, stack, error, {
     println!("Page fault");
     println!("{:?}|{:?}", error, stack);
+    let cr2: u64;
+    asm!("mov %cr2, $0" : "=r"(cr2));
+    println!("Faulting Address: {:#x}", cr2);
     loop {}
     // SCHEDULER.with_current(|ctx| {
     //     if let Some(ref mut mem) = ctx.stack {
