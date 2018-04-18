@@ -1,9 +1,9 @@
 //! An 'Instance' contains all the runtime state used by execution of a wasm module
-//! 
+//!
 //! Literally taken from https://github.com/sunfishcode/wasmstandalone
 
-use cretonne::ir;
-use cton_wasm::GlobalIndex;
+use cretonne_codegen::ir;
+use cretonne_wasm::GlobalIndex;
 use super::module::Module;
 use super::DataInitializer;
 

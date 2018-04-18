@@ -1,11 +1,11 @@
 //! A `Module` contains all the relevant information translated from a
 //! WebAssembly module.
-//! 
+//!
 //! Literally just copied from https://github.com/sunfishcode/wasmstandalone
 
-use cton_wasm::{FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
+use cretonne_wasm::{FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
                 SignatureIndex};
-use cretonne::ir;
+use cretonne_codegen::ir;
 
 use alloc::{Vec, String};
 use hashmap_core::HashMap;

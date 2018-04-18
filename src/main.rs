@@ -37,9 +37,9 @@ extern crate alloc;
 extern crate hashmap_core;
 extern crate nabi;
 
-extern crate cton_wasm;
-extern crate cton_native;
-extern crate cretonne;
+extern crate cretonne_wasm;
+extern crate cretonne_native;
+extern crate cretonne_codegen;
 extern crate wasmparser;
 
 #[macro_use]

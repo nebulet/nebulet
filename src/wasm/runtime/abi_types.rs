@@ -1,4 +1,4 @@
-use cretonne::ir::{ArgumentPurpose, Type, Signature, CallConv};
+use cretonne_codegen::ir::{ArgumentPurpose, Type, Signature, CallConv};
 
 #[derive(Debug)]
 pub struct AbiFunction {
@@ -11,8 +11,8 @@ impl AbiFunction {
     /// Check if the supplied signature has the same signature as `self`.
     /// TODO: Rewrite this to not be awful.
     pub fn same_sig(&self, sig: &Signature) -> bool {
-        use cretonne::ir::types;
-        if sig.call_conv != CallConv::Native {
+        use cretonne_codegen::ir::types;
+        if sig.call_conv != CallConv::SystemV {
             return false;
         }
 
@@ -51,7 +51,7 @@ macro_rules! abi_map {
         use hashmap_core::HashMap;
         lazy_static! {
             pub static ref ABI_MAP: HashMap<&'static str, AbiFunction> = {
-                use cretonne::ir::types::*;
+                use cretonne_codegen::ir::types::*;
                 let mut m = HashMap::new();
                 $(
                     m.insert(stringify!($name), AbiFunction {

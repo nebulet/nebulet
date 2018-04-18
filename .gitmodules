@@ -3,5 +3,5 @@
 	url = https://github.com/nebulet/abi.git
 [submodule "cretonne"]
 	path = cretonne
-	url = https://github.com/nebulet/cretonne.git
+	url = https://github.com/cretonne/cretonne.git
 	branch = no_std

@@ -6,10 +6,10 @@
 
 pub mod runtime;
 
-use cton_wasm::translate_module;
-use cton_native;
+use cretonne_wasm::translate_module;
+use cretonne_native;
 use self::runtime::{Module, ModuleEnvironment};
-use cretonne::settings::{self, Configurable};
+use cretonne_codegen::settings::{self, Configurable};
 use memory::Code;
 
 use nabi::{Result, Error};
@@ -35,7 +35,7 @@ pub fn wasm_test() {
 }
 
 pub fn compile(wasm: &[u8]) -> Result<Code> {
-    let (mut flag_builder, isa_builder) = cton_native::builders()
+    let (mut flag_builder, isa_builder) = cretonne_native::builders()
         .expect("Host machine not supported.");
 
     flag_builder.set("opt_level", "best")

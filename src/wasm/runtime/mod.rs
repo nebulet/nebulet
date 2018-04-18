@@ -2,7 +2,7 @@
 //! `get_global`, `set_global`, `current_memory`, `grow_memory`, `call_indirect` that hardcode in
 //! the translation the base addresses of regions of memory that will hold the globals, tables and
 //! linear memories.
-//! 
+//!
 //! Pretty much just taken from https://github.com/sunfishcode/wasmstandalone
 
 pub mod module;
@@ -17,14 +17,14 @@ pub use self::module::Module;
 pub use self::compilation::{Compilation, Compiler};
 pub use self::instance::Instance;
 
-use cton_wasm::{self, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
+use cretonne_wasm::{self, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
                 GlobalValue, SignatureIndex, FuncTranslator};
-use cretonne::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam, CallConv,
+use cretonne_codegen::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam, CallConv,
                    ArgumentPurpose, ArgumentLoc, ArgumentExtension, Function};
-use cretonne::ir::types::*;
-use cretonne::ir::immediates::Offset32;
-use cretonne::cursor::FuncCursor;
-use cretonne::{self, isa, settings, binemit};
+use cretonne_codegen::ir::types::*;
+use cretonne_codegen::ir::immediates::Offset32;
+use cretonne_codegen::cursor::FuncCursor;
+use cretonne_codegen::{self, isa, settings, binemit};
 use wasmparser;
 
 use nabi;
@@ -32,7 +32,7 @@ use nabi;
 use alloc::{Vec, String};
 
 /// Compute a `ir::ExternalName` for a given wasm function index.
-pub fn get_func_name(func_index: FunctionIndex) -> cretonne::ir::ExternalName {
+pub fn get_func_name(func_index: FunctionIndex) -> cretonne_codegen::ir::ExternalName {
     debug_assert!(func_index as u32 as FunctionIndex == func_index);
     ir::ExternalName::user(0, func_index as u32)
 }
@@ -168,7 +168,7 @@ impl<'data, 'flags> ModuleEnvironment<'data, 'flags> {
     }
 
     fn native_pointer(&self) -> ir::Type {
-        use cton_wasm::FuncEnvironment;
+        use cretonne_wasm::FuncEnvironment;
         self.func_env().native_pointer()
     }
 
@@ -234,7 +234,7 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
     }
 }
 
-impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module_environment> {
+impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'module_environment> {
     fn flags(&self) -> &settings::Flags {
         &self.settings_flags
     }
@@ -246,7 +246,7 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
             let offset32 = offset as i32;
             debug_assert_eq!(offset32 as usize, offset);
             let new_base = func.create_global_var(
-                ir::GlobalVarData::VmCtx { offset: Offset32::new(offset32) },
+                ir::GlobalVarData::VMContext { offset: Offset32::new(offset32) },
             );
             self.globals_base = Some(new_base);
             new_base
@@ -268,7 +268,7 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
         use memory::WasmMemory;
         let ptr_size = self.ptr_size();
         let memories_base = self.memories_base.unwrap_or_else(|| {
-            let new_base = func.create_global_var(ir::GlobalVarData::VmCtx {
+            let new_base = func.create_global_var(ir::GlobalVarData::VMContext {
                 offset: Offset32::new(ptr_size as i32),
             });
             self.globals_base = Some(new_base);
@@ -298,7 +298,8 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
         let sigidx = self.module.functions[index];
         let signature = func.import_signature(self.module.signatures[sigidx].clone());
         let name = get_func_name(index);
-        func.import_function(ir::ExtFuncData { name, signature })
+        // TODO(gmorenz): Can colocated be true?
+        func.import_function(ir::ExtFuncData { name, signature, colocated: false })
     }
 
     fn translate_call_indirect(
@@ -352,15 +353,17 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
         debug_assert_eq!(index, 0, "non-default memories not supported yet");
         let grow_mem_func = self.grow_memory_extfunc.unwrap_or_else(|| {
             let sig_ref = pos.func.import_signature(Signature {
-                call_conv: CallConv::Native,
+                call_conv: CallConv::SystemV,
                 argument_bytes: None,
                 params: vec![AbiParam::new(I32)],
                 returns: vec![AbiParam::new(I32)],
             });
             // FIXME: Use a real ExternalName system.
+            // TODO(gmorenz): Can colocated be true?
             pos.func.import_function(ExtFuncData {
                 name: ExternalName::testcase("grow_memory"),
                 signature: sig_ref,
+                colocated: false,
             })
         });
         self.grow_memory_extfunc = Some(grow_mem_func);
@@ -377,15 +380,17 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
         debug_assert_eq!(index, 0, "non-default memories not supported yet");
         let cur_mem_func = self.current_memory_extfunc.unwrap_or_else(|| {
             let sig_ref = pos.func.import_signature(Signature {
-                call_conv: CallConv::Native,
+                call_conv: CallConv::SystemV,
                 argument_bytes: None,
                 params: Vec::new(),
                 returns: vec![AbiParam::new(I32)],
             });
             // FIXME: Use a real ExternalName system.
+            // TODO(gmorenz): Can colocated be true?
             pos.func.import_function(ExtFuncData {
                 name: ExternalName::testcase("current_memory"),
                 signature: sig_ref,
+                colocated: false,
             })
         });
         self.current_memory_extfunc = Some(cur_mem_func);
@@ -398,8 +403,8 @@ impl<'module_environment> cton_wasm::FuncEnvironment for FuncEnvironment<'module
 /// `cton_wasm::translatemodule` because it
 /// tells how to translate runtime-dependent wasm instructions. These functions should not be
 /// called by the user.
-impl<'data, 'flags> cton_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'data, 'flags> {
-    fn get_func_name(&self, func_index: FunctionIndex) -> cretonne::ir::ExternalName {
+impl<'data, 'flags> cretonne_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'data, 'flags> {
+    fn get_func_name(&self, func_index: FunctionIndex) -> cretonne_codegen::ir::ExternalName {
         get_func_name(func_index)
     }
 
@@ -449,7 +454,7 @@ impl<'data, 'flags> cton_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'d
         self.module.globals.push(global);
     }
 
-    fn get_global(&self, global_index: GlobalIndex) -> &cton_wasm::Global {
+    fn get_global(&self, global_index: GlobalIndex) -> &cretonne_wasm::Global {
         &self.module.globals[global_index]
     }
 
@@ -575,7 +580,7 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
         let mut compiler = Compiler::with_capacity(isa, self.lazy.function_body_inputs.len());
 
         for (func_index, input) in self.lazy.function_body_inputs.iter().enumerate() {
-            let mut context = cretonne::Context::new();
+            let mut context = cretonne_codegen::Context::new();
             context.func.name = get_func_name(func_index);
             context.func.signature = self.module.signatures[self.module.functions[func_index]].clone();
 
@@ -583,7 +588,7 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
             let reader = wasmparser::BinaryReader::new(input);
             trans.translate_from_reader(reader, &mut context.func, &mut self.func_env())
                 .map_err(|_| nabi::Error::INTERNAL)?;
-            
+
             compiler.define_function(context)?;
         }
 
