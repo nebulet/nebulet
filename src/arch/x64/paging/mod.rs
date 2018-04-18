@@ -24,7 +24,8 @@ impl PageMapper {
 
     pub fn map(&mut self, page: Page<Size4KB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KB>, MapToError> {
         let mut frame_allocator = || memory::allocate_frame();
-        let frame = frame_allocator().unwrap();
+        let frame = frame_allocator()
+            .expect("Couldn't allocate any frames!");
         self.table.map_to(page, frame, flags, &mut frame_allocator)
     }
 

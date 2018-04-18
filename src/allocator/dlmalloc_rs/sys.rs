@@ -10,7 +10,6 @@ pub unsafe fn alloc(size: usize) -> (*mut u8, usize, u32) {
     let offset = OFFSET.load(Ordering::Relaxed);
 
     let (ptr, actual_size) = map_heap(&mut PageMapper::new(), ::KERNEL_HEAP_OFFSET + offset, size);
-    println!("ptr: {:#x}, actual_size: {:#x}", ptr as usize, actual_size);
     
     OFFSET.fetch_add(actual_size, Ordering::Relaxed);
 

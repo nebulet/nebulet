@@ -27,7 +27,7 @@ pub fn wasm_test() {
     }
 
 
-    for (i, code) in codes.iter() {
+    for (i, code) in codes.iter_mut() {
         println!("Executing wasm test #{}", i);
         code.execute();
     }

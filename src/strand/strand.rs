@@ -8,9 +8,13 @@ use nabi::{Result};
 /// The current state of a process.
 #[derive(Debug, PartialEq, Eq)]
 pub enum State {
+    /// The Strand is currently executing.
     Running,
-    Suspended,
+    /// This Strand is not currently running, but it's ready to execute.
     Ready,
+    /// The Strand has been suspended.
+    Suspended,
+    /// It's dead, Jim.
     Dead,
 }
 
@@ -21,31 +25,29 @@ pub struct Strand {
     pub state: State,
     pub ctx: Context,
     pub stack: Stack,
-    pub entry: extern fn(usize) -> i32,
-    pub arg: usize,
-    pub retcode: i32,
+    pub entry: extern fn(),
 }
 
 impl Strand {
-    pub fn new<S: Into<String>>(name: S, entry: extern fn(usize) -> i32, arg: usize) -> Result<Strand> {
+    pub fn new<S: Into<String>>(name: S, entry: extern fn()) -> Result<Strand> {
         let stack = Stack::new()?;
-        let mut context = Context::new();
-        context.rsp = stack.top() as usize;
-        unsafe { context.push_stack(common_strand_entry as usize); }
+        let mut ctx = Context::new();
+        ctx.rsp = stack.top() as usize;
+        unsafe { ctx.push_stack(common_strand_entry as usize); }
 
         Ok(Strand {
             name: name.into(),
             state: State::Suspended,
-            ctx: context,
-            stack: stack,
-            entry: entry,
-            arg: arg,
-            retcode: 0,
+            ctx,
+            stack,
+            entry,
         })
     }
 
     pub fn resume(&mut self) -> Result<usize> {
         self.state = State::Ready;
+
+
 
         Ok(0)
     }
@@ -57,7 +59,7 @@ pub extern fn common_strand_entry() -> ! {
     debug_assert!(strand.state == State::Suspended);
 
     // Execute the strand.
-    let _ret = (strand.entry)(strand.arg);
+    (strand.entry)();
 
     // TODO: Exit the current strand.
     // This should never return.

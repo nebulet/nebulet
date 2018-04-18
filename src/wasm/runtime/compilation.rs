@@ -126,9 +126,6 @@ impl Compilation {
                             Err(Error::INTERNAL)
                         }
                     },
-                    "wso" => {
-                        Err(Error::INTERNAL)
-                    },
                     _ => Err(Error::INTERNAL),
                 }
             },
@@ -139,12 +136,10 @@ impl Compilation {
     pub fn emit(mut self) -> Result<Code> {
         self.relocate()?;
 
-        let vmctx = self.instance.generate_vmctx();
-
         let start_index = self.module.start_func?;
         let start_ptr = self.get_function_addr(start_index)?.0;
 
-        Code::new(self.module, self.region, self.instance, vmctx, start_ptr)
+        Code::new(self.module, self.region, self.instance, start_ptr)
     }
 }
 

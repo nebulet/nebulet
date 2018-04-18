@@ -13,11 +13,10 @@ pub struct Code {
     instance: Instance,
     region: Region,
     start_func: *const u8,
-    vmctx: VmCtx,
 }
 
 impl Code {
-    pub fn new(module: Module, mut region: Region, instance: Instance, vmctx: VmCtx, start_func: *const u8) -> Result<Self> {
+    pub fn new(module: Module, mut region: Region, instance: Instance, start_func: *const u8) -> Result<Self> {
         let flags = PageTableFlags::PRESENT | PageTableFlags::GLOBAL;
         region.remap(flags)?;
 
@@ -26,15 +25,16 @@ impl Code {
             instance,
             region,
             start_func,
-            vmctx,
         })
     }
-
-    pub fn execute(&self) {
+    
+    pub fn execute(&mut self) {
         let start_func = unsafe {
             mem::transmute::<_, fn(*const VmCtx)>(self.start_func)
         };
 
-        start_func(&self.vmctx as *const _);
+        let vmctx = self.instance.generate_vmctx();
+
+        start_func(&vmctx as *const _);
     }
 }
