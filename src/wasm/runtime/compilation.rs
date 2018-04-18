@@ -4,7 +4,7 @@
 use super::module::Module;
 use super::instance::Instance;
 use super::{Relocations, DataInitializer};
-use cretonne_codegen::{self, isa::TargetIsa};
+use cretonne_codegen::{self, isa::TargetIsa, binemit::Reloc};
 use super::RelocSink;
 use super::abi::ABI_MAP;
 
@@ -78,9 +78,15 @@ impl Compilation {
             for ref r in function_relocs {
                 let (target_func_addr, _is_local) = self.get_function_addr(r.func_index)?;
                 let body_addr = self.get_function_addr(i + self.first_local_function)?.0;
-                unsafe {
-                    let reloc_addr = body_addr.offset(r.offset as isize);
-                    write_unaligned(reloc_addr as *mut usize, target_func_addr as usize);
+                let reloc_addr = unsafe{ body_addr.offset(r.offset as isize) };
+
+                match r.reloc {
+                    Reloc::Abs8 => {
+                        unsafe {
+                            write_unaligned(reloc_addr as *mut usize, target_func_addr as usize)
+                        };
+                    }
+                    _ => unimplemented!()
                 }
             }
         }
