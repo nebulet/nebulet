@@ -14,37 +14,42 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "cretonne"
-version = "0.4.1"
+name = "cretonne-codegen"
+version = "0.5.0"
 dependencies = [
+ "cretonne-entity 0.5.0",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "hashmap_core 0.1.3 (git+https://github.com/nebulet/hashmap_core.git)",
+ "hashmap_core 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
+name = "cretonne-entity"
+version = "0.5.0"
+
+[[package]]
 name = "cretonne-frontend"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
- "cretonne 0.4.1",
+ "cretonne-codegen 0.5.0",
 ]
 
 [[package]]
 name = "cretonne-native"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
- "cretonne 0.4.1",
+ "cretonne-codegen 0.5.0",
  "raw-cpuid 3.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "cretonne-wasm"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
- "cretonne 0.4.1",
- "cretonne-frontend 0.4.1",
- "hashmap_core 0.1.3 (git+https://github.com/nebulet/hashmap_core.git)",
- "wasmparser 0.15.0 (git+https://github.com/nebulet/wasmparser.rs.git?branch=no_std)",
+ "cretonne-codegen 0.5.0",
+ "cretonne-frontend 0.5.0",
+ "hashmap_core 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasmparser 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -76,6 +81,11 @@ version = "0.1.3"
 source = "git+https://github.com/nebulet/hashmap_core.git#cb347586384498e23e1b70171208490b3a80df37"
 
 [[package]]
+name = "hashmap_core"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "lazy_static"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -97,10 +107,10 @@ version = "0.1.0"
 dependencies = [
  "bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cretonne 0.4.1",
- "cretonne-frontend 0.4.1",
- "cretonne-native 0.4.1",
- "cretonne-wasm 0.4.1",
+ "cretonne-codegen 0.5.0",
+ "cretonne-frontend 0.5.0",
+ "cretonne-native 0.5.0",
+ "cretonne-wasm 0.5.0",
  "hashmap_core 0.1.3 (git+https://github.com/nebulet/hashmap_core.git)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "linked_list_allocator 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -108,7 +118,7 @@ dependencies = [
  "os_bootinfo 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "spin 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasmparser 0.15.0 (git+https://github.com/nebulet/wasmparser.rs.git?branch=no_std)",
+ "wasmparser 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "x86_64 0.2.0-alpha-019 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -193,10 +203,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "wasmparser"
-version = "0.15.0"
-source = "git+https://github.com/nebulet/wasmparser.rs.git?branch=no_std#97f5516588592b868d51b752d23e863d1bc8c22f"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "hashmap_core 0.1.3 (git+https://github.com/nebulet/hashmap_core.git)",
+ "hashmap_core 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -219,6 +229,7 @@ dependencies = [
 "checksum failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c7cdda555bb90c9bb67a3b670a0f42de8e73f5981524123ad8578aafec8ddb8b"
 "checksum gcc 0.3.54 (registry+https://github.com/rust-lang/crates.io-index)" = "5e33ec290da0d127825013597dbdfc28bee4964690c7ce1166cbc2a7bd08b1bb"
 "checksum hashmap_core 0.1.3 (git+https://github.com/nebulet/hashmap_core.git)" = "<none>"
+"checksum hashmap_core 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "c60fb5be3a617897e88dab9423f04419c723bb8c88727756959127f53cdd226e"
 "checksum lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c8f31047daa365f19be14b47c29df4f7c3b581832407daabe6ae77397619237d"
 "checksum linked_list_allocator 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a6420a3167cee611c9d0f53663c339e85058bf05234e9862a47bf56920db8542"
 "checksum os_bootinfo 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6953a44ee0fb135c3870d27b5b3fecf71ce360e409218a8205517041a3e74356"
@@ -232,5 +243,5 @@ dependencies = [
 "checksum unicode-xid 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f860d7d29cf02cb2f3f359fd35991af3d30bac52c57d265a3c461074cb4dc"
 "checksum usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f70329e2cbe45d6c97a5112daad40c34cd9a4e18edb5a2a18fefeb584d8d25e5"
 "checksum ux 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8762764bede2cc5fa0fe3bd279e243258531bb51cff1f1ff9a3cb3d3a1ed5235"
-"checksum wasmparser 0.15.0 (git+https://github.com/nebulet/wasmparser.rs.git?branch=no_std)" = "<none>"
+"checksum wasmparser 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d0cfb66a6ae4306942cd13675e57950a42fe7eef19bd5c2a54ace9550f6952e4"
 "checksum x86_64 0.2.0-alpha-019 (registry+https://github.com/rust-lang/crates.io-index)" = "dc592fbe51c59b187c7790cdcc3e8cdf4a589061e152dc47e230158b37e8f110"

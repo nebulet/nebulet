@@ -4,7 +4,7 @@
 use super::module::Module;
 use super::instance::Instance;
 use super::{Relocations, DataInitializer};
-use cretonne::{self, isa::TargetIsa};
+use cretonne_codegen::{self, isa::TargetIsa};
 use super::RelocSink;
 use super::abi::ABI_MAP;
 
@@ -72,26 +72,15 @@ impl Compilation {
 
     /// Relocate the compliation.
     fn relocate(&mut self) -> Result<()> {
-        // The relocations are relative to the relocation's address plus four bytes
+        // The relocations are absolute addresses
         // TODO: Support architectures other than x86_64, and other reloc kinds.
         for (i, function_relocs) in self.relocations.iter().enumerate() {
             for ref r in function_relocs {
-                let (target_func_addr, is_local) = self.get_function_addr(r.func_index)?;
-                // let target_func_addr: isize = self.get_function_addr(r.func_index) as isize;
+                let (target_func_addr, _is_local) = self.get_function_addr(r.func_index)?;
                 let body_addr = self.get_function_addr(i + self.first_local_function)?.0;
-
-                let (reloc_addr, reloc_delta) = if is_local {
-                    let reloc_addr = unsafe { body_addr.offset(r.offset as isize) as isize };
-                    let reloc_addend = r.addend as isize - 4;
-                    let reloc_delta = (target_func_addr as isize - reloc_addr + reloc_addend) as i32;
-                    (reloc_addr, reloc_delta)
-                } else {
-                    let reloc_addr = unsafe { body_addr.offset(r.offset as isize) as isize };
-                    (reloc_addr, target_func_addr as i32)
-                };
-
                 unsafe {
-                    write_unaligned(reloc_addr as *mut i32, reloc_delta);
+                    let reloc_addr = body_addr.offset(r.offset as isize);
+                    write_unaligned(reloc_addr as *mut usize, target_func_addr as usize);
                 }
             }
         }
@@ -130,7 +119,7 @@ impl Compilation {
                 }
             },
         }
-    } 
+    }
 
     /// Emit a `Code` instance
     pub fn emit(mut self) -> Result<Code> {
@@ -148,7 +137,7 @@ impl Compilation {
 pub struct Compiler<'isa> {
     isa: &'isa TargetIsa,
 
-    contexts: Vec<(cretonne::Context, usize)>,
+    contexts: Vec<(cretonne_codegen::Context, usize)>,
 
     total_size: usize,
 }
@@ -167,7 +156,7 @@ impl<'isa> Compiler<'isa> {
     }
 
     /// Define a function. This also compiles the function.
-    pub fn define_function(&mut self, mut ctx: cretonne::Context) -> Result<()> {
+    pub fn define_function(&mut self, mut ctx: cretonne_codegen::Context) -> Result<()> {
         let code_size = ctx.compile(self.isa)
             .map_err(|e| {
                 println!("Compile error: {:?}", e);
@@ -206,8 +195,11 @@ impl<'isa> Compiler<'isa> {
 
         // emit functions to memory
         for (ref ctx, size) in self.contexts.iter() {
+            // TODO(gmorenz): We probably want traps?
+            use cretonne_codegen::binemit::NullTrapSink;
+
             let mut reloc_sink = RelocSink::new(&ctx.func);
-            ctx.emit_to_memory((region_start + offset) as *mut u8, &mut reloc_sink, self.isa);
+            ctx.emit_to_memory((region_start + offset) as *mut u8, &mut reloc_sink, &mut NullTrapSink {}, self.isa);
             functions.push(FunctionType::Local {
                 offset,
                 size: *size,

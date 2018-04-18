@@ -53,26 +53,27 @@ optional = true
 path = "nabi"
 
 # Cretonne compiler
-[dependencies.cretonne]
-path = "cretonne/lib/cretonne"
+[dependencies.cretonne-codegen]
+path = "cretonne/lib/codegen"
 default-features = false
-features = ["no_std"]
+features = ["core"]
 
 [dependencies.cretonne-frontend]
 path = "cretonne/lib/frontend"
 default-features = false
-features = ["no_std"]
+features = ["core"]
 
 [dependencies.cretonne-wasm]
 path = "cretonne/lib/wasm"
 default-features = false
-features = ["no_std"]
+features = ["core"]
 
 [dependencies.cretonne-native]
 path = "cretonne/lib/native"
 default-features = false
-features = ["no_std"]
+features = ["core"]
 
 [dependencies.wasmparser]
-git = "https://github.com/nebulet/wasmparser.rs.git"
-branch = "no_std"
+version = "0.16.0"
+default_features = false
+features = ["core"]
