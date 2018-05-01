@@ -1,4 +1,5 @@
-use cretonne_codegen::ir::{ArgumentPurpose, Type, Signature, CallConv};
+use cretonne_codegen::ir::{ArgumentPurpose, Type, Signature};
+use cretonne_codegen::settings::CallConv;
 
 #[derive(Debug)]
 pub struct AbiFunction {

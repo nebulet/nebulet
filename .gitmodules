@@ -4,4 +4,4 @@
 [submodule "cretonne"]
 	path = cretonne
 	url = https://github.com/cretonne/cretonne.git
-	branch = no_std
+	branch = master

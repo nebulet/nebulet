@@ -2,6 +2,7 @@ use core::fmt;
 
 pub mod devices;
 pub mod bitarray;
+pub mod table;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash)]
 pub struct Encapsulate<T>(T);

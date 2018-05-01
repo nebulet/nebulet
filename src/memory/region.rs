@@ -129,6 +129,11 @@ impl Region {
 
         Ok(())
     }
+
+    pub fn contains(&self, addr: usize) -> bool {
+        let addr = VirtAddr::new(addr as u64);
+        addr >= self.start() && addr <= self.start() + self.size
+    }
 }
 
 impl Deref for Region {

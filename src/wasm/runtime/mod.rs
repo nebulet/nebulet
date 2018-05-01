@@ -19,10 +19,11 @@ pub use self::instance::Instance;
 
 use cretonne_wasm::{self, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
                 GlobalValue, SignatureIndex, FuncTranslator};
-use cretonne_codegen::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam, CallConv,
+use cretonne_codegen::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam,
                    ArgumentPurpose, ArgumentLoc, ArgumentExtension, Function};
 use cretonne_codegen::ir::types::*;
 use cretonne_codegen::ir::immediates::Offset32;
+use cretonne_codegen::settings::CallConv;
 use cretonne_codegen::cursor::FuncCursor;
 use cretonne_codegen::{self, isa, settings, binemit};
 use wasmparser;
@@ -50,13 +51,13 @@ pub enum Export {
 }
 
 /// Implementation of a relocation sink that just saves all the information for later
-pub struct RelocSink<'func> {
-    func: &'func ir::Function,
+pub struct RelocSink {
+    // func: &'func ir::Function,
     /// Relocations recorded for the function.
     pub func_relocs: Vec<Relocation>,
 }
 
-impl<'func> binemit::RelocSink for RelocSink<'func> {
+impl binemit::RelocSink for RelocSink {
     fn reloc_ebb(
         &mut self,
         _offset: binemit::CodeOffset,
@@ -100,10 +101,9 @@ impl<'func> binemit::RelocSink for RelocSink<'func> {
     }
 }
 
-impl<'func> RelocSink<'func> {
-    fn new(func: &'func Function) -> RelocSink {
+impl RelocSink {
+    fn new() -> RelocSink {
         RelocSink {
-            func,
             func_relocs: Vec::new(),
         }
     }
@@ -406,6 +406,10 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
 impl<'data, 'flags> cretonne_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'data, 'flags> {
     fn get_func_name(&self, func_index: FunctionIndex) -> cretonne_codegen::ir::ExternalName {
         get_func_name(func_index)
+    }
+
+    fn flags(&self) -> &settings::Flags {
+        self.flags
     }
 
     fn declare_signature(&mut self, sig: &ir::Signature) {

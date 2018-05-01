@@ -12,14 +12,12 @@
 #![feature(global_allocator)]
 #![feature(global_asm)]
 #![feature(core_intrinsics)]
-#![feature(fn_must_use)]
 #![feature(naked_functions)]
 #![feature(compiler_builtins_lib)]
-#![feature(nll)]
 #![feature(nonnull_cast)]
 
 #![no_main]
-#![deny(unused_must_use)]
+// #![deny(warnings)]
 
 #[macro_use]
 extern crate lazy_static;
@@ -30,8 +28,6 @@ extern crate x86_64;
 extern crate spin;
 extern crate rlibc;
 extern crate bit_field;
-#[cfg(feature = "linked_alloc")]
-extern crate linked_list_allocator;
 #[macro_use]
 extern crate alloc;
 extern crate hashmap_core;
@@ -52,7 +48,7 @@ pub mod allocator;
 pub mod consts;
 pub mod abi;
 pub mod object;
-pub mod strand;
+pub mod task;
 pub mod wasm;
 
 pub use consts::*;
@@ -70,17 +66,28 @@ pub fn kmain(cpus: usize) -> ! {
 
     println!("Nebulet v{}", VERSION);
 
-    wasm::wasm_test();
+    // wasm::wasm_test();
 
-    // use core::mem;
+    use task::thread::Thread;
 
-    // for i in 0.. {
-    //     println!("i = {}", i);
-    //     let v: Vec<u8> = vec![0; 16 * 1024];
-    //     mem::forget(v);
-    // }
+    let thread = Thread::new(1024 * 16, test_thread).unwrap();
+    let mut idle_thread = Thread::new(256, idle_thread).unwrap();
+
+    unsafe {
+        idle_thread.switch_to(&thread);
+    }
 
     loop {
         unsafe { arch::interrupt::halt(); }
     }
+}
+
+extern fn test_thread() {
+    println!("From thread");
+
+    loop {}
+}
+
+extern fn idle_thread() {
+    loop {}
 }

@@ -12,6 +12,9 @@ output = "bootimage.bin"
 #[package.metadata.bootimage.bootloader]
 #git = "https://github.com/rust-osdev/bootloader.git"
 
+[profile.release]
+lto = true
+
 [workspace]
 members = ["tools"]
 exclude = [
@@ -21,7 +24,7 @@ exclude = [
 ]
 
 [features]
-default = ["dlmalloc_rs", "vga"]
+default = ["dlmalloc_rs", "serial"]
 vga = [] # log to vga
 serial = [] # log to serial
 bump_alloc = []
@@ -36,10 +39,7 @@ bit_field = "0.9.0"
 
 x86_64 = "0.2.0-alpha-019"
 os_bootinfo = "0.2.0"
-
-
-[dependencies.hashmap_core]
-git = "https://github.com/nebulet/hashmap_core.git"
+hashmap_core = "0.1.5"
 
 [dependencies.lazy_static]
 version = "1.0.0"

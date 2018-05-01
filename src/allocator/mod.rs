@@ -17,7 +17,7 @@ mod linked_list;
 #[cfg(feature = "bump_alloc")]
 mod bump;
 #[cfg(feature = "dlmalloc_rs")]
-mod dlmalloc_rs;
+pub mod dlmalloc_rs;
 
 unsafe fn map_heap(mapper: &mut PageMapper, offset: usize, size: usize) -> (*mut u8, usize) {
     let heap_start_page = Page::containing_address(VirtAddr::new(offset as u64));
@@ -29,16 +29,4 @@ unsafe fn map_heap(mapper: &mut PageMapper, offset: usize, size: usize) -> (*mut
             .flush();
     }
     (heap_start_page.start_address().as_u64() as *mut u8, (heap_end_page - heap_start_page) as usize * 4096)
-}
-
-pub unsafe fn init(mapper: &mut PageMapper) {
-    let offset = ::KERNEL_HEAP_OFFSET;
-    let size = ::KERNEL_HEAP_SIZE;
-
-    // map heap pages
-    #[cfg(not(feature = "dlmalloc_rs"))]
-    map_heap(mapper, offset, size);
-
-    // initialize global heap allocator
-    Allocator::init(offset, size);
 }
