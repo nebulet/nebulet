@@ -30,7 +30,7 @@ pub struct SerialPort {
     line_ctrl: Port<u8>,
     modem_ctrl: Port<u8>,
     line_sts: Port<u8>,
-    modem_sts: Port<u8>,
+    // modem_sts: Port<u8>,
 }
 
 impl SerialPort {
@@ -42,7 +42,7 @@ impl SerialPort {
             line_ctrl: Port::new(base + 3),
             modem_ctrl: Port::new(base + 4),
             line_sts: Port::new(base + 5),
-            modem_sts: Port::new(base + 6),
+            // modem_sts: Port::new(base + 6),
         }
     }
 

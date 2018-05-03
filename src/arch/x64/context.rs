@@ -1,24 +1,74 @@
-use core::mem;
+use core::{mem, ptr};
+
+global_asm!("
+.global x86_64_context_switch
+.intel_syntax noprefix
+x86_64_context_switch:
+    pushfq
+    push rbx
+    push rbp
+    push r12
+    push r13
+    push r14
+    push r15
+
+    mov [rdi], rsp
+    mov rsp, rsi
+
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbp
+    pop rbx
+    popfq
+
+    ret
+");
+
+extern "C" {
+    fn x86_64_context_switch(oldsp: &mut usize, newsp: usize);
+}
+
+#[repr(C)]
+pub struct ContextSwitchFrame {
+    r15: usize,
+    r14: usize,
+    r13: usize,
+    r12: usize,
+    rbp: usize,
+    rbx: usize,
+    rflags: usize,
+    rip: usize,
+}
 
 #[derive(Debug)]
 pub struct Context {
-    pub rflags: usize,
-    pub rbx: usize,
-    pub r12: usize,
-    pub r13: usize,
-    pub r14: usize,
-    pub r15: usize,
-    pub rbp: usize,
-    pub rsp: usize,
+    rsp: usize,
 }
 
 impl Context {
-    pub fn new() -> Self {
-        Self {
-            rflags: 0,
+    pub fn init(stack_top: *mut u8, entry: extern fn()) -> Self {
+        fn round_down(addr: usize, align: usize) -> usize {
+            addr & !(align - 1)
+        }
+
+        let faux_frame = ContextSwitchFrame {
+            r15: 0, r14: 0, r13: 0, r12: 0,
+            rbp: 0,
             rbx: 0,
-            r12: 0, r13: 0, r14: 0, r15: 0,
-            rbp: 0, rsp: 0,
+            rflags: 0, // IF = 0, NT = 0, IOPL = 0
+            rip: entry as _,
+        };
+
+        let adjusted_stack_top = round_down(stack_top as usize, 16) - 8 - mem::size_of::<ContextSwitchFrame>();
+
+        unsafe {
+            ptr::write(adjusted_stack_top as *mut _, faux_frame);
+        }
+
+        Context {
+            rsp: adjusted_stack_top,
         }
     }
 
@@ -28,27 +78,7 @@ impl Context {
     }
 
     /// Switch to a new context
-    #[naked]
-    #[inline(never)]
     pub unsafe extern "C" fn switch_to(&mut self, next: &Context) {
-        asm!("pushfq; pop $0" : "=r"(self.rflags) : : "memory" : "intel", "volatile");
-        asm!("push $0; popfq" : : "r"(next.rflags) : "memory" : "intel", "volatile");
-
-        asm!("mov $0, rbx" : "=r"(self.rbx) : : "memory" : "intel", "volatile");
-        asm!("mov $0, r12" : "=r"(self.r12) : : "memory" : "intel", "volatile");
-        asm!("mov $0, r13" : "=r"(self.r13) : : "memory" : "intel", "volatile");
-        asm!("mov $0, r14" : "=r"(self.r14) : : "memory" : "intel", "volatile");
-        asm!("mov $0, r15" : "=r"(self.r15) : : "memory" : "intel", "volatile");
-        asm!("mov $0, rsp" : "=r"(self.rsp) : : "memory" : "intel", "volatile");
-        asm!("mov $0, rbp" : "=r"(self.rbp) : : "memory" : "intel", "volatile");
-
-        asm!("mov rbx, $0" : : "r"(next.rbx) : "memory" : "intel", "volatile");
-        asm!("mov r12, $0" : : "r"(next.r12) : "memory" : "intel", "volatile");
-        asm!("mov r13, $0" : : "r"(next.r13) : "memory" : "intel", "volatile");
-        asm!("mov r14, $0" : : "r"(next.r14) : "memory" : "intel", "volatile");
-        asm!("mov r15, $0" : : "r"(next.r15) : "memory" : "intel", "volatile");
-        asm!("mov rsp, $0" : : "r"(next.rsp) : "memory" : "intel", "volatile");
-        asm!("mov rbp, $0" : : "r"(next.rbp) : "memory" : "intel", "volatile");
+        x86_64_context_switch(&mut self.rsp, next.rsp);
     }
 }
-

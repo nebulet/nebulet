@@ -1,5 +1,4 @@
-use core::ops::{Deref, DerefMut};
-use x86_64::structures::paging::{PageTable, PageTableFlags, RecursivePageTable, PhysFrame, Page, Mapper, PageSize, Size4KB, MapperFlush, MapToError, UnmapError, FlagUpdateError};
+use x86_64::structures::paging::{PageTable, PageTableFlags, RecursivePageTable, PhysFrame, Page, Mapper, Size4KB, MapperFlush, MapToError, UnmapError, FlagUpdateError};
 use x86_64::ux::u9;
 
 use arch::memory;

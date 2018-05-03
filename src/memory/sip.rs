@@ -11,8 +11,6 @@ use nabi::{Result, Error};
 /// 
 /// This contains both code-memory, heap-memory, and guard-memory
 pub struct SipAllocator {
-    /// The start of available SIP memory
-    start: usize,
     /// The end of available SIP memory
     end: usize,
     bump: usize,
@@ -22,7 +20,6 @@ impl SipAllocator {
     /// Create a new `AvailableSIPMemory`.
     pub const fn new(start: usize, end: usize) -> SipAllocator {
         SipAllocator {
-            start,
             end,
             bump: start,
         }

@@ -1,7 +1,7 @@
 // use sched::{self, Thread};
 use arch::interrupt;
 use arch::asm::read_gs_offset64;
-use strand::Strand;
+use task::thread::Thread;
 use core::ptr;
 use core::sync::atomic::{fence, Ordering};
 
@@ -9,7 +9,7 @@ use x86_64::registers::model_specific::Msr;
 
 static mut CPU0: Cpu = Cpu {
     direct: ptr::null_mut(),
-    current_strand: ptr::null_mut(),
+    current_thread: ptr::null_mut(),
     in_irq: 0,
     cpu_id: 0,
     preempt_counter: 0,
@@ -21,8 +21,8 @@ pub struct Cpu {
     // Direct pointer to self
     pub direct: *mut Cpu,
 
-    // The current strand
-    pub current_strand: *mut Strand,
+    // The current thread
+    pub current_thread: *mut Thread,
 
     // currently in irq
     pub in_irq: u32,
@@ -54,13 +54,7 @@ pub fn current() -> &'static mut Cpu {
 // cpu::prempt functions
 pub mod preempt {
     use super::*;
-
-    #[inline]
-    fn counter() -> u32 {
-        fence(Ordering::SeqCst);
-        current().preempt_counter
-    }
-
+    
     #[inline]
     fn requested() -> bool {
         current().preempt_requested
@@ -78,16 +72,20 @@ pub mod preempt {
         current().preempt_counter -= 1;
         if allowed() && requested() && irq::enabled() {
             current().preempt_requested = false;
-            // sched::schedule();
+            // use thread::reschedule;
+            // reschedule();
         }
     }
 
     #[inline]
     /// Request that a preempt occurs
-    pub fn preempt() {
+    pub fn request() {
         if allowed() {
             current().preempt_requested = false;
-            // sched::schedule();
+            // use thread::reschedule;
+            // unsafe {
+            //     reschedule();
+            // }
         } else {
             current().preempt_requested = true;
         }
@@ -99,20 +97,20 @@ pub mod preempt {
     }
 }
 
-pub mod strand {
+pub mod thread {
     use super::*;
 
     #[inline]
     /// This should be safe, because it'll always be called after
-    /// a default strand exists in the percpu data structure
-    pub fn get() -> &'static mut Strand {
-        unsafe { &mut *current().current_strand }
+    /// a default thread exists in the percpu data structure
+    pub fn get() -> &'static mut Thread {
+        unsafe { &mut *current().current_thread }
     }
 
     #[inline]
     /// Definetly unsafe
-    pub unsafe fn set(strand: &mut Strand) {
-        current().current_strand = strand as *mut _;
+    pub unsafe fn set(thread: &mut Thread) {
+        current().current_thread = thread as *mut _;
     }
 }
 

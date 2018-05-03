@@ -35,10 +35,6 @@ pub fn can_release_part(_flags: u32) -> bool {
     false
 }
 
-pub fn acquire_global_lock() {}
-
-pub fn release_global_lock() {}
-
 pub fn allocates_zeros() -> bool {
     true
 }

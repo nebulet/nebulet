@@ -68,10 +68,6 @@ static HEAP: PreemptLock<Dlmalloc> = PreemptLock::new(DLMALLOC_INIT);
 
 pub struct Allocator;
 
-impl Allocator {
-    pub unsafe fn init(offset: usize, size: usize) {}
-}
-
 unsafe impl<'a> Alloc for &'a Allocator {
     #[inline]
     unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<Opaque>, AllocErr> {
@@ -124,11 +120,6 @@ unsafe impl<'a> Alloc for &'a Allocator {
             Ok(NonNull::new_unchecked(ptr as _))
         }
     }
-
-    #[inline]
-    fn oom(&mut self) -> ! {
-        <GlobalAlloc>::oom(*self);
-    }
 }
 
 unsafe impl GlobalAlloc for Allocator {
@@ -152,8 +143,10 @@ unsafe impl GlobalAlloc for Allocator {
             new_size,
         ) as _
     }
+}
 
-    fn oom(&self) -> ! {
-        panic!("Out of memory!");
-    }
+#[lang = "oom"]
+#[no_mangle]
+pub extern fn oom() -> ! {
+    panic!("Memory allocation failed")
 }

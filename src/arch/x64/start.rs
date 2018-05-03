@@ -1,6 +1,5 @@
 use os_bootinfo::BootInfo;
 use arch::memory;
-use allocator;
 use arch::{idt, interrupt, devices, paging, cpu};
 
 /// Test of zero values in BSS.
@@ -29,10 +28,7 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
     memory::init(boot_info);
 
     // Initialize paging
-    let mut page_mapper = paging::init();
-
-    // Initialize dynamic memory allocation
-    allocator::init(&mut page_mapper);
+    paging::init();
 
     // Initialize the IDT
     idt::init();

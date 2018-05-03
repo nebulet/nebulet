@@ -3,6 +3,7 @@ use arch::devices::pic;
 use arch::macros::interrupt;
 use time;
 use x86_64::instructions::port::Port;
+use arch::cpu;
 
 pub static PIT_TICKS: AtomicUsize = ATOMIC_USIZE_INIT;
 static CONTEXT_SWITCH_TICKS: usize = 10;
@@ -40,6 +41,8 @@ interrupt!(pit, {
     // switch context
     if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= CONTEXT_SWITCH_TICKS {
         PIT_TICKS.store(0, Ordering::SeqCst);
+
+        cpu::irq::lock(|| cpu::preempt::request());
     }
 });
 

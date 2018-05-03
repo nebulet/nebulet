@@ -15,10 +15,6 @@ use nabi::{Result, Error};
 use core::ptr::write_unaligned;
 use alloc::{Vec, String};
 
-extern "C" fn test_external_func(arg: u64) {
-    println!("Called from wasm! arg = {}", arg);
-}
-
 #[derive(Debug)]
 enum FunctionType {
     Local {
@@ -204,8 +200,10 @@ impl<'isa> Compiler<'isa> {
             // TODO(gmorenz): We probably want traps?
             use cretonne_codegen::binemit::NullTrapSink;
 
-            let mut reloc_sink = RelocSink::new(&ctx.func);
-            ctx.emit_to_memory((region_start + offset) as *mut u8, &mut reloc_sink, &mut NullTrapSink {}, self.isa);
+            let mut reloc_sink = RelocSink::new();
+            unsafe {
+                ctx.emit_to_memory(self.isa, (region_start + offset) as *mut u8, &mut reloc_sink, &mut NullTrapSink {});
+            }
             functions.push(FunctionType::Local {
                 offset,
                 size: *size,

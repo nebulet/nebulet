@@ -20,12 +20,11 @@ pub fn wasm_test() {
     let mut codes = Vec::new();
     for (i, wasm) in WASM_TESTS.iter().enumerate() {
         println!("Compiling wasm test #{}", i);
-        match compile(wasm) {
+        match compile_module(wasm) {
             Ok(code) => codes.push((i, code)),
             Err(err) => println!("Wasm test #{} failed to compile: {:?}", i, err),
         }
     }
-
 
     for (i, code) in codes.iter_mut() {
         println!("Executing wasm test #{}", i);
@@ -34,14 +33,14 @@ pub fn wasm_test() {
     println!("Didn't crash!");
 }
 
-pub fn compile(wasm: &[u8]) -> Result<Code> {
+pub fn compile_module(wasm: &[u8]) -> Result<Code> {
     let (mut flag_builder, isa_builder) = cretonne_native::builders()
         .expect("Host machine not supported.");
 
     flag_builder.set("opt_level", "best")
         .map_err(|_| Error::INTERNAL)?;
 
-    let isa = isa_builder.finish(settings::Flags::new(&flag_builder));
+    let isa = isa_builder.finish(settings::Flags::new(flag_builder));
 
     let module = Module::new();
     let mut environ = ModuleEnvironment::new(isa.flags(), module);
