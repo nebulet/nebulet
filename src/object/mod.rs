@@ -5,7 +5,7 @@ use spin::Once;
 
 use spin::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-pub static HANDLE_TABLE: Once<RwLock<HandleTable>> = Once::new();
+static HANDLE_TABLE: Once<RwLock<HandleTable>> = Once::new();
 
 fn handle_table_init() -> RwLock<HandleTable> {
     RwLock::new(HandleTable::new())
