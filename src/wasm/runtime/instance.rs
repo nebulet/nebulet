@@ -52,22 +52,6 @@ impl Instance {
         result
     }
 
-    /// Create the VmCtx data structure for the JIT'd code to use. This must
-    /// match the VmCtx layout in the runtime.
-    // pub fn generate_vmctx(&mut self) -> Vec<*mut u8> {
-    //     let mut memories: Vec<*mut u8> = Vec::with_capacity(self.memories.len());
-    //     let mut vmctx = Vec::with_capacity(2);
-    //     vmctx.push(self.globals.as_mut_ptr());
-    //     for mem in &mut self.memories {
-    //         println!("memory slice: [{:#x}; {}]", mem.as_ptr() as usize, mem.len());
-    //         memories.push(mem.as_mut_ptr());
-    //     }
-    //     println!("memories.as_ptr(): {:#x}", memories.as_ptr() as usize);
-    //     vmctx.push(memories.as_mut_ptr() as *mut u8);
-    //     println!("vmctx.as_ptr(): {:#x}", vmctx.as_ptr() as usize);
-    //     vmctx
-    // }
-
     pub fn generate_vmctx(&mut self) -> VmCtx {
         let vmctx = VmCtx {
             globals: self.globals.as_mut_ptr(),
@@ -111,7 +95,7 @@ impl Instance {
             debug_assert!(init.base.is_none(), "globalvar base not supported yet.");
 
             let to_init = &mut self.memories[init.memory_index][init.offset..init.offset + init.data.len()];
-            to_init.copy_from_slice(init.data);
+            to_init.copy_from_slice(&init.data);
         }
     }
 

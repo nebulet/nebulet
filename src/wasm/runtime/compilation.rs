@@ -2,7 +2,6 @@
 //! module
 
 use super::module::Module;
-use super::instance::Instance;
 use super::{Relocations, DataInitializer};
 use cretonne_codegen::{self, isa::TargetIsa, binemit::Reloc};
 use super::RelocSink;
@@ -29,11 +28,6 @@ enum FunctionType {
 
 #[derive(Debug)]
 pub struct Compilation {
-    /// The module this is instantiated from
-    module: Module,
-
-    instance: Instance,
-
     region: Region,
 
     /// Compiled machine code for the function bodies
@@ -48,7 +42,7 @@ pub struct Compilation {
 
 impl Compilation {
     /// Allocates the runtime data structures with the given flags
-    fn new(module: Module, region: Region, functions: Vec<FunctionType>, relocations: Relocations, instance: Instance) -> Self {
+    fn new(region: Region, functions: Vec<FunctionType>, relocations: Relocations) -> Self {
         let first_local_function = functions
             .iter()
             .position(|f| match f {
@@ -57,9 +51,7 @@ impl Compilation {
             }).unwrap();
 
         Compilation {
-            module,
             region,
-            instance,
             functions,
             first_local_function,
             relocations,
@@ -67,13 +59,13 @@ impl Compilation {
     }
 
     /// Relocate the compliation.
-    fn relocate(&mut self) -> Result<()> {
+    fn relocate(&mut self, module: &Module) -> Result<()> {
         // The relocations are absolute addresses
         // TODO: Support architectures other than x86_64, and other reloc kinds.
         for (i, function_relocs) in self.relocations.iter().enumerate() {
             for ref r in function_relocs {
-                let (target_func_addr, _is_local) = self.get_function_addr(r.func_index)?;
-                let body_addr = self.get_function_addr(i + self.first_local_function)?.0;
+                let (target_func_addr, _is_local) = self.get_function_addr(module, r.func_index)?;
+                let body_addr = self.get_function_addr(module, i + self.first_local_function)?.0;
                 let reloc_addr = unsafe{ body_addr.offset(r.offset as isize) };
 
                 match r.reloc {
@@ -90,7 +82,7 @@ impl Compilation {
         Ok(())
     }
 
-    fn get_function_addr(&self, index: usize) -> Result<(*const u8, bool)> {
+    fn get_function_addr(&self, module_ref: &Module, index: usize) -> Result<(*const u8, bool)> {
         match self.functions[index] {
             FunctionType::Local {
                 offset,
@@ -106,7 +98,7 @@ impl Compilation {
                     "abi" => {
                         let abi_func = ABI_MAP.get(name.as_str())?;
 
-                        let imported_sig = &self.module.signatures[index];
+                        let imported_sig = &module_ref.signatures[index];
 
                         if abi_func.same_sig(imported_sig) {
                             Ok((abi_func.ptr, false))
@@ -124,13 +116,13 @@ impl Compilation {
     }
 
     /// Emit a `Code` instance
-    pub fn emit(mut self) -> Result<Code> {
-        self.relocate()?;
+    pub fn emit(mut self, module: Module, data_initializers: Vec<DataInitializer>) -> Result<Code> {
+        self.relocate(&module)?;
 
-        let start_index = self.module.start_func?;
-        let start_ptr = self.get_function_addr(start_index)?.0;
+        let start_index = module.start_func?;
+        let start_ptr = self.get_function_addr(&module, start_index)?.0;
 
-        Code::new(self.module, self.region, self.instance, start_ptr)
+        Code::new(module, data_initializers, self.region, start_ptr)
     }
 }
 
@@ -178,7 +170,7 @@ impl<'isa> Compiler<'isa> {
     /// This assumes that the functions don't need a specific
     /// alignment, which is true on x86_64, but may not
     /// be true on other architectures.
-    pub fn compile(self, module: Module, data_initializers: &[DataInitializer]) -> Result<Compilation> {
+    pub fn compile(self, module: &Module) -> Result<Compilation> {
         let region = sip::allocate_region(self.total_size)
             .ok_or(Error::NO_MEMORY)?;
 
@@ -213,8 +205,6 @@ impl<'isa> Compiler<'isa> {
             offset += size;
         }
 
-        let instance = Instance::new(&module, data_initializers);
-
-        Ok(Compilation::new(module, region, functions, relocs, instance))
+        Ok(Compilation::new(region, functions, relocs))
     }
 }

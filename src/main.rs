@@ -66,16 +66,16 @@ pub fn kmain(cpus: usize) -> ! {
 
     println!("Nebulet v{}", VERSION);
 
-    // wasm::wasm_test();
+    wasm::wasm_test();
 
-    use task::thread::Thread;
+    // use task::thread::Thread;
 
-    let thread = Thread::new(1024 * 16, test_thread).unwrap();
-    let mut idle_thread = Thread::new(256, idle_thread).unwrap();
+    // let thread = Thread::new(1024 * 16, test_thread).unwrap();
+    // let mut idle_thread = Thread::new(256, idle_thread).unwrap();
 
-    unsafe {
-        idle_thread.switch_to(&thread);
-    }
+    // unsafe {
+    //     idle_thread.switch_to(&thread);
+    // }
 
     loop {
         unsafe { arch::interrupt::halt(); }

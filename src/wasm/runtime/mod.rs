@@ -110,7 +110,7 @@ impl RelocSink {
 }
 
 /// A data initializer for linear memory.
-pub struct DataInitializer<'data> {
+pub struct DataInitializer {
     /// The index of the memory to initialize.
     pub memory_index: MemoryIndex,
     /// Optionally a globalvar base to initialize at.
@@ -118,7 +118,7 @@ pub struct DataInitializer<'data> {
     /// A constant offset to initialize at.
     pub offset: usize,
     /// The initialization data.
-    pub data: &'data [u8],
+    pub data: Vec<u8>,
 }
 
 /// References to the input wasm data buffer to be decoded and processed later.
@@ -128,7 +128,7 @@ pub struct LazyContents<'data> {
     pub function_body_inputs: Vec<&'data [u8]>,
 
     /// References to the data initializers.
-    pub data_initializers: Vec<DataInitializer<'data>>,
+    pub data_initializers: Vec<DataInitializer>,
 }
 
 impl<'data> LazyContents<'data> {
@@ -498,7 +498,7 @@ impl<'data, 'flags> cretonne_wasm::ModuleEnvironment<'data> for ModuleEnvironmen
             memory_index,
             base,
             offset,
-            data,
+            data: data.to_vec(),
         });
     }
 
@@ -580,7 +580,7 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
     pub fn compile(
         self,
         isa: &isa::TargetIsa,
-    ) -> Result<Compilation, nabi::Error> {
+    ) -> Result<(Compilation, Module, Vec<DataInitializer>), nabi::Error> {
         let mut compiler = Compiler::with_capacity(isa, self.lazy.function_body_inputs.len());
 
         for (func_index, input) in self.lazy.function_body_inputs.iter().enumerate() {
@@ -596,6 +596,10 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
             compiler.define_function(context)?;
         }
 
-        compiler.compile(self.module, &self.lazy.data_initializers)
+        let compliation = compiler.compile(&self.module)?;
+
+
+
+        Ok((compliation, self.module, self.lazy.data_initializers))
     }
 }

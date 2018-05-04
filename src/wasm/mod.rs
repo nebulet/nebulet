@@ -35,7 +35,7 @@ pub fn wasm_test() {
 
 pub fn compile_module(wasm: &[u8]) -> Result<Code> {
     let (mut flag_builder, isa_builder) = cretonne_native::builders()
-        .expect("Host machine not supported.");
+        .map_err(|_| Error::INTERNAL)?;
 
     flag_builder.set("opt_level", "best")
         .map_err(|_| Error::INTERNAL)?;
@@ -49,9 +49,9 @@ pub fn compile_module(wasm: &[u8]) -> Result<Code> {
         .map_err(|_| Error::INTERNAL)?;
 
     let translation = environ.finish_translation();
-    let compliation = translation.compile(&*isa)?;
-
-    compliation.emit()
+    let (compliation, module, data_initializers) = translation.compile(&*isa)?;
+    
+    compliation.emit(module, data_initializers)
 }
 
 static WASM_TESTS: [&'static [u8]; 6] = [
