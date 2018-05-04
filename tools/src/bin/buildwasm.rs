@@ -15,7 +15,7 @@ fn main() {
     for wat_file in fs::read_dir("wasm").expect("Missing wasm dir") {
         let wat_file = wat_file.unwrap();
         let name = wat_file.file_name();
-        let mut wasm_file = PathBuf::from("src/wasm/wasmtests");
+        let mut wasm_file = PathBuf::from("src/tests/wasmtests");
         wasm_file.push(name);
         wasm_file.set_extension("wasm");
         let r = build_wat(&wat_file.path(), &wasm_file).unwrap();

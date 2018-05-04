@@ -50,6 +50,7 @@ pub mod abi;
 pub mod object;
 pub mod task;
 pub mod wasm;
+pub mod tests;
 
 pub use consts::*;
 
@@ -66,7 +67,7 @@ pub fn kmain(cpus: usize) -> ! {
 
     println!("Nebulet v{}", VERSION);
 
-    wasm::wasm_test();
+    tests::test_all();
 
     // use task::thread::Thread;
 
