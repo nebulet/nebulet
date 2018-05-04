@@ -14,8 +14,6 @@ use memory::Code;
 
 use nabi::{Result, Error};
 
-use alloc::Vec;
-
 pub fn compile_module(wasm: &[u8]) -> Result<Code> {
     let (mut flag_builder, isa_builder) = cretonne_native::builders()
         .map_err(|_| Error::INTERNAL)?;
