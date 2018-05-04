@@ -20,9 +20,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "cretonne-codegen"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
- "cretonne-entity 0.7.0",
+ "cretonne-entity 0.8.0",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hashmap_core 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -30,29 +30,29 @@ dependencies = [
 
 [[package]]
 name = "cretonne-entity"
-version = "0.7.0"
+version = "0.8.0"
 
 [[package]]
 name = "cretonne-frontend"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
- "cretonne-codegen 0.7.0",
+ "cretonne-codegen 0.8.0",
 ]
 
 [[package]]
 name = "cretonne-native"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
- "cretonne-codegen 0.7.0",
+ "cretonne-codegen 0.8.0",
  "raw-cpuid 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "cretonne-wasm"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
- "cretonne-codegen 0.7.0",
- "cretonne-frontend 0.7.0",
+ "cretonne-codegen 0.8.0",
+ "cretonne-frontend 0.8.0",
  "hashmap_core 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasmparser 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -102,10 +102,10 @@ version = "0.1.0"
 dependencies = [
  "bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cretonne-codegen 0.7.0",
- "cretonne-frontend 0.7.0",
- "cretonne-native 0.7.0",
- "cretonne-wasm 0.7.0",
+ "cretonne-codegen 0.8.0",
+ "cretonne-frontend 0.8.0",
+ "cretonne-native 0.8.0",
+ "cretonne-wasm 0.8.0",
  "hashmap_core 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "linked_list_allocator 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
