@@ -87,6 +87,7 @@ pub struct PreemptLock<T: ?Sized> {
 
 pub struct PreemptGuard<'a, T: ?Sized + 'a> {
     data: &'a mut T,
+    was_enabled: bool,
 }
 
 unsafe impl<T: ?Sized + Send> Sync for PreemptLock<T> {}
@@ -100,22 +101,15 @@ impl<T> PreemptLock<T> {
     }
 
     pub fn lock(&self) -> PreemptGuard<T> {
-        unsafe {
-            cpu::preempt::disable();
+        let was_enabled = cpu::irq::enabled();
+        if was_enabled {
+            unsafe { cpu::irq::disable(); }
         }
+
         PreemptGuard {
             data: unsafe { &mut *self.data.get() },
+            was_enabled,
         }
-    }
-}
-
-impl PreemptLock<()> {
-    pub unsafe fn unguarded_lock(&self) {
-        cpu::preempt::disable();
-    }
-
-    pub unsafe fn unguarded_release(&self) {
-        cpu::preempt::enable();
     }
 }
 
@@ -140,8 +134,8 @@ impl<'a, T: ?Sized> DerefMut for PreemptGuard<'a, T> {
 
 impl<'a, T: ?Sized> Drop for PreemptGuard<'a, T> {
     fn drop(&mut self) {
-        unsafe {
-            cpu::preempt::enable();
+        if self.was_enabled {
+            unsafe { cpu::irq::enable(); }
         }
     }
 }

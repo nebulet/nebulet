@@ -6,12 +6,14 @@ use nabi::{Result, Error};
 
 pub type TableIndex = usize;
 
+#[derive(Debug)]
 enum Slot<T> {
     Occupied(T),
     /// The index of the next vacant slot
     Vacant(usize),
 }
 
+#[derive(Debug)]
 pub struct Table<T> {
     slots: Vec<Slot<T>>,
     head: usize,

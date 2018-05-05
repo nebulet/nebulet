@@ -1,5 +1,7 @@
 use super::stack::Stack;
 use arch::context::Context;
+use super::ThreadTable;
+use super::thread_entry::ThreadEntry;
 
 use nabi::{Result};
 
@@ -26,16 +28,26 @@ pub struct Thread {
 }
 
 impl Thread {
-    pub fn new(stack_size: usize, entry: extern fn()) -> Result<Thread> {
+    /// This creates a new thread and adds it to the global thread table.
+    pub fn new(stack_size: usize, entry: extern fn()) -> Result<ThreadEntry> {
         let stack = Stack::with_size(stack_size)?;
-        let ctx = Context::init(stack.top(), entry);
+        let stack_top = stack.top();
 
-        Ok(Thread {
+        let thread = Thread {
             state: State::Ready,
-            ctx,
+            ctx: Context::from_rsp(0),
             stack,
             entry,
-        })
+        };
+
+        let entry = ThreadTable::allocate(thread)?;
+
+        {
+            let mut table = ThreadTable::lock();
+            table[entry.id()].ctx = Context::init(stack_top, common_thread_entry, entry.id())
+        }
+
+        Ok(entry)
     }
 
     pub unsafe fn switch_to(&mut self, other: &Thread) {
@@ -49,4 +61,24 @@ impl Thread {
     pub fn set_state(&mut self, state: State) {
         self.state = state;
     }
+}
+
+#[naked]
+extern fn common_thread_entry() {
+    let thread_entry: ThreadEntry;
+    unsafe {
+        asm!("pop $0" : "=r"(thread_entry) : : "memory" : "intel", "volatile");
+    }
+
+    let func = {
+        let thread_table = ThreadTable::lock();
+        thread_table[thread_entry.id()].entry
+    };
+
+    println!("Starting thread");
+
+    func();
+
+    println!("thread done");
+    loop {}
 }

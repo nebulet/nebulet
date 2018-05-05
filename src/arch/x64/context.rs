@@ -42,13 +42,20 @@ pub struct ContextSwitchFrame {
     rip: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Context {
     rsp: usize,
 }
 
 impl Context {
-    pub fn init(stack_top: *mut u8, entry: extern fn()) -> Self {
+    pub fn from_rsp(rsp: usize) -> Context {
+        Context {
+            rsp,
+        }
+    }
+    /// The returned tuple on this is ugly, but I couldn't think
+    /// of a better way of doing it.
+    pub fn init(stack_top: *mut u8, entry: extern fn(), stack_item: usize) -> Self {
         fn round_down(addr: usize, align: usize) -> usize {
             addr & !(align - 1)
         }
@@ -57,11 +64,17 @@ impl Context {
             r15: 0, r14: 0, r13: 0, r12: 0,
             rbp: 0,
             rbx: 0,
-            rflags: 0, // IF = 0, NT = 0, IOPL = 0
+            rflags: 0x0200, // IF = 1, NT = 0, IOPL = 0
             rip: entry as _,
         };
 
-        let adjusted_stack_top = round_down(stack_top as usize, 16) - 8 - mem::size_of::<ContextSwitchFrame>();
+        let rounded = round_down(stack_top as usize, 16) - 8;
+
+        unsafe {
+            *(rounded as *mut usize) = stack_item;
+        }
+
+        let adjusted_stack_top = rounded - mem::size_of::<ContextSwitchFrame>();
 
         unsafe {
             ptr::write(adjusted_stack_top as *mut _, faux_frame);
