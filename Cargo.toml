@@ -13,7 +13,7 @@ output = "bootimage.bin"
 #git = "https://github.com/rust-osdev/bootloader.git"
 
 [profile.release]
-lto = true
+# lto = true
 panic = "abort"
 
 [workspace]

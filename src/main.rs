@@ -54,41 +54,46 @@ pub mod tests;
 
 pub use consts::*;
 
-use core::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-
 #[global_allocator]
 pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 
-/// The count of all CPUs that can have work scheduled
-static CPU_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
-
-pub fn kmain(cpus: usize) -> ! {
-    CPU_COUNT.store(cpus, Ordering::SeqCst);
-
+pub fn kmain() -> ! {
     println!("Nebulet v{}", VERSION);
-
-    tests::test_all();
+    
+    // tests::test_all();
 
     use task::thread::Thread;
 
-    let thread = Thread::new(1024 * 16, test_thread).unwrap();
-    let mut idle_thread = Thread::new(256, idle_thread).unwrap();
+    let thread0 = Thread::new(1024 * 16, test_thread0)
+        .unwrap();
+    let thread1 = Thread::new(1024 * 16, test_thread1)
+        .unwrap();
+
+    println!("Adding thread 0");
+    thread0.resume().unwrap();
+    println!("Adding thread 1");
+    thread1.resume().unwrap();
+    println!("Done");
+
+    // task::GlobalScheduler::switch();
 
     unsafe {
-        idle_thread.switch_to(&thread);
+        ::arch::interrupt::enable();
     }
 
     loop {
-        unsafe { arch::interrupt::halt(); }
+        unsafe { ::arch::interrupt::halt(); }
     }
 }
 
-extern fn test_thread() {
-    println!("From thread");
+extern fn test_thread0() {
+    println!("Test Thread 0");
 
     loop {}
 }
 
-extern fn idle_thread() {
+extern fn test_thread1() {
+    println!("Test Thread 1");
+
     loop {}
 }

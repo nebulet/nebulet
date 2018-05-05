@@ -26,6 +26,8 @@ interrupt_stack!(bound_range_exceeded, _stack, {
 
 interrupt_stack!(invalid_opcode, _stack, {
     println!("Inavlid Opcode fault");
+
+    loop {}
 });
 
 interrupt_stack!(device_not_available, _stack, {

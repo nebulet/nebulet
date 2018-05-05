@@ -1,10 +1,9 @@
-use common::table::{Table, TableIndex};
 use object::handle::HandleTable;
 use memory::Code;
+use super::thread_entry::ThreadEntry;
 use super::thread::Thread;
-use arch::lock::Spinlock;
 
-use alloc::arc::Arc;
+use alloc::Vec;
 
 use nabi::Result;
 
@@ -13,7 +12,7 @@ use wasm::compile_module;
 pub struct Process {
     code: Code,
     handle_table: HandleTable,
-    thread_table: Table<Arc<Spinlock<Thread>>>,
+    threads: Vec<ThreadEntry>,
     started: bool
 }
 
@@ -25,7 +24,8 @@ impl Process {
         Ok(Process {
             code: code,
             handle_table: HandleTable::new(),
-            thread_table: Table::new(),
+            // since wasm only supports one thread rn...
+            threads: Vec::with_capacity(1),
             started: false,
         })
     }
@@ -33,8 +33,7 @@ impl Process {
     /// Start the process by spawning a thread at the entry point.
     pub fn start(&mut self) -> Result<()> {
         self.started = true;
-
-        self.code.execute();
+        
         Ok(())
     }
 }
