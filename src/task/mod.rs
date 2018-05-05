@@ -17,7 +17,7 @@ use nabi::Result;
 static THREAD_TABLE: Once<Spinlock<Table<Thread>>> = Once::new();
 static SCHEDULER: Once<Scheduler> = Once::new();
 
-extern fn idle_thread_entry() {
+extern fn idle_thread_entry(_: usize) {
     loop {
         unsafe { ::arch::interrupt::halt(); }
     }
@@ -25,7 +25,7 @@ extern fn idle_thread_entry() {
 
 #[inline]
 fn scheduler_init() -> Scheduler {
-    let idle_thread = Thread::new(512, idle_thread_entry)
+    let idle_thread = Thread::new(512, idle_thread_entry, 0)
         .expect("Could not create idle thread");
     
     Scheduler::new(idle_thread)

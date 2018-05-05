@@ -62,38 +62,19 @@ pub fn kmain() -> ! {
     
     // tests::test_all();
 
-    use task::thread::Thread;
+    use task::process::Process;
 
-    let thread0 = Thread::new(1024 * 16, test_thread0)
+    let mut process = Process::create(include_bytes!("tests/wasmtests/exit.wasm"))
         .unwrap();
-    let thread1 = Thread::new(1024 * 16, test_thread1)
-        .unwrap();
-
-    println!("Adding thread 0");
-    thread0.resume().unwrap();
-    println!("Adding thread 1");
-    thread1.resume().unwrap();
-    println!("Done");
-
-    // task::GlobalScheduler::switch();
+    
+    println!("Starting process");
+    process.start();
+    println!("Process started");
 
     unsafe {
         ::arch::interrupt::enable();
+        loop {
+            ::arch::interrupt::halt();
+        }
     }
-
-    loop {
-        unsafe { ::arch::interrupt::halt(); }
-    }
-}
-
-extern fn test_thread0() {
-    println!("Test Thread 0");
-
-    loop {}
-}
-
-extern fn test_thread1() {
-    println!("Test Thread 1");
-
-    loop {}
 }

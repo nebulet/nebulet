@@ -1,6 +1,6 @@
 use alloc::VecDeque;
 use super::thread_entry::ThreadEntry;
-use super::thread::Thread;
+use super::thread::{Thread, State};
 use super::ThreadTable;
 use arch::lock::Spinlock;
 
@@ -49,20 +49,29 @@ impl Scheduler {
             }
 
             // set the current thread
-            self.inner.lock().current_thread = Some(next_thread_entry);
+            {
+                self.inner.lock().current_thread = Some(next_thread_entry);
+            }
             
-            let (mut current_thread, next_thread) = {
+            let (mut current_thread, mut next_thread) = {
                 let mut thread_table_guard = ThreadTable::lock();
                 
                 let mut current_thread_ptr = thread_table_guard
                     .get_mut(current_thread_entry.id())
                     .unwrap() as *mut Thread;
                 let next_thread_ptr = thread_table_guard
-                    .get(next_thread_entry.id())
-                    .unwrap() as *const Thread;
+                    .get_mut(next_thread_entry.id())
+                    .unwrap() as *mut Thread;
                 
-                unsafe { (&mut *current_thread_ptr, &*next_thread_ptr) }
+                unsafe { (&mut *current_thread_ptr, &mut *next_thread_ptr) }
             };
+
+            assert!(next_thread.state() == State::Ready);
+
+            current_thread.set_state(State::Ready);
+            self.push(current_thread_entry);
+
+            next_thread.set_state(State::Running);
 
             // So, at this point, the table_guard should be released, and we should also have
             // references to both the current thread and the next thread.
