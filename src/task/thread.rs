@@ -12,8 +12,8 @@ pub enum State {
     Running,
     /// This thread is not currently running, but it's ready to execute.
     Ready,
-    /// The thread has been preempted and cannot be run right now.
-    Preempted,
+    /// The thread has been suspended and cannot be run right now.
+    Suspended,
     /// It's dead, Jim.
     Dead,
 }
@@ -24,12 +24,13 @@ pub struct Thread {
     state: State,
     ctx: Context,
     stack: Stack,
-    entry: extern fn(),
+    entry: extern fn(usize),
+    arg: usize,
 }
 
 impl Thread {
     /// This creates a new thread and adds it to the global thread table.
-    pub fn new(stack_size: usize, entry: extern fn()) -> Result<ThreadEntry> {
+    pub fn new(stack_size: usize, entry: extern fn(usize), arg: usize) -> Result<ThreadEntry> {
         let stack = Stack::with_size(stack_size)?;
         let stack_top = stack.top();
 
@@ -38,6 +39,7 @@ impl Thread {
             ctx: Context::from_rsp(0),
             stack,
             entry,
+            arg,
         };
 
         let entry = ThreadTable::allocate(thread)?;
@@ -70,14 +72,15 @@ extern fn common_thread_entry() {
         asm!("pop $0" : "=r"(thread_entry) : : "memory" : "intel", "volatile");
     }
 
-    let func = {
+    let (func, arg) = {
         let thread_table = ThreadTable::lock();
-        thread_table[thread_entry.id()].entry
+        let thread = &thread_table[thread_entry.id()];
+        (thread.entry, thread.arg)
     };
 
     println!("Starting thread");
 
-    func();
+    func(arg);
 
     println!("thread done");
     loop {}

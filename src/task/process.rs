@@ -33,7 +33,21 @@ impl Process {
     /// Start the process by spawning a thread at the entry point.
     pub fn start(&mut self) -> Result<()> {
         self.started = true;
+
+        let thread = Thread::new(1024 * 16, common_process_entry, &self.code as *const _ as usize)?;
+
+        self.threads.push(thread);
+
+        thread.resume()?;
         
         Ok(())
     }
+}
+
+extern fn common_process_entry(arg: usize) {
+    let code = unsafe {
+        &mut *(arg as *mut Code)
+    };
+    
+    code.execute();
 }
