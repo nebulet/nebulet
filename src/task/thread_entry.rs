@@ -11,6 +11,7 @@ use nabi::Result;
 /// handling, in terms of both raw performance
 /// and programmer time.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(transparent)]
 pub struct ThreadEntry(pub(super) TableIndex);
 
 impl ThreadEntry {

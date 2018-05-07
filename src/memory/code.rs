@@ -9,6 +9,7 @@ use memory::Region;
 use nabi::Result;
 
 /// Represents the area of memory that contains compiled code
+#[allow(dead_code)]
 pub struct Code {
     data_initializers: Vec<DataInitializer>,
     module: Module,

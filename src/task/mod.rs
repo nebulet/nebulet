@@ -26,10 +26,10 @@ extern fn idle_thread_entry(_: usize) {
 
 #[inline]
 fn scheduler_init() -> Scheduler {
-    let idle_thread = Thread::new("idle", 4096, idle_thread_entry, 0)
+    let idle_thread = Thread::new(4096, idle_thread_entry, 0)
         .expect("Could not create idle thread");
 
-    let kernel_thread = Thread::new("kernel", 0, idle_thread_entry, 0)
+    let kernel_thread = Thread::new(0, idle_thread_entry, 0)
         .unwrap();
 
     {

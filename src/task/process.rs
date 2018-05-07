@@ -10,8 +10,7 @@ use nabi::Result;
 
 use wasm::compile_module;
 
-static mut COUNTER: usize = 0;
-
+#[allow(dead_code)]
 pub struct Process {
     code: Arc<Code>,
     handle_table: HandleTable,
@@ -48,13 +47,7 @@ impl Process {
     pub fn start(&mut self) -> Result<()> {
         self.started = true;
 
-        let counter = unsafe {
-            let c = COUNTER;
-            COUNTER += 1;
-            c
-        };
-
-        let thread = Thread::new(&format!("proc{}", counter), 1024 * 16, common_process_entry, &*self.code as *const Code as usize)?;
+        let thread = Thread::new(1024 * 16, common_process_entry, &*self.code as *const Code as usize)?;
 
         self.threads.push(thread);
 

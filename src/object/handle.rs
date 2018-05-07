@@ -89,6 +89,7 @@ impl Handle {
     }
 }
 
+#[derive(Debug)]
 pub struct HandleTable {
     table: Table<Handle>,
 }

@@ -160,7 +160,6 @@ impl DerefMut for Region {
 
 impl Drop for Region {
     fn drop(&mut self) {
-        println!("Dropping region");
         // ignore the result
         let _ = self.unmap();
     }

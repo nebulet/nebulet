@@ -15,9 +15,10 @@
 #![feature(naked_functions)]
 #![feature(compiler_builtins_lib)]
 #![feature(nonnull_cast)]
+#![feature(repr_transparent)]
 
 #![no_main]
-// #![deny(warnings)]
+#![deny(warnings)]
 
 #[macro_use]
 extern crate lazy_static;
@@ -65,7 +66,7 @@ pub fn kmain() -> ! {
     use task::Thread;
 
     for i in 0..10 {
-        let thread = Thread::new(&format!("test{}", i), 1024 * 1024, test_thread, i).unwrap();
+        let thread = Thread::new(1024 * 1024, test_thread, i).unwrap();
         thread.resume().unwrap();
     }
 

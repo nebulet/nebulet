@@ -5,7 +5,6 @@ use super::thread_entry::ThreadEntry;
 use super::GlobalScheduler;
 
 use nabi::{Result, Error};
-use alloc::String;
 
 /// The current state of a process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -28,12 +27,11 @@ pub struct Thread {
     stack: WasmStack,
     entry: extern fn(usize),
     arg: usize,
-    pub name: String,
 }
 
 impl Thread {
     /// This creates a new thread and adds it to the global thread table.
-    pub fn new(name: &str, stack_size: usize, entry: extern fn(usize), arg: usize) -> Result<ThreadEntry> {
+    pub fn new(stack_size: usize, entry: extern fn(usize), arg: usize) -> Result<ThreadEntry> {
         let stack = WasmStack::allocate(stack_size)
             .ok_or(Error::NO_MEMORY)?;
 
@@ -43,7 +41,6 @@ impl Thread {
             stack,
             entry,
             arg,
-            name: name.into(),
         };
 
         let entry = ThreadTable::allocate(thread)?;
