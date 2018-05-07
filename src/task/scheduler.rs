@@ -2,24 +2,26 @@ use alloc::VecDeque;
 use super::thread_entry::ThreadEntry;
 use super::thread::{Thread, State};
 use super::ThreadTable;
-use arch::lock::Spinlock;
+use arch::lock::IrqSpinlock;
 
 struct SchedulerInner {
     ready_queue: VecDeque<ThreadEntry>,
-    current_thread: Option<ThreadEntry>,
+    current_thread: ThreadEntry,
 }
 
 pub struct Scheduler {
-    inner: Spinlock<SchedulerInner>,
+    inner: IrqSpinlock<SchedulerInner>,
+    idle_thread: ThreadEntry,
 }
 
 impl Scheduler {
-    pub fn new(idle_thread: ThreadEntry) -> Scheduler {
+    pub fn new(kernel_thread: ThreadEntry, idle_thread: ThreadEntry) -> Scheduler {
         Scheduler {
-            inner: Spinlock::new(SchedulerInner {
+            inner: IrqSpinlock::new(SchedulerInner {
                 ready_queue: VecDeque::new(),
-                current_thread: Some(idle_thread),
+                current_thread: kernel_thread,
             }),
+            idle_thread,
         }
     }
     
@@ -31,54 +33,60 @@ impl Scheduler {
             .push_back(entry);
     }
 
-    /// Switch to the next thread.
     pub fn switch(&self) {
-        if let (Some(next_thread_entry), Some(current_thread_entry)) = {
-            let mut inner_guard = self.inner.lock();
+        // These will either get dropped
+        // or voluntarily released before
+        // switching contexts.
+        let mut inner = self.inner.lock();
+        let mut thread_table = ThreadTable::lock();
 
-            let next_thread = inner_guard
-                .ready_queue
-                .pop_front();
-            let current_thread = inner_guard
-                .current_thread;
+        let current_entry = inner.current_thread;
 
-            (next_thread, current_thread)
-        } {
-            if next_thread_entry == current_thread_entry {
-                return;
+        let current_thread = unsafe {
+            &mut *((&mut thread_table[current_entry.id()] as *mut Thread))
+        };
+
+        // Either switch to the next thread in the queue or the idle thread.
+        let next_entry = if let Some(next_entry) = inner.ready_queue.pop_front() {
+            next_entry
+        } else {
+            if current_thread.state() == State::Running {
+                current_entry
+            } else {
+                self.idle_thread
             }
+        };
 
-            // set the current thread
-            {
-                self.inner.lock().current_thread = Some(next_thread_entry);
-            }
-            
-            let (mut current_thread, mut next_thread) = {
-                let mut thread_table_guard = ThreadTable::lock();
-                
-                let mut current_thread_ptr = thread_table_guard
-                    .get_mut(current_thread_entry.id())
-                    .unwrap() as *mut Thread;
-                let next_thread_ptr = thread_table_guard
-                    .get_mut(next_thread_entry.id())
-                    .unwrap() as *mut Thread;
-                
-                unsafe { (&mut *current_thread_ptr, &mut *next_thread_ptr) }
-            };
+        if next_entry == current_entry {
+            return;
+        }
 
-            assert!(next_thread.state() == State::Ready);
+        inner.current_thread = next_entry;
 
+        // Get references to the current and
+        // next thread, but with artificially
+        // extended lifetimes.
+        let next_thread = unsafe {
+            &mut *((&mut thread_table[next_entry.id()] as *mut Thread))
+        };
+
+        debug_assert!(next_thread.state() == State::Ready);
+
+        if current_thread.state() == State::Running && current_entry != self.idle_thread {
             current_thread.set_state(State::Ready);
-            self.push(current_thread_entry);
+            inner.ready_queue.push_back(current_entry);
+        }
 
-            next_thread.set_state(State::Running);
+        next_thread.set_state(State::Running);
 
-            // So, at this point, the table_guard should be released, and we should also have
-            // references to both the current thread and the next thread.
-            // This is wildly unsafe and is probably broken.
-            unsafe {
-                current_thread.switch_to(next_thread);
-            }
+        // println!("Switching from thread[{}] to thread[{}]", current_thread.name, next_thread.name);
+
+        // Release the locks so we don't deadlock
+        inner.release();
+        thread_table.release();
+
+        unsafe {
+            current_thread.swap(next_thread);
         }
     }
 }

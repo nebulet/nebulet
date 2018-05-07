@@ -110,7 +110,7 @@ impl HandleTable {
         self.table.allocate(handle)
     }
 
-    pub fn free(&mut self, index: TableIndex) -> Result<()> {
+    pub fn free(&mut self, index: TableIndex) -> Result<Handle> {
         self.table
             .free(index)
     }

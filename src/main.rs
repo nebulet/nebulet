@@ -64,12 +64,14 @@ pub fn kmain() -> ! {
 
     use task::process::Process;
 
-    let mut process = Process::create(include_bytes!("tests/wasmtests/exit.wasm"))
+    let parent_process = Process::compile(include_bytes!("tests/wasmtests/exit.wasm"))
         .unwrap();
-    
-    println!("Starting process");
-    process.start();
-    println!("Process started");
+
+    for _ in 0..10 {
+        let mut process = Process::create(parent_process.code()).unwrap();
+
+        process.start().unwrap();
+    }
 
     unsafe {
         ::arch::interrupt::enable();
@@ -77,4 +79,10 @@ pub fn kmain() -> ! {
             ::arch::interrupt::halt();
         }
     }
+}
+
+extern fn test_thread(arg: usize) {
+    println!("arg: {}", arg);
+
+    loop {}
 }

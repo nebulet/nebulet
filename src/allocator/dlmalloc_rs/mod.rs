@@ -3,7 +3,7 @@ use core::cmp;
 use core::ptr::{self, NonNull};
 use core::alloc::Opaque;
 
-use arch::lock::PreemptLock;
+use arch::lock::IrqLock;
 
 mod dlmalloc;
 
@@ -64,7 +64,7 @@ impl Dlmalloc {
     }
 }
 
-static HEAP: PreemptLock<Dlmalloc> = PreemptLock::new(DLMALLOC_INIT);
+static HEAP: IrqLock<Dlmalloc> = IrqLock::new(DLMALLOC_INIT);
 
 pub struct Allocator;
 

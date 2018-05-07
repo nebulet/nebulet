@@ -3,13 +3,14 @@ pub mod thread;
 pub mod process;
 pub mod thread_entry;
 pub mod scheduler;
-mod stack;
 
 use spin::Once;
 use arch::lock::{Spinlock, SpinGuard};
 use common::table::Table;
-use self::thread::Thread;
-use self::thread_entry::ThreadEntry;
+pub use self::thread::Thread;
+pub use self::thread_entry::ThreadEntry;
+pub use self::process::Process;
+
 use self::scheduler::Scheduler;
 
 use nabi::Result;
@@ -25,10 +26,20 @@ extern fn idle_thread_entry(_: usize) {
 
 #[inline]
 fn scheduler_init() -> Scheduler {
-    let idle_thread = Thread::new(512, idle_thread_entry, 0)
+    let idle_thread = Thread::new("idle", 4096, idle_thread_entry, 0)
         .expect("Could not create idle thread");
+
+    let kernel_thread = Thread::new("kernel", 0, idle_thread_entry, 0)
+        .unwrap();
+
+    {
+        use task::thread::State;
+        let mut thread_table = ThreadTable::lock();
+        
+        thread_table[kernel_thread.id()].set_state(State::Suspended);
+    }
     
-    Scheduler::new(idle_thread)
+    Scheduler::new(kernel_thread, idle_thread)
 }
 
 #[inline]
@@ -71,7 +82,7 @@ impl ThreadTable {
         Ok(ThreadEntry(index))
     }
 
-    pub fn free(entry: ThreadEntry) -> Result<()> {
+    pub fn free(entry: ThreadEntry) -> Result<Thread> {
         ThreadTable::lock()
             .free(entry.id())
     }

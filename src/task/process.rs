@@ -4,13 +4,16 @@ use super::thread_entry::ThreadEntry;
 use super::thread::Thread;
 
 use alloc::Vec;
+use alloc::arc::Arc;
 
 use nabi::Result;
 
 use wasm::compile_module;
 
+static mut COUNTER: usize = 0;
+
 pub struct Process {
-    code: Code,
+    code: Arc<Code>,
     handle_table: HandleTable,
     threads: Vec<ThreadEntry>,
     started: bool
@@ -18,11 +21,22 @@ pub struct Process {
 
 impl Process {
     /// Create a process from wasm.
-    pub fn create(wasm_bytes: &[u8]) -> Result<Self> {
+    pub fn compile(wasm_bytes: &[u8]) -> Result<Self> {
         let code = compile_module(wasm_bytes)?;
 
         Ok(Process {
-            code: code,
+            code: Arc::new(code),
+            handle_table: HandleTable::new(),
+            // since wasm only supports one thread rn...
+            threads: Vec::with_capacity(1),
+            started: false,
+        })
+    }
+
+    /// Create a process with already existing code.
+    pub fn create(code: Arc<Code>) -> Result<Self> {
+        Ok(Process {
+            code,
             handle_table: HandleTable::new(),
             // since wasm only supports one thread rn...
             threads: Vec::with_capacity(1),
@@ -34,13 +48,23 @@ impl Process {
     pub fn start(&mut self) -> Result<()> {
         self.started = true;
 
-        let thread = Thread::new(1024 * 16, common_process_entry, &self.code as *const _ as usize)?;
+        let counter = unsafe {
+            let c = COUNTER;
+            COUNTER += 1;
+            c
+        };
+
+        let thread = Thread::new(&format!("proc{}", counter), 1024 * 16, common_process_entry, &*self.code as *const Code as usize)?;
 
         self.threads.push(thread);
 
         thread.resume()?;
         
         Ok(())
+    }
+
+    pub fn code(&self) -> Arc<Code> {
+        self.code.clone()
     }
 }
 

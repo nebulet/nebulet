@@ -1,8 +1,8 @@
 use common::devices::uart_16550::SerialPort;
-use arch::lock::PreemptLock;
+use arch::lock::IrqLock;
 
-pub static COM1: PreemptLock<SerialPort> = PreemptLock::new(SerialPort::new(0x3F8));
-pub static COM2: PreemptLock<SerialPort> = PreemptLock::new(SerialPort::new(0x2F8));
+pub static COM1: IrqLock<SerialPort> = IrqLock::new(SerialPort::new(0x3F8));
+pub static COM2: IrqLock<SerialPort> = IrqLock::new(SerialPort::new(0x2F8));
 
 pub unsafe fn init() {
     COM1.lock().init();

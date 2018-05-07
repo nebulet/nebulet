@@ -1,9 +1,11 @@
-use super::stack::Stack;
-use arch::context::Context;
+use memory::WasmStack;
+use arch::context::ThreadContext;
 use super::ThreadTable;
 use super::thread_entry::ThreadEntry;
+use super::GlobalScheduler;
 
-use nabi::{Result};
+use nabi::{Result, Error};
+use alloc::String;
 
 /// The current state of a process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -22,40 +24,42 @@ pub enum State {
 #[derive(Debug)]
 pub struct Thread {
     state: State,
-    ctx: Context,
-    stack: Stack,
+    ctx: ThreadContext,
+    stack: WasmStack,
     entry: extern fn(usize),
     arg: usize,
+    pub name: String,
 }
 
 impl Thread {
     /// This creates a new thread and adds it to the global thread table.
-    pub fn new(stack_size: usize, entry: extern fn(usize), arg: usize) -> Result<ThreadEntry> {
-        let stack = Stack::with_size(stack_size)?;
-        let stack_top = stack.top();
+    pub fn new(name: &str, stack_size: usize, entry: extern fn(usize), arg: usize) -> Result<ThreadEntry> {
+        let stack = WasmStack::allocate(stack_size)
+            .ok_or(Error::NO_MEMORY)?;
 
         let thread = Thread {
             state: State::Ready,
-            ctx: Context::from_rsp(0),
+            ctx: ThreadContext::new(stack.top(), common_thread_entry),
             stack,
             entry,
             arg,
+            name: name.into(),
         };
 
         let entry = ThreadTable::allocate(thread)?;
 
         {
             let mut table = ThreadTable::lock();
-            table[entry.id()].ctx = Context::init(stack_top, common_thread_entry, entry.id())
+            table[entry.id()].ctx.rbx = entry.id();
         }
 
         Ok(entry)
     }
 
-    pub unsafe fn switch_to(&mut self, other: &Thread) {
-        self.ctx.switch_to(&other.ctx);
+    pub unsafe fn swap(&mut self, other: &Thread) {
+        self.ctx.swap(&other.ctx);
     }
-
+    
     pub fn state(&self) -> State {
         self.state
     }
@@ -65,11 +69,10 @@ impl Thread {
     }
 }
 
-#[naked]
 extern fn common_thread_entry() {
     let thread_entry: ThreadEntry;
     unsafe {
-        asm!("pop $0" : "=r"(thread_entry) : : "memory" : "intel", "volatile");
+        asm!("" : "={rbx}"(thread_entry) : : "memory" : "intel", "volatile");
     }
 
     let (func, arg) = {
@@ -78,10 +81,16 @@ extern fn common_thread_entry() {
         (thread.entry, thread.arg)
     };
 
-    println!("Starting thread");
-
     func(arg);
 
-    println!("thread done");
-    loop {}
+    {
+        let mut thread_table = ThreadTable::lock();
+        let thread = &mut thread_table[thread_entry.id()];
+
+        thread.set_state(State::Dead);
+    }
+
+    GlobalScheduler::switch();
+
+    unreachable!();
 }

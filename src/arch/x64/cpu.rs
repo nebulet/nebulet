@@ -4,6 +4,7 @@ use arch::asm::read_gs_offset64;
 use core::ptr;
 
 use x86_64::registers::model_specific::Msr;
+use x86_64::registers::flags::Flags;
 
 static mut CPU0: Cpu = Cpu {
     direct: ptr::null_mut(),
@@ -51,10 +52,10 @@ pub mod irq {
     #[inline]
     #[must_use]
     pub fn enabled() -> bool {
-        let rflags: u64;
+        let rflags: Flags;
         unsafe {
             asm!("pushfq; pop $0" : "=r"(rflags) : : "memory" : "intel", "volatile");
         }
-        rflags & (1 << 9) == 1
+        rflags.contains(Flags::IF)
     }
 }

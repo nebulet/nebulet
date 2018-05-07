@@ -7,7 +7,7 @@ use cretonne_codegen::{self, isa::TargetIsa, binemit::Reloc};
 use super::RelocSink;
 use super::abi::ABI_MAP;
 
-use memory::{Code, Region, sip};
+use memory::{Code, Region};
 
 use nabi::{Result, Error};
 
@@ -171,7 +171,7 @@ impl<'isa> Compiler<'isa> {
     /// alignment, which is true on x86_64, but may not
     /// be true on other architectures.
     pub fn compile(self, module: &Module) -> Result<Compilation> {
-        let region = sip::allocate_region(self.total_size)
+        let region = Region::allocate(self.total_size)
             .ok_or(Error::NO_MEMORY)?;
 
         let mut functions = Vec::with_capacity(module.functions.len());

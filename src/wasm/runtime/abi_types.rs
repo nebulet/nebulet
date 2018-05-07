@@ -35,7 +35,6 @@ impl AbiFunction {
             if last_param.purpose != ArgumentPurpose::VMContext {
                 return false;
             }
-            println!("VMCtx arg: {:?}", last_param);
         } else {
             // no vmcontext
             return false;

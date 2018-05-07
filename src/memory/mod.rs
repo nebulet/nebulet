@@ -6,7 +6,7 @@ pub mod sip;
 
 pub use self::region::Region;
 pub use self::code::Code;
-pub use self::sip::WasmMemory;
+pub use self::sip::{WasmMemory, WasmStack};
 
 use arch::lock::Spinlock;
 

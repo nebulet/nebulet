@@ -28,7 +28,7 @@ impl SipAllocator {
     /// Allocate a memory region of `size`.
     /// 
     /// `size` will be rounded up to a multiple of 4KiB.
-    fn allocate_region(&mut self, size: usize) -> Option<Region> {
+    pub(super) fn allocate_region(&mut self, size: usize) -> Option<Region> {
         let allocated_size = {
             let rem = size % Size4KB::SIZE as usize;
             size + Size4KB::SIZE as usize - rem
@@ -58,6 +58,32 @@ impl SipAllocator {
             WasmMemory::new(virt_addr).ok()
         }
     }
+
+    /// Allocate a `WasmStack` surrounded by two guard pages.
+    fn allocate_stack(&mut self, size: usize) -> Option<WasmStack> {
+        let requested_size = {
+            let rem = size % Size4KB::SIZE as usize;
+            size + Size4KB::SIZE as usize - rem
+        };
+
+        let allocated_size = requested_size + (Size4KB::SIZE as usize * 2);
+
+        if self.bump + allocated_size > self.end {
+            None
+        } else {
+            let start = VirtAddr::new((self.bump as u64) + Size4KB::SIZE);
+
+            self.bump += allocated_size;
+
+            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+            let region = Region::new(start, requested_size, flags, true).ok()?;
+
+            Some(WasmStack {
+                region,
+                total_size: allocated_size,
+            })
+        }
+    }
 }
 
 /// This represents a WebAssembly Memory.
@@ -75,6 +101,10 @@ impl WasmMemory {
     pub const DEFAULT_HEAP_SIZE: usize = 1 << 32; // 4 GiB
     pub const DEFAULT_GUARD_SIZE: usize = 1 << 32; // 4 GiB
     pub const DEFAULT_SIZE: usize = Self::DEFAULT_HEAP_SIZE + Self::DEFAULT_GUARD_SIZE; // 8GiB
+
+    pub fn allocate() -> Option<WasmMemory> {
+        super::SIP_ALLOCATOR.lock().allocate_wasm_memory()
+    }
 
     /// Create a completely unmapped `Memory` with unmapped size of `size`.
     /// The mapped size to start is `0`.
@@ -131,10 +161,50 @@ impl DerefMut for WasmMemory {
     }
 }
 
-pub fn allocate_region(size: usize) -> Option<Region> {
-    super::SIP_ALLOCATOR.lock().allocate_region(size)
+#[derive(Debug)]
+pub struct WasmStack {
+    region: Region,
+    /// Should be region.size + 8192 (two guard pages)
+    total_size: usize,
 }
 
-pub fn allocate_wasm_memory() -> Option<WasmMemory> {
-    super::SIP_ALLOCATOR.lock().allocate_wasm_memory()
+impl WasmStack {
+    pub fn allocate(size: usize) -> Option<WasmStack> {
+        super::SIP_ALLOCATOR.lock().allocate_stack(size)
+    }
+
+    pub fn top(&self) -> *mut u8 {
+        unsafe {
+            (self.mapped_start().as_mut_ptr() as *mut u8).add(self.mapped_size())
+        }
+    }
+
+    pub fn mapped_start(&self) -> VirtAddr {
+        self.region.start()
+    }
+
+    pub fn unmapped_start(&self) -> VirtAddr {
+        self.mapped_start() - Size4KB::SIZE as u64
+    }
+
+    pub fn mapped_size(&self) -> usize {
+        self.region.size()
+    }
+
+    pub fn total_size(&self) -> usize {
+        self.total_size
+    }
+}
+
+impl Deref for WasmStack {
+    type Target = [u8];
+    fn deref(&self) -> &[u8] {
+        &*self.region
+    }
+}
+
+impl DerefMut for WasmStack {
+    fn deref_mut(&mut self) -> &mut [u8] {
+        &mut *self.region
+    }
 }

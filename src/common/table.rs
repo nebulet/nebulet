@@ -60,13 +60,17 @@ impl<T> Table<T> {
         }
     }
 
-    pub fn free(&mut self, index: TableIndex) -> Result<()> {
+    pub fn free(&mut self, index: TableIndex) -> Result<T> {
         match self.slots.get_mut(index) {
             Some(&mut Slot::Vacant(_)) | None => Err(Error::OUT_OF_BOUNDS),
             Some(slot @ &mut Slot::Occupied(_)) => {
-                let _ = mem::replace(slot, Slot::Vacant(self.head));
-                self.len -= 1;
-                Ok(())
+                if let Slot::Occupied(object) = mem::replace(slot, Slot::Vacant(self.head)) {
+                    self.head = index;
+                    self.len -= 1;
+                    Ok(object)
+                } else {
+                    unreachable!();
+                }
             }
         }
     }

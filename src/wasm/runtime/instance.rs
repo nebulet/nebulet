@@ -7,7 +7,7 @@ use cretonne_wasm::GlobalIndex;
 use super::module::Module;
 use super::DataInitializer;
 
-use memory::{WasmMemory, sip};
+use memory::WasmMemory;
 
 use alloc::Vec;
 
@@ -83,7 +83,7 @@ impl Instance {
         self.memory_array_backing.reserve_exact(self.memories.len());
 
         for memory in &module.memories {
-            let mut heap = sip::allocate_wasm_memory()
+            let mut heap = WasmMemory::allocate()
                 .expect("Could not allocate wasm memory");
             heap.grow(memory.pages_count)
                 .expect("Could not grow wasm heap to initial size");

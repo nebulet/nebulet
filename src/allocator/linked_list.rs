@@ -1,10 +1,10 @@
 use alloc::heap::{Alloc, AllocErr, Layout};
 use linked_list_allocator::Heap;
 
-use arch::lock::PreemptLock;
+use arch::lock::IrqLock;
 use arch::paging::PageMapper;
 
-static HEAP: PreemptLock<Heap> = PreemptLock::new(Heap::empty());
+static HEAP: IrqLock<Heap> = IrqLock::new(Heap::empty());
 
 pub struct Allocator;
 

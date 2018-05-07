@@ -20,6 +20,11 @@ pub struct Region {
 }
 
 impl Region {
+    /// Convenience method to allocate a region directly from the Sip memory allocator
+    pub fn allocate(size: usize) -> Option<Region> {
+        super::SIP_ALLOCATOR.lock().allocate_region(size)
+    }
+
     pub fn new(start: VirtAddr, size: usize, flags: PageTableFlags, zero: bool) -> Result<Self> {
         let mut region = Region {
             start,
@@ -155,6 +160,7 @@ impl DerefMut for Region {
 
 impl Drop for Region {
     fn drop(&mut self) {
+        println!("Dropping region");
         // ignore the result
         let _ = self.unmap();
     }

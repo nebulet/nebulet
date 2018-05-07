@@ -39,7 +39,5 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
     // Initialize non-essential devices
     devices::init_noncore();
 
-    // interrupt::enable();
-
     ::kmain();
 }

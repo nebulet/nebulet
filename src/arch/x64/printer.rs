@@ -1,12 +1,12 @@
 use core::fmt::{Write, Result};
 use core::ptr;
 
-use arch::lock::PreemptLock;
+use arch::lock::Spinlock;
 
 const VGA_BUFFER: *mut u16 = 0xb8000 as *mut _;
 const SCREEN_SIZE: usize = 80 * 25;
 
-pub static PRINTER: PreemptLock<Printer> = PreemptLock::new(Printer::new());
+pub static PRINTER: Spinlock<Printer> = Spinlock::new(Printer::new());
 
 pub struct Printer {
     index: usize,

@@ -43,8 +43,6 @@ impl Code {
         let mut instance = self.generate_instance();
         let vmctx = instance.generate_vmctx();
 
-        println!("vmctx: {:#x}", &vmctx as *const _ as usize);
-
         (self.start_func)(&vmctx as *const _);
     }
 }

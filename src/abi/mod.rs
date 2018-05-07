@@ -1,9 +1,12 @@
 //! The interface between running processes and the kernel
 //!
 
-use wasm::runtime::instance::VmCtx;
+use arch::lock::IrqLock;
 
-pub extern fn output_test(arg: usize, vmctx: *const VmCtx) {
-    println!("vmctx: {:#x}", vmctx as usize);
+static LOCK: IrqLock<()> = IrqLock::new(());
+
+pub extern fn output_test(arg: usize) {
+    let guard = LOCK.lock();
     println!("wasm supplied arg = {}", arg);
+    guard.release();
 }
