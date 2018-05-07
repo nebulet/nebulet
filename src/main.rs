@@ -62,15 +62,11 @@ pub fn kmain() -> ! {
     
     // tests::test_all();
 
-    use task::process::Process;
+    use task::Thread;
 
-    let parent_process = Process::compile(include_bytes!("tests/wasmtests/exit.wasm"))
-        .unwrap();
-
-    for _ in 0..10 {
-        let mut process = Process::create(parent_process.code()).unwrap();
-
-        process.start().unwrap();
+    for i in 0..10 {
+        let thread = Thread::new(&format!("test{}", i), 1024 * 1024, test_thread, i).unwrap();
+        thread.resume().unwrap();
     }
 
     unsafe {
@@ -83,6 +79,11 @@ pub fn kmain() -> ! {
 
 extern fn test_thread(arg: usize) {
     println!("arg: {}", arg);
+
+    use task::Process;
+    let mut process = Process::compile(include_bytes!("tests/wasmtests/exit.wasm"))
+        .unwrap();
+    process.start().unwrap();
 
     loop {}
 }
