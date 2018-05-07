@@ -25,3 +25,5 @@ pub mod lock;
 pub mod context;
 
 pub mod memory;
+
+global_asm!(include_str!("routines.asm"));
