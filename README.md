@@ -20,5 +20,5 @@ $> cargo install bootimage
 $> bootimage build
 
 # run qemu
-$> cargo boot
+$> bootimage run
 ```
