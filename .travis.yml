@@ -18,6 +18,7 @@ before_script:
 - rustup component add rust-src
 - "(test -x $HOME/.cargo/bin/xargo || cargo install xargo)"
 - "(test -x $HOME/.cargo/bin/bootimage || cargo install bootimage)"
+- "(test -x $HOME/.cargo/bin/cargo-xbuild || cargo install cargo-xbuild)"
 
 sudo: false
 
