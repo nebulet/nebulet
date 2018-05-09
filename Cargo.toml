@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Lachlan Sneff <lachlan.sneff@gmail.com>"]
 
 [package.metadata.bootimage]
-default-target = "x86_64-nebulet"
+default-target = "x86_64-nebulet.json"
 output = "bootimage.bin"
 
 # We're pulling down the pre-compiled bootloader, so no
