@@ -1,12 +1,7 @@
 //! The interface between running processes and the kernel
 //!
 
-use arch::lock::IrqLock;
-
-static LOCK: IrqLock<()> = IrqLock::new(());
-
-pub extern fn output_test(arg: usize) {
-    let guard = LOCK.lock();
+pub extern fn output_test(arg: usize, vmctx: usize) {
     println!("wasm supplied arg = {}", arg);
-    guard.release();
+    println!("vmctx = {:#x}", vmctx);
 }

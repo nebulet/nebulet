@@ -22,8 +22,6 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
     }
 
     interrupt::disable();
-
-    cpu::init();
     
     memory::init(boot_info);
 
@@ -32,6 +30,9 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
 
     // Initialize the IDT
     idt::init();
+    
+    // Initialize the cpu and cpu local structures
+    cpu::init(0);
 
     // Initialize essential devices
     devices::init();

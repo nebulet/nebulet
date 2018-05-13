@@ -53,6 +53,7 @@ interrupt_stack_err!(stack_segment_fault, _stack, _error, {
 
 interrupt_stack_err!(general_protection_fault, _stack, _error, {
     println!("General Protection Fault");
+    loop {}
 });
 
 interrupt_stack_page!(page_fault, stack, error, {
@@ -62,15 +63,6 @@ interrupt_stack_page!(page_fault, stack, error, {
     asm!("mov %cr2, $0" : "=r"(cr2));
     println!("Faulting Address: {:#x}", cr2);
     loop {}
-    // SCHEDULER.with_current(|ctx| {
-    //     if let Some(ref mut mem) = ctx.stack {
-    //         let faulting_addr = Cr2::read();
-    //         if mem.contains(faulting_addr) {
-    //             let page = Page::containing_address(faulting_addr);
-    //             mem.map(page);
-    //         }
-    //     }
-    // });
 });
 
 interrupt_stack!(x87_floating_point, _stack, {

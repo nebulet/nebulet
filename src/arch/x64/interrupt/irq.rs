@@ -4,7 +4,7 @@ use arch::macros::interrupt;
 use arch;
 use time;
 use x86_64::instructions::port::Port;
-use task::GlobalScheduler;
+use arch::cpu::Local;
 
 pub static PIT_TICKS: AtomicUsize = ATOMIC_USIZE_INIT;
 static CONTEXT_SWITCH_TICKS: usize = 10;
@@ -44,7 +44,9 @@ interrupt!(pit, {
         PIT_TICKS.store(0, Ordering::SeqCst);
 
         arch::interrupt::disable();
-        GlobalScheduler::switch();
+        Local::current()
+            .scheduler
+            .switch();
         arch::interrupt::enable();
     }
 });

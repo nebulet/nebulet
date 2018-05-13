@@ -1,21 +1,19 @@
 use alloc::VecDeque;
-use super::thread_entry::ThreadEntry;
-use super::thread::{Thread, State};
-use super::ThreadTable;
+use super::thread::{State, ThreadRef};
 use arch::lock::IrqSpinlock;
 
 struct SchedulerInner {
-    ready_queue: VecDeque<ThreadEntry>,
-    current_thread: ThreadEntry,
+    ready_queue: VecDeque<ThreadRef>,
+    current_thread: ThreadRef,
 }
 
 pub struct Scheduler {
     inner: IrqSpinlock<SchedulerInner>,
-    idle_thread: ThreadEntry,
+    idle_thread: ThreadRef,
 }
 
 impl Scheduler {
-    pub fn new(kernel_thread: ThreadEntry, idle_thread: ThreadEntry) -> Scheduler {
+    pub fn new(kernel_thread: ThreadRef, idle_thread: ThreadRef) -> Scheduler {
         Scheduler {
             inner: IrqSpinlock::new(SchedulerInner {
                 ready_queue: VecDeque::new(),
@@ -26,11 +24,11 @@ impl Scheduler {
     }
     
     /// Adds a thread index to the end of the queue.
-    pub fn push(&self, entry: ThreadEntry) {
+    pub fn push(&self, thread_ref: ThreadRef) {
         self.inner
             .lock()
             .ready_queue
-            .push_back(entry);
+            .push_back(thread_ref);
     }
 
     pub fn switch(&self) {
@@ -38,55 +36,40 @@ impl Scheduler {
         // or voluntarily released before
         // switching contexts.
         let mut inner = self.inner.lock();
-        let mut thread_table = ThreadTable::lock();
 
-        let current_entry = inner.current_thread;
-
-        let current_thread = unsafe {
-            &mut *((&mut thread_table[current_entry.id()] as *mut Thread))
-        };
+        let mut current_thread = inner.current_thread;
 
         // Either switch to the next thread in the queue or the idle thread.
-        let next_entry = if let Some(next_entry) = inner.ready_queue.pop_front() {
-            next_entry
+        let mut next_thread = if let Some(next_thread) = inner.ready_queue.pop_front() {
+            next_thread
         } else {
-            if current_thread.state() == State::Running {
-                current_entry
+            if current_thread.state == State::Running {
+                current_thread
             } else {
                 self.idle_thread
             }
         };
 
-        if next_entry == current_entry {
+        if next_thread == current_thread {
             return;
         }
 
-        inner.current_thread = next_entry;
+        inner.current_thread = next_thread;
 
-        // Get references to the current and
-        // next thread, but with artificially
-        // extended lifetimes.
-        let next_thread = unsafe {
-            &mut *((&mut thread_table[next_entry.id()] as *mut Thread))
-        };
+        debug_assert!(next_thread.state == State::Ready);
 
-        debug_assert!(next_thread.state() == State::Ready);
-
-        if current_thread.state() == State::Running && current_entry != self.idle_thread {
-            current_thread.set_state(State::Ready);
-            inner.ready_queue.push_back(current_entry);
+        if current_thread.state == State::Running && current_thread != self.idle_thread {
+            current_thread.state = State::Ready;
+            inner.ready_queue.push_back(current_thread);
         }
 
-        next_thread.set_state(State::Running);
+        next_thread.state = State::Running;
 
-        // println!("Switching from thread[{}] to thread[{}]", current_thread.name, next_thread.name);
-
-        // Release the locks so we don't deadlock
+        // Release the lock so we don't deadlock
         inner.release();
-        thread_table.release();
 
         unsafe {
-            current_thread.swap(next_thread);
+            current_thread.swap(&next_thread);
         }
     }
 }

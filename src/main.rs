@@ -61,12 +61,12 @@ pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 pub fn kmain() -> ! {
     println!("Nebulet v{}", VERSION);
     
-    // tests::test_all();
+    tests::test_all();
 
     use task::Thread;
 
     for i in 0..10 {
-        let thread = Thread::new(1024 * 1024, test_thread, i).unwrap();
+        let thread = Thread::new(1024 * 32, test_thread, i).unwrap();
         thread.resume().unwrap();
     }
 
@@ -79,12 +79,12 @@ pub fn kmain() -> ! {
 }
 
 extern fn test_thread(arg: usize) {
-    println!("arg: {}", arg);
+    println!("thread: {}", arg);
+    // use task::Process;
+    // let mut process = Process::compile(include_bytes!("tests/wasmtests/exit.wasm"))
+    //     .unwrap();
+    // process.start().unwrap();
 
-    use task::Process;
-    let mut process = Process::compile(include_bytes!("tests/wasmtests/exit.wasm"))
-        .unwrap();
-    process.start().unwrap();
-
-    loop {}
+    // loop {}
+    // loop {}
 }

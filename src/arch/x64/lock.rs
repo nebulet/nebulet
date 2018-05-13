@@ -2,7 +2,7 @@ use core::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut, Drop};
 
-use arch::cpu;
+use arch::cpu::IrqController;
 use arch::interrupt;
 
 #[derive(Debug)]
@@ -106,9 +106,9 @@ impl<T> IrqLock<T> {
     }
 
     pub fn lock(&self) -> IrqGuard<T> {
-        let was_enabled = cpu::irq::enabled();
+        let was_enabled = IrqController::enabled();
         if was_enabled {
-            unsafe { cpu::irq::disable(); }
+            unsafe { IrqController::disable(); }
         }
 
         IrqGuard {
@@ -145,7 +145,7 @@ impl<'a, T: ?Sized> DerefMut for IrqGuard<'a, T> {
 impl<'a, T: ?Sized> Drop for IrqGuard<'a, T> {
     fn drop(&mut self) {
         if self.was_enabled {
-            unsafe { cpu::irq::enable(); }
+            unsafe { IrqController::enable(); }
         }
     }
 }
@@ -184,9 +184,9 @@ impl<T> IrqSpinlock<T> {
     pub fn lock(&self) -> IrqSpinGuard<T> {
         self.obtain_lock();
 
-        let was_enabled = cpu::irq::enabled();
+        let was_enabled = IrqController::enabled();
         if was_enabled {
-            unsafe { cpu::irq::disable(); }
+            unsafe { IrqController::disable(); }
         }
 
         IrqSpinGuard {
@@ -198,9 +198,9 @@ impl<T> IrqSpinlock<T> {
 
     pub fn try_lock(&self) -> Option<IrqSpinGuard<T>> {
         if self.lock.compare_and_swap(false, true, Ordering::Acquire) == false {
-            let was_enabled = cpu::irq::enabled();
+            let was_enabled = IrqController::enabled();
             if was_enabled {
-                unsafe { cpu::irq::disable(); }
+                unsafe { IrqController::disable(); }
             }
             Some(IrqSpinGuard {
                 lock: &self.lock,
@@ -241,7 +241,7 @@ impl<'a, T: ?Sized> Drop for IrqSpinGuard<'a, T> {
     fn drop(&mut self) {
         self.lock.store(false, Ordering::Release);
         if self.was_enabled {
-            unsafe { cpu::irq::enable(); }
+            unsafe { IrqController::enable(); }
         }
     }
 }

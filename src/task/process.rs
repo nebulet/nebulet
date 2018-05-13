@@ -1,7 +1,6 @@
 use object::handle::HandleTable;
 use memory::Code;
-use super::thread_entry::ThreadEntry;
-use super::thread::Thread;
+use super::thread::{Thread, ThreadRef};
 
 use alloc::Vec;
 use alloc::arc::Arc;
@@ -14,7 +13,7 @@ use wasm::compile_module;
 pub struct Process {
     code: Arc<Code>,
     handle_table: HandleTable,
-    threads: Vec<ThreadEntry>,
+    threads: Vec<ThreadRef>,
     started: bool
 }
 

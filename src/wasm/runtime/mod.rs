@@ -222,6 +222,7 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
     }
 
     /// Transform the call argument list in preparation for making a call.
+    /// This pushes the VMContext into the args list.
     fn get_real_call_args(func: &Function, call_args: &[ir::Value]) -> Vec<ir::Value> {
         let mut real_call_args = Vec::with_capacity(call_args.len() + 1);
         real_call_args.extend_from_slice(call_args);
@@ -251,7 +252,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
             self.globals_base = Some(new_base);
             new_base
         });
-        let offset = index as usize * 8;
+        let offset = index as usize * ptr_size;
         let offset32 = offset as i32;
         debug_assert_eq!(offset32 as usize, offset);
         let gv = func.create_global_var(ir::GlobalVarData::Deref {
