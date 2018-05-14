@@ -14,7 +14,10 @@ Right now, Nebulet isn't ready to do anything yet, but it'll get there.
 ## Building & Running
 
 ```sh
-# install bootimage
+# install tools
+# make sure that `python` is accessible.
+$> cargo install xargo
+$> cargo install cargo-xbuild
 $> cargo install bootimage
 
 # compile the kernel
