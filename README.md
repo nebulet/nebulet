@@ -17,6 +17,8 @@ Right now, Nebulet isn't ready to do anything yet, but it'll get there.
 # install tools
 # make sure that `python` is accessible.
 $> cargo install xargo
+$> rustup component add rust-src
+$> cd nebulet/ && rustup override set nightly
 $> cargo install cargo-xbuild
 $> cargo install bootimage
 
