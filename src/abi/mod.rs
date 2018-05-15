@@ -1,7 +1,9 @@
 //! The interface between running processes and the kernel
 //!
 
-pub extern fn output_test(arg: usize, vmctx: usize) {
+use wasm::runtime::instance::VmCtx;
+
+pub extern fn output_test(arg: usize, vmctx: &VmCtx) {
     println!("wasm supplied arg = {}", arg);
-    println!("vmctx = {:#x}", vmctx);
+    println!("vmctx = {:p}", vmctx as *const _);
 }

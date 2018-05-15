@@ -1,19 +1,23 @@
-use object::handle::HandleTable;
+use object::handle::{HandleTable, HandleRights};
+use common::table::TableIndex;
 use memory::Code;
-use super::thread::{Thread, ThreadRef};
+use super::thread::Thread;
 
 use alloc::Vec;
+use alloc::boxed::Box;
 use alloc::arc::Arc;
 
 use nabi::Result;
 
 use wasm::compile_module;
+use wasm::runtime::Instance;
 
 #[allow(dead_code)]
 pub struct Process {
     code: Arc<Code>,
     handle_table: HandleTable,
-    threads: Vec<ThreadRef>,
+    threads: Vec<TableIndex>,
+    instance: Instance,
     started: bool
 }
 
@@ -22,33 +26,32 @@ impl Process {
     pub fn compile(wasm_bytes: &[u8]) -> Result<Self> {
         let code = compile_module(wasm_bytes)?;
 
-        Ok(Process {
-            code: Arc::new(code),
-            handle_table: HandleTable::new(),
-            // since wasm only supports one thread rn...
-            threads: Vec::with_capacity(1),
-            started: false,
-        })
+        Self::create(Arc::new(code))
     }
 
     /// Create a process with already existing code.
     pub fn create(code: Arc<Code>) -> Result<Self> {
+        let instance = code.generate_instance();
+
         Ok(Process {
             code,
             handle_table: HandleTable::new(),
             // since wasm only supports one thread rn...
             threads: Vec::with_capacity(1),
+            instance,
             started: false,
         })
     }
 
     /// Start the process by spawning a thread at the entry point.
+    /// The handle of `0` will always be the initial thread.
     pub fn start(&mut self) -> Result<()> {
         self.started = true;
 
-        let thread = Thread::new(1024 * 16, common_process_entry, &*self.code as *const Code as usize)?;
+        let thread = Thread::new(1024 * 16, common_process_entry, self as *mut Process as usize)?;
 
-        self.threads.push(thread);
+        let thread_handle = self.handle_table.allocate(thread, HandleRights::DUPLICATE | HandleRights::MUTABLE)?;
+        self.threads.push(thread_handle);
 
         thread.resume()?;
         
@@ -61,9 +64,12 @@ impl Process {
 }
 
 extern fn common_process_entry(arg: usize) {
-    let code = unsafe {
-        &mut *(arg as *mut Code)
+    let process = unsafe {
+        &mut *(arg as *mut Process)
     };
-    
-    code.execute();
+
+    let mut vmctx_backing = process.instance.generate_vmctx_backing();
+    let vmctx = Box::new(vmctx_backing.vmctx(process));
+
+    process.code.execute(&vmctx);
 }

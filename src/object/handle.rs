@@ -11,8 +11,14 @@ use nabi::{Result, Error};
 
 bitflags! {
     pub struct HandleRights: u32 {
+        /// The right to duplicate a handle;
         const DUPLICATE = 1 << 0;
+        /// The right to transfer a handle
+        /// to another process.
         const TRANSFER  = 1 << 1;
+        /// The right to modify the object
+        /// refered to by a handle.
+        const MUTABLE   = 1 << 2;
     }
 }
 
@@ -106,14 +112,26 @@ impl HandleTable {
             .ok_or(Error::NOT_FOUND)
     }
 
+    /// This makes a copy of the supplied handle
+    /// and inserts it into `self`.
+    pub fn transfer_handle(&mut self, handle: &Handle, new_rights: HandleRights) -> Result<TableIndex> {
+        if handle.rights.contains(HandleRights::TRANSFER) {
+            let dup = handle.duplicate(new_rights)
+                .ok_or(Error::ACCESS_DENIED)?;
+
+            self.table.allocate(dup)
+        } else {
+            Err(Error::ACCESS_DENIED)
+        }
+    }
+
     pub fn allocate<'table, T: Any + Send>(&mut self, object: T, rights: HandleRights) -> Result<TableIndex> {
         let handle = Handle::new(object, rights);
         self.table.allocate(handle)
     }
 
     pub fn free(&mut self, index: TableIndex) -> Result<Handle> {
-        self.table
-            .free(index)
+        self.table.free(index)
     }
 
     pub fn duplicate(&mut self, index: TableIndex, new_rights: HandleRights) -> Result<TableIndex> {

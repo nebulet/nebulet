@@ -1,6 +1,6 @@
 use x86_64::registers::model_specific::Msr;
 use x86_64::registers::flags::Flags;
-use core::ptr;
+use core::ptr::NonNull;
 
 use arch::interrupt;
 use arch::asm::read_gs_offset64;
@@ -57,10 +57,10 @@ pub unsafe fn init(cpu_id: u32) {
 
     let mut cpu_local = Box::new(Local::new(Box::leak(cpu)));
 
-    cpu_local.direct = &mut *cpu_local as *mut _;
+    cpu_local.direct = (&*cpu_local).into();
 
     Msr::new(0xC0000101)
-        .write(Box::leak(cpu_local) as *mut _ as u64);
+        .write(Box::into_raw(cpu_local) as u64);
 }
 
 // /// Global system data
@@ -79,7 +79,7 @@ pub unsafe fn init(cpu_id: u32) {
 
 /// Each cpu contains this in the gs register.
 pub struct Local {
-    direct: *mut Local,
+    direct: NonNull<Local>,
     /// Reference to the current `Cpu`.
     pub cpu: &'static mut Cpu,
     /// The scheduler associated with this cpu.
@@ -99,7 +99,7 @@ impl Local {
         let scheduler = Scheduler::new(kernel_thread, idle_thread);
 
         Local {
-            direct: ptr::null_mut(),
+            direct: NonNull::dangling(),
             cpu,
             scheduler,
         }

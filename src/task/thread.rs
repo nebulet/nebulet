@@ -2,6 +2,7 @@ use memory::WasmStack;
 use arch::context::ThreadContext;
 use arch::cpu::Local;
 
+use core::ptr::NonNull;
 use core::ops::{Deref, DerefMut};
 use alloc::boxed::Box;
 // use super::GlobalScheduler;
@@ -11,7 +12,7 @@ use nabi::{Result, Error};
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct ThreadRef {
-    ptr: *mut Thread,
+    ptr: NonNull<Thread>,
 }
 
 unsafe impl Send for ThreadRef {}
@@ -20,7 +21,7 @@ unsafe impl Sync for ThreadRef {}
 impl ThreadRef {
     fn from_box(b: Box<Thread>) -> ThreadRef {
         ThreadRef {
-            ptr: Box::into_raw(b),
+            ptr: Box::into_raw_non_null(b),
         }
     }
 
@@ -35,7 +36,7 @@ impl ThreadRef {
         let thread: &Thread = &*self;
 
         if thread.state == State::Dead {
-            let _ = Box::from_raw(self.ptr);
+            let _ = Box::from_raw(self.ptr.as_ptr());
             true
         } else {
             false
@@ -54,7 +55,7 @@ impl Deref for ThreadRef {
     type Target = Thread;
     fn deref(&self) -> &Thread {
         unsafe {
-            &*self.ptr
+            self.ptr.as_ref()
         }
     }
 }
@@ -62,7 +63,7 @@ impl Deref for ThreadRef {
 impl DerefMut for ThreadRef {
     fn deref_mut(&mut self) -> &mut Thread {
         unsafe {
-            &mut *self.ptr
+            self.ptr.as_mut()
         }
     }
 }
@@ -106,11 +107,10 @@ impl Thread {
             arg,
         };
 
-        // TODO: Find a more platform independent way
-        // of doing this.
-
         let mut thread_ref = ThreadRef::from_thread(thread);
 
+        // TODO: Find a more platform independent way
+        // of doing this.
         thread_ref.ctx.rbx = &mut *thread_ref as *mut Thread as usize;
 
         Ok(thread_ref)

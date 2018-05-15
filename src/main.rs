@@ -16,6 +16,7 @@
 #![feature(compiler_builtins_lib)]
 #![feature(nonnull_cast)]
 #![feature(repr_transparent)]
+#![feature(box_into_raw_non_null)]
 
 #![no_main]
 #![deny(warnings)]
@@ -51,7 +52,6 @@ pub mod abi;
 pub mod object;
 pub mod task;
 pub mod wasm;
-pub mod tests;
 
 pub use consts::*;
 
@@ -61,12 +61,12 @@ pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 pub fn kmain() -> ! {
     println!("Nebulet v{}", VERSION);
     
-    tests::test_all();
+    // tests::test_all();
 
     use task::Thread;
 
-    for i in 0..10 {
-        let thread = Thread::new(1024 * 32, test_thread, i).unwrap();
+    for i in 0..1 {
+        let thread = Thread::new(1024 * 1024, test_thread, i).unwrap();
         thread.resume().unwrap();
     }
 
@@ -80,11 +80,13 @@ pub fn kmain() -> ! {
 
 extern fn test_thread(arg: usize) {
     println!("thread: {}", arg);
-    // use task::Process;
-    // let mut process = Process::compile(include_bytes!("tests/wasmtests/exit.wasm"))
-    //     .unwrap();
-    // process.start().unwrap();
 
-    // loop {}
-    // loop {}
+    use task::Process;
+    use alloc::boxed::Box;
+    let mut process = Box::new(Process::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
+        .unwrap());
+    process.start().unwrap();
+
+    use core::mem;
+    mem::forget(process);
 }

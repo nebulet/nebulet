@@ -587,7 +587,8 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
         for (func_index, input) in self.lazy.function_body_inputs.iter().enumerate() {
             let mut context = cretonne_codegen::Context::new();
             context.func.name = get_func_name(func_index);
-            context.func.signature = self.module.signatures[self.module.functions[func_index]].clone();
+            let num_imported = self.module.imported_funcs.len();
+            context.func.signature = self.module.signatures[self.module.functions[num_imported + func_index]].clone();
 
             let mut trans = FuncTranslator::new();
             let reader = wasmparser::BinaryReader::new(input);

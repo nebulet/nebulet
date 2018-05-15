@@ -8,17 +8,31 @@ use super::module::Module;
 use super::DataInitializer;
 
 use memory::WasmMemory;
+use task::Process;
 
+use core::ptr::NonNull;
 use alloc::Vec;
 
+pub struct VmCtxBacking {
+    globals: NonNull<u8>,
+    memories: Vec<NonNull<u8>>,
+}
+
+impl VmCtxBacking {
+    pub fn vmctx<'a>(&'a mut self, process: &'a Process) -> VmCtx<'a> {
+        VmCtx {
+            globals: self.globals,
+            memories: NonNull::new(self.memories.as_mut_ptr()).unwrap(),
+            process,
+        }
+    }
+}
+
 #[repr(C)]
-#[derive(Debug)]
-pub struct VmCtx {
-    /// Single global buffer.
-    globals: *mut u8,
-    /// Array of memories.
-    /// (Only supports 1 for now.)
-    memories: *const *mut u8,
+pub struct VmCtx<'a> {
+    globals: NonNull<u8>,
+    memories: NonNull<NonNull<u8>>,
+    pub process: &'a Process,
 }
 
 /// An Instance of a WebAssembly module
@@ -32,8 +46,6 @@ pub struct Instance {
 
     /// WebAssembly global variable data
     pub globals: Vec<u8>,
-
-    memory_array_backing: Vec<*mut u8>,
 }
 
 impl Instance {
@@ -43,7 +55,6 @@ impl Instance {
             tables: Vec::new(),
             memories: Vec::new(),
             globals: Vec::new(),
-            memory_array_backing: Vec::new(),
         };
 
         result.instantiate_tables(module);
@@ -52,12 +63,15 @@ impl Instance {
         result
     }
 
-    pub fn generate_vmctx(&mut self) -> VmCtx {
-        let vmctx = VmCtx {
-            globals: self.globals.as_mut_ptr(),
-            memories: self.memory_array_backing.as_mut_ptr(),
-        };
-        vmctx
+    pub fn generate_vmctx_backing(&mut self) -> VmCtxBacking {
+        let memories = self.memories.iter_mut()
+            .map(|mem| NonNull::new(mem.as_mut_ptr()).unwrap())
+            .collect();
+        
+        VmCtxBacking {
+            memories,
+            globals: NonNull::new(self.globals.as_mut_ptr()).unwrap(),
+        }
     }
 
     /// Allocate memory in `self` for just the tables of the current module,
@@ -80,15 +94,12 @@ impl Instance {
         debug_assert!(self.memories.is_empty());
         // Allocate the underlying memory and initialize it to all zeros
         self.memories.reserve_exact(module.memories.len());
-        self.memory_array_backing.reserve_exact(self.memories.len());
 
         for memory in &module.memories {
             let mut heap = WasmMemory::allocate()
                 .expect("Could not allocate wasm memory");
             heap.grow(memory.pages_count)
                 .expect("Could not grow wasm heap to initial size");
-
-            self.memory_array_backing.push(heap.as_mut_ptr());
             self.memories.push(heap);
         }
         for init in data_initializers {

@@ -3,20 +3,8 @@ use x86_64::structures::paging::{Page, PageTableFlags};
 
 use arch::paging::PageMapper;
 
-#[cfg(feature = "linked_alloc")]
-pub use self::linked_list::Allocator;
-
-#[cfg(feature = "bump_alloc")]
-pub use self::bump::Allocator;
-
-#[cfg(feature = "dlmalloc_rs")]
 pub use self::dlmalloc_rs::Allocator;
 
-#[cfg(feature = "linked_alloc")]
-mod linked_list;
-#[cfg(feature = "bump_alloc")]
-mod bump;
-#[cfg(feature = "dlmalloc_rs")]
 pub mod dlmalloc_rs;
 
 unsafe fn map_heap(mapper: &mut PageMapper, offset: usize, size: usize) -> (*mut u8, usize) {
