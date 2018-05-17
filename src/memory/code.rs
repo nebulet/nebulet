@@ -14,7 +14,7 @@ pub struct Code {
     data_initializers: Vec<DataInitializer>,
     module: Module,
     region: Region,
-    start_func: extern fn(*const VmCtx),
+    start_func: extern fn(&VmCtx),
 }
 
 impl Code {
@@ -25,7 +25,7 @@ impl Code {
         assert!(region.contains(start_func as usize));
 
         let start_func = unsafe {
-            mem::transmute::<_, extern fn(*const VmCtx)>(start_func)
+            mem::transmute(start_func)
         };
 
         Ok(Code {
@@ -39,8 +39,8 @@ impl Code {
     pub fn generate_instance(&self) -> Instance {
         Instance::new(&self.module, &self.data_initializers)
     }
-    
-    pub fn execute(&self, vmctx: &VmCtx) {
-        (self.start_func)(vmctx as *const _);
+
+    pub fn start_func(&self) -> extern fn(&VmCtx) {
+        self.start_func
     }
 }

@@ -52,6 +52,7 @@ pub mod abi;
 pub mod object;
 pub mod task;
 pub mod wasm;
+pub mod process;
 
 pub use consts::*;
 
@@ -81,12 +82,23 @@ pub fn kmain() -> ! {
 extern fn test_thread(arg: usize) {
     println!("thread: {}", arg);
 
-    use task::Process;
-    use alloc::boxed::Box;
-    let mut process = Box::new(Process::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
-        .unwrap());
-    process.start().unwrap();
+    use process::Process;
+    use object::{GlobalHandleTable, HandleRights};
+    let process = Process::compile("abi-test process", include_bytes!("wasm/wasmtests/exit.wasm"))
+        .unwrap();
 
-    use core::mem;
-    mem::forget(process);
+    let proc_index = GlobalHandleTable::get_mut()
+        .allocate(process, HandleRights::all())
+        .unwrap();
+    
+    let handle_table = GlobalHandleTable::get();
+    {
+        let mut proc_handle = handle_table
+            .get_handle(proc_index)
+            .unwrap()
+            .lock_cast::<Process>()
+            .unwrap();
+
+        proc_handle.start(proc_index).unwrap();
+    }
 }
