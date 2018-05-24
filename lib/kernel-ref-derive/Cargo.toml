@@ -1,0 +1,12 @@
+[package]
+name = "kernel-ref-derive"
+version = "0.1.0"
+authors = ["Lachlan Sneff <lachlan.sneff@gmail.com>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "0.4"
+syn = "0.14.0"
+quote = "0.6.2"

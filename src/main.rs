@@ -17,6 +17,12 @@
 #![feature(nonnull_cast)]
 #![feature(repr_transparent)]
 #![feature(box_into_raw_non_null)]
+#![feature(box_syntax)]
+#![feature(unsize, coerce_unsized)]
+#![feature(dropck_eyepatch)]
+#![feature(arbitrary_self_types)]
+#![feature(nll)]
+#![feature(fnbox)]
 
 #![no_main]
 #![deny(warnings)]
@@ -39,6 +45,9 @@ extern crate cretonne_wasm;
 extern crate cretonne_native;
 extern crate cretonne_codegen;
 extern crate wasmparser;
+extern crate nil;
+#[macro_use]
+extern crate kernel_ref_derive;
 
 #[macro_use]
 pub mod arch;
@@ -52,7 +61,6 @@ pub mod abi;
 pub mod object;
 pub mod task;
 pub mod wasm;
-pub mod process;
 
 pub use consts::*;
 
@@ -61,44 +69,30 @@ pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 
 pub fn kmain() -> ! {
     println!("Nebulet v{}", VERSION);
-    
-    // tests::test_all();
 
-    use task::Thread;
+    use object::{ThreadRef, ProcessRef, CodeRef};
 
-    for i in 0..1 {
-        let thread = Thread::new(1024 * 1024, test_thread, i).unwrap();
+    let code = CodeRef::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
+        .unwrap();
+
+    for _ in 0..10 {
+        let code = code.clone();
+        let thread = ThreadRef::new(1024 * 1024, move || {
+            let process = ProcessRef::create("abi-test process", code.clone())
+                .unwrap();
+            
+            process.start().unwrap();
+        }).unwrap();
         thread.resume().unwrap();
     }
 
+    use arch::cpu::Local;
+
     unsafe {
-        ::arch::interrupt::enable();
-        loop {
-            ::arch::interrupt::halt();
-        }
+        Local::current()
+            .scheduler
+            .switch();
     }
-}
 
-extern fn test_thread(arg: usize) {
-    println!("thread: {}", arg);
-
-    use process::Process;
-    use object::{GlobalHandleTable, HandleRights};
-    let process = Process::compile("abi-test process", include_bytes!("wasm/wasmtests/exit.wasm"))
-        .unwrap();
-
-    let proc_index = GlobalHandleTable::get_mut()
-        .allocate(process, HandleRights::all())
-        .unwrap();
-    
-    let handle_table = GlobalHandleTable::get();
-    {
-        let mut proc_handle = handle_table
-            .get_handle(proc_index)
-            .unwrap()
-            .lock_cast::<Process>()
-            .unwrap();
-
-        proc_handle.start(proc_index).unwrap();
-    }
+    unimplemented!("Arrived back in `kmain` somehow.");
 }

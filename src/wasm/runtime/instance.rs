@@ -8,7 +8,8 @@ use super::module::Module;
 use super::DataInitializer;
 
 use memory::WasmMemory;
-use common::table::TableIndex;
+use object::ProcessRef;
+use nil::Ref;
 
 use core::ptr::NonNull;
 use alloc::Vec;
@@ -19,11 +20,11 @@ pub struct VmCtxBacking {
 }
 
 impl VmCtxBacking {
-    pub fn vmctx(&mut self, proc_index: TableIndex) -> VmCtx {
+    pub fn vmctx(&mut self, process: Ref<ProcessRef>) -> VmCtx {
         VmCtx {
             globals: self.globals,
             memories: NonNull::new(self.memories.as_mut_ptr()).unwrap(),
-            proc_index,
+            process,
         }
     }
 }
@@ -32,7 +33,7 @@ impl VmCtxBacking {
 pub struct VmCtx {
     globals: NonNull<u8>,
     memories: NonNull<NonNull<u8>>,
-    pub proc_index: TableIndex,
+    pub process: Ref<ProcessRef>,
 }
 
 /// An Instance of a WebAssembly module

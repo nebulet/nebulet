@@ -10,11 +10,12 @@ use cretonne_wasm::translate_module;
 use cretonne_native;
 use self::runtime::{Module, ModuleEnvironment};
 use cretonne_codegen::settings::{self, Configurable};
-use memory::Code;
+use object::CodeRef;
+use nil::Ref;
 
 use nabi::{Result, Error};
 
-pub fn compile_module(wasm: &[u8]) -> Result<Code> {
+pub fn compile_module(wasm: &[u8]) -> Result<Ref<CodeRef>> {
     let (mut flag_builder, isa_builder) = cretonne_native::builders()
         .map_err(|_| Error::INTERNAL)?;
 

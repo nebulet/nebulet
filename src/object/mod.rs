@@ -1,26 +1,13 @@
-pub mod handle;
+mod handle;
+mod table;
+// objects
+mod thread_ref;
+mod process_ref;
+mod code_ref;
 
-pub use self::handle::{HandleTable, Handle, HandleRights};
-use spin::{Once, RwLock, RwLockReadGuard, RwLockWriteGuard};
+pub use self::handle::{Handle, HandleRights};
+pub use self::table::HandleTable;
 
-static HANDLE_TABLE: Once<RwLock<HandleTable>> = Once::new();
-
-fn handle_table_init() -> RwLock<HandleTable> {
-    RwLock::new(HandleTable::new())
-}
-
-pub struct GlobalHandleTable;
-
-impl GlobalHandleTable {
-    pub fn get() -> RwLockReadGuard<'static, HandleTable> {
-        HANDLE_TABLE
-            .call_once(handle_table_init)
-            .read()
-    }
-
-    pub fn get_mut() -> RwLockWriteGuard<'static, HandleTable> {
-        HANDLE_TABLE
-            .call_once(handle_table_init)
-            .write()
-    }
-}
+pub use self::thread_ref::ThreadRef;
+pub use self::process_ref::ProcessRef;
+pub use self::code_ref::CodeRef;

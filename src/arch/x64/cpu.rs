@@ -5,8 +5,7 @@ use core::ptr::NonNull;
 use arch::interrupt;
 use arch::asm::read_gs_offset64;
 
-use task::{Thread, thread::State, scheduler::Scheduler};
-// use spin::{RwLock, Once};
+use task::{Thread, State, scheduler::Scheduler};
 
 use alloc::boxed::Box;
 // use alloc::Vec;
@@ -84,24 +83,34 @@ pub struct Local {
     pub cpu: &'static mut Cpu,
     /// The scheduler associated with this cpu.
     pub scheduler: Scheduler,
+    current_thread: NonNull<Thread>,
 }
 
 impl Local {
     fn new(cpu: &'static mut Cpu) -> Local {
-        let idle_thread = Thread::new(4096, idle_thread_entry, 0)
-            .unwrap();
+        let idle_thread = Box::new(Thread::new(4096, Box::new(|| {
+            loop {
+                unsafe { ::arch::interrupt::halt(); }
+            }
+        })).unwrap());
 
-        let mut kernel_thread = Thread::new(0, idle_thread_entry, 0)
-            .unwrap();
+        let mut kernel_thread = Box::new(Thread::new(0, Box::new(|| {}))
+            .unwrap());
             
         kernel_thread.state = State::Suspended;
 
-        let scheduler = Scheduler::new(kernel_thread, idle_thread);
+        let kernel_thread_nonnull = Box::into_raw_non_null(kernel_thread);
+
+        let scheduler = Scheduler::new(
+            kernel_thread_nonnull.as_ptr(),
+            Box::into_raw(idle_thread)
+        );
 
         Local {
             direct: NonNull::dangling(),
             cpu,
             scheduler,
+            current_thread: kernel_thread_nonnull,
         }
     }
 
@@ -110,10 +119,12 @@ impl Local {
             &mut *(read_gs_offset64!(0x0) as *mut Local)
         }
     }
-}
 
-extern fn idle_thread_entry(_: usize) {
-    loop {
-        unsafe { ::arch::interrupt::halt(); }
+    pub fn current_thread() -> NonNull<Thread> {
+        Self::current().current_thread
+    }
+
+    pub fn set_current_thread(ptr: NonNull<Thread>) {
+        Self::current().current_thread = ptr;
     }
 }

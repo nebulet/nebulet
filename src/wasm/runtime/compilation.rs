@@ -7,7 +7,9 @@ use cretonne_codegen::{self, isa::TargetIsa, binemit::Reloc};
 use super::RelocSink;
 use super::abi::ABI_MAP;
 
-use memory::{Code, Region};
+use memory::Region;
+use object::CodeRef;
+use nil::Ref;
 
 use nabi::{Result, Error};
 
@@ -116,13 +118,13 @@ impl Compilation {
     }
 
     /// Emit a `Code` instance
-    pub fn emit(mut self, module: Module, data_initializers: Vec<DataInitializer>) -> Result<Code> {
+    pub fn emit(mut self, module: Module, data_initializers: Vec<DataInitializer>) -> Result<Ref<CodeRef>> {
         self.relocate(&module)?;
 
         let start_index = module.start_func?;
         let start_ptr = self.get_function_addr(&module, start_index)?.0;
 
-        Code::new(module, data_initializers, self.region, start_ptr)
+        CodeRef::new(module, data_initializers, self.region, start_ptr)
     }
 }
 

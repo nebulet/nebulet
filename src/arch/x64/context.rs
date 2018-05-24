@@ -9,7 +9,7 @@ extern "C" {
 #[repr(C)]
 pub struct ThreadContext {
     rflags: usize,
-    pub rbx: usize,
+    rbx: usize,
     r12: usize,
     r13: usize,
     r14: usize,

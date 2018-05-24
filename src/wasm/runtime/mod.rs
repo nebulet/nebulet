@@ -18,7 +18,7 @@ pub use self::compilation::{Compilation, Compiler};
 pub use self::instance::Instance;
 
 use cretonne_wasm::{self, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
-                GlobalValue, SignatureIndex, FuncTranslator};
+                GlobalValue, SignatureIndex, FuncTranslator, WasmResult};
 use cretonne_codegen::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam,
                    ArgumentPurpose, ArgumentLoc, ArgumentExtension, Function};
 use cretonne_codegen::ir::types::*;
@@ -311,12 +311,12 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         sig_ref: ir::SigRef,
         callee: ir::Value,
         call_args: &[ir::Value],
-    ) -> ir::Inst {
+    ) -> WasmResult<ir::Inst> {
         // TODO: Cretonne's call_indirect doesn't implement bounds checking
         // or signature checking, so we need to implement it ourselves.
         debug_assert_eq!(table_index, 0, "non-default tables not supported yet");
         let real_call_args = FuncEnvironment::get_real_call_args(pos.func, call_args);
-        pos.ins().call_indirect(sig_ref, callee, &real_call_args)
+        Ok(pos.ins().call_indirect(sig_ref, callee, &real_call_args))
     }
 
     fn translate_call(
@@ -325,7 +325,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         callee_index: FunctionIndex,
         callee: ir::FuncRef,
         call_args: &[ir::Value],
-    ) -> ir::Inst {
+    ) -> WasmResult<ir::Inst> {
         let real_call_args = FuncEnvironment::get_real_call_args(pos.func, call_args);
 
         // Since imported functions are declared first,
@@ -336,11 +336,11 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
             let callee_value = pos.ins()
                 .func_addr(self.native_pointer(), callee);
 
-            pos.ins()
-                .call_indirect(sig_ref, callee_value, &real_call_args)
+            Ok(pos.ins()
+                .call_indirect(sig_ref, callee_value, &real_call_args))
         } else { // internal function
-            pos.ins()
-                .call(callee, &real_call_args)
+            Ok(pos.ins()
+                .call(callee, &real_call_args))
         }
     }
 
@@ -350,7 +350,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         index: MemoryIndex,
         _heap: ir::Heap,
         val: ir::Value,
-    ) -> ir::Value {
+    ) -> WasmResult<ir::Value> {
         debug_assert_eq!(index, 0, "non-default memories not supported yet");
         let grow_mem_func = self.grow_memory_extfunc.unwrap_or_else(|| {
             let sig_ref = pos.func.import_signature(Signature {
@@ -369,7 +369,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         });
         self.grow_memory_extfunc = Some(grow_mem_func);
         let call_inst = pos.ins().call(grow_mem_func, &[val]);
-        *pos.func.dfg.inst_results(call_inst).first().unwrap()
+        Ok(*pos.func.dfg.inst_results(call_inst).first().unwrap())
     }
 
     fn translate_current_memory(
@@ -377,7 +377,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         mut pos: FuncCursor,
         index: MemoryIndex,
         _heap: ir::Heap,
-    ) -> ir::Value {
+    ) -> WasmResult<ir::Value> {
         debug_assert_eq!(index, 0, "non-default memories not supported yet");
         let cur_mem_func = self.current_memory_extfunc.unwrap_or_else(|| {
             let sig_ref = pos.func.import_signature(Signature {
@@ -396,7 +396,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         });
         self.current_memory_extfunc = Some(cur_mem_func);
         let call_inst = pos.ins().call(cur_mem_func, &[]);
-        *pos.func.dfg.inst_results(call_inst).first().unwrap()
+        Ok(*pos.func.dfg.inst_results(call_inst).first().unwrap())
     }
 }
 
@@ -536,7 +536,7 @@ impl<'data, 'flags> cretonne_wasm::ModuleEnvironment<'data> for ModuleEnvironmen
         self.module.start_func = Some(func_index);
     }
 
-    fn define_function_body(&mut self, body_bytes: &'data [u8]) -> Result<(), String> {
+    fn define_function_body(&mut self, body_bytes: &'data [u8]) -> WasmResult<()> {
         self.lazy.function_body_inputs.push(body_bytes);
         Ok(())
     }

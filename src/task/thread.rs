@@ -1,72 +1,8 @@
 use memory::WasmStack;
 use arch::context::ThreadContext;
 use arch::cpu::Local;
-
-use core::ptr::NonNull;
-use core::ops::{Deref, DerefMut};
 use alloc::boxed::Box;
-// use super::GlobalScheduler;
-
 use nabi::{Result, Error};
-
-#[derive(Copy, Clone, PartialEq, Eq)]
-#[repr(transparent)]
-pub struct ThreadRef {
-    ptr: NonNull<Thread>,
-}
-
-unsafe impl Send for ThreadRef {}
-unsafe impl Sync for ThreadRef {}
-
-impl ThreadRef {
-    fn from_box(b: Box<Thread>) -> ThreadRef {
-        ThreadRef {
-            ptr: Box::into_raw_non_null(b),
-        }
-    }
-
-    fn from_thread(thread: Thread) -> ThreadRef {
-        Self::from_box(Box::new(thread))
-    }
-
-    /// This will destroy the thread and
-    /// return true if the thread is `Dead`.
-    /// Else, will return false.
-    pub unsafe fn destroy(self) -> bool {
-        let thread: &Thread = &*self;
-
-        if thread.state == State::Dead {
-            let _ = Box::from_raw(self.ptr.as_ptr());
-            true
-        } else {
-            false
-        }
-    }
-
-    /// This adds this thread to the run queue.
-    pub fn resume(self) -> Result<()> {
-        let local = Local::current();
-        local.scheduler.push(self);
-        Ok(())
-    }
-}
-
-impl Deref for ThreadRef {
-    type Target = Thread;
-    fn deref(&self) -> &Thread {
-        unsafe {
-            self.ptr.as_ref()
-        }
-    }
-}
-
-impl DerefMut for ThreadRef {
-    fn deref_mut(&mut self) -> &mut Thread {
-        unsafe {
-            self.ptr.as_mut()
-        }
-    }
-}
 
 /// The current state of a process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -84,18 +20,16 @@ pub enum State {
 }
 
 /// A single thread of execution.
-#[derive(Debug)]
+#[allow(dead_code)]
 pub struct Thread {
     pub state: State,
     ctx: ThreadContext,
     stack: WasmStack,
-    entry: extern fn(usize),
-    arg: usize,
+    entry: Box<Fn() + Send + Sync + 'static>,
 }
 
 impl Thread {
-    /// This creates a new thread and adds it to the global thread table.
-    pub fn new(stack_size: usize, entry: extern fn(usize), arg: usize) -> Result<ThreadRef> {
+    pub fn new(stack_size: usize, entry: Box<Fn() + Send + Sync + 'static>) -> Result<Thread> {
         let stack = WasmStack::allocate(stack_size)
             .ok_or(Error::NO_MEMORY)?;
 
@@ -104,16 +38,9 @@ impl Thread {
             ctx: ThreadContext::new(stack.top(), common_thread_entry),
             stack,
             entry,
-            arg,
         };
 
-        let mut thread_ref = ThreadRef::from_thread(thread);
-
-        // TODO: Find a more platform independent way
-        // of doing this.
-        thread_ref.ctx.rbx = &mut *thread_ref as *mut Thread as usize;
-
-        Ok(thread_ref)
+        Ok(thread)
     }
 
     pub unsafe fn swap(&mut self, other: &Thread) {
@@ -122,18 +49,17 @@ impl Thread {
 }
 
 extern fn common_thread_entry() {
-    let thread: &mut Thread;
-    unsafe {
-        asm!("" : "={rbx}"(thread) : : "memory" : "intel", "volatile");
-    }
+    let thread = unsafe { &mut *Local::current_thread().as_ptr() };
 
-    (thread.entry)(thread.arg);
+    (thread.entry)();
 
     thread.state = State::Dead;
 
-    Local::current()
+    unsafe {
+        Local::current()
         .scheduler
         .switch();
+    }
 
     unreachable!();
 }

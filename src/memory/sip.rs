@@ -1,9 +1,9 @@
-use x86_64::structures::paging::{Size4KB, PageSize, PageTableFlags};
+use x86_64::structures::paging::{Size4KB, PageSize};
 use x86_64::VirtAddr;
 
 use core::ops::{Deref, DerefMut};
 
-use memory::Region;
+use memory::{Region, MemFlags};
 
 use nabi::{Result, Error};
 
@@ -39,7 +39,7 @@ impl SipAllocator {
         } else {
             let virt_addr = VirtAddr::new(self.bump as u64);
             self.bump += allocated_size;
-            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+            let flags = MemFlags::READ | MemFlags::WRITE;
             Region::new(virt_addr, allocated_size, flags, true).ok()
         }
     }
@@ -75,7 +75,7 @@ impl SipAllocator {
 
             self.bump += allocated_size;
 
-            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+            let flags = MemFlags::READ | MemFlags::WRITE;
             let region = Region::new(start, requested_size, flags, true).ok()?;
 
             Some(WasmStack {
@@ -109,7 +109,7 @@ impl WasmMemory {
     /// Create a completely unmapped `Memory` with unmapped size of `size`.
     /// The mapped size to start is `0`.
     pub fn with_capacity(start: VirtAddr, unmapped_size: usize, mapped_size: usize) -> Result<Self> {
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+        let flags = MemFlags::READ | MemFlags::WRITE;
         let region = Region::new(start, mapped_size, flags, true)?;
 
         Ok(WasmMemory {

@@ -17,15 +17,19 @@ lto = true
 panic = "abort"
 
 [workspace]
-members = ["tools"]
+members = [
+    "tools",
+    "lib/nil",
+    "lib/kernel-ref-derive",
+]
 exclude = [
     "target/x86_64-nebulet/release/bootloader",
     "target/x86_64-nebulet/debug/bootloader",
-    "cretonne"
+    "cretonne",
 ]
 
 [features]
-default = ["vga"]
+default = ["vga", "serial"]
 vga = [] # log to vga
 serial = [] # log to serial
 
@@ -38,6 +42,12 @@ bit_field = "0.9.0"
 x86_64 = "0.2.0-alpha-019"
 os_bootinfo = "0.2.0"
 hashmap_core = "0.1.5"
+
+# lib/
+[dependencies.nil]
+path = "lib/nil"
+[dependencies.kernel-ref-derive]
+path = "lib/kernel-ref-derive"
 
 [dependencies.lazy_static]
 version = "1.0.0"

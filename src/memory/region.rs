@@ -9,6 +9,32 @@ use core::slice;
 
 use nabi::{Result, Error};
 
+bitflags! {
+    pub struct MemFlags: u8 {
+        const READ  = 1 << 0;
+        const WRITE = 1 << 1;
+        const EXEC  = 1 << 2;
+    }
+}
+
+impl Into<PageTableFlags> for MemFlags {
+    fn into(self) -> PageTableFlags {
+        let mut flags = PageTableFlags::empty();
+        
+        if self.contains(MemFlags::READ) {
+            flags |= PageTableFlags::PRESENT | PageTableFlags::GLOBAL;
+        }
+        if self.contains(MemFlags::WRITE) {
+            flags |= PageTableFlags::WRITABLE;
+        }
+        if !self.contains(MemFlags::EXEC) {
+            flags |= PageTableFlags::NO_EXECUTE;
+        }
+
+        flags
+    }
+}
+
 /// Represents any region of memory that needs to be mapped/unmapped/remapped
 /// 
 /// Derefs to a slice that contains the memory to which this refers.
@@ -25,11 +51,11 @@ impl Region {
         super::SIP_ALLOCATOR.lock().allocate_region(size)
     }
 
-    pub fn new(start: VirtAddr, size: usize, flags: PageTableFlags, zero: bool) -> Result<Self> {
+    pub fn new(start: VirtAddr, size: usize, flags: MemFlags, zero: bool) -> Result<Self> {
         let mut region = Region {
             start,
             size,
-            flags,
+            flags: flags.into(),
         };
 
         region.map(zero)
@@ -85,8 +111,9 @@ impl Region {
         Ok(())
     }
 
-    pub fn remap(&mut self, new_flags: PageTableFlags) -> Result<()> {
+    pub fn remap(&mut self, new_flags: MemFlags) -> Result<()> {
         let mut mapper = unsafe { PageMapper::new() };
+        let new_flags = new_flags.into();
 
         for page in self.pages() {
             mapper.remap(page, new_flags)
