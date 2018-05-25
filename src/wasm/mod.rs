@@ -1,5 +1,4 @@
-//! The wasm compiler and runtime
-//! Uses Cretonne as the compiler
+//! The wasm compiler and runtime.
 //!
 //! Some code is taken from wasmstandalone
 //! - https://github.com/sunfishcode/wasmstandalone

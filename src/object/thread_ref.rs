@@ -5,6 +5,7 @@ use nil::{Ref, KernelRef};
 use alloc::boxed::Box;
 use spin::RwLock;
 
+/// Represents a thread.
 #[derive(KernelRef)]
 pub struct ThreadRef {
     thread: RwLock<Thread>,
@@ -12,9 +13,9 @@ pub struct ThreadRef {
 
 impl ThreadRef {
     pub fn new<F>(stack_size: usize, f: F) -> Result<Ref<ThreadRef>>
-        where F: Fn() + Send + Sync + 'static
+        where F: FnOnce() + Send + Sync + 'static
     {
-        let thread = RwLock::new(Thread::new(stack_size, Box::new(f))?);
+        let thread = RwLock::new(Thread::new(stack_size, Box::new(move || f()))?);
 
         Ok(ThreadRef {
             thread,

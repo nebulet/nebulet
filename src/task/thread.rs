@@ -1,7 +1,7 @@
 use memory::WasmStack;
 use arch::context::ThreadContext;
 use arch::cpu::Local;
-use alloc::boxed::Box;
+use alloc::boxed::{Box, FnBox};
 use nabi::{Result, Error};
 
 /// The current state of a process.
@@ -25,11 +25,11 @@ pub struct Thread {
     pub state: State,
     ctx: ThreadContext,
     stack: WasmStack,
-    entry: Box<Fn() + Send + Sync + 'static>,
+    entry: Option<Box<FnBox() + Send + Sync + 'static>>,
 }
 
 impl Thread {
-    pub fn new(stack_size: usize, entry: Box<Fn() + Send + Sync + 'static>) -> Result<Thread> {
+    pub fn new(stack_size: usize, entry: Box<FnBox() + Send + Sync + 'static>) -> Result<Thread> {
         let stack = WasmStack::allocate(stack_size)
             .ok_or(Error::NO_MEMORY)?;
 
@@ -37,7 +37,7 @@ impl Thread {
             state: State::Ready,
             ctx: ThreadContext::new(stack.top(), common_thread_entry),
             stack,
-            entry,
+            entry: Some(entry),
         };
 
         Ok(thread)
@@ -51,7 +51,8 @@ impl Thread {
 extern fn common_thread_entry() {
     let thread = unsafe { &mut *Local::current_thread().as_ptr() };
 
-    (thread.entry)();
+    let f: Box<FnBox()> = thread.entry.take().unwrap();
+    f();
 
     thread.state = State::Dead;
 

@@ -7,6 +7,11 @@ use core::mem;
 use alloc::Vec;
 use nil::{Ref, KernelRef};
 
+/// A `CodeRef` represents
+/// webassembly code compiled
+/// into machine code. You must
+/// have one of these to create
+/// a process.
 #[allow(dead_code)]
 #[derive(KernelRef)]
 pub struct CodeRef {
@@ -17,10 +22,12 @@ pub struct CodeRef {
 }
 
 impl CodeRef {
+    /// Compile webassembly bytecode into a CodeRef.
     pub fn compile(wasm_bytes: &[u8]) -> Result<Ref<CodeRef>> {
         compile_module(wasm_bytes)
     }
 
+    /// Used for internal use.
     pub fn new(module: Module, data_initializers: Vec<DataInitializer>, mut region: Region, start_func: *const u8)
         -> Result<Ref<CodeRef>>
     {

@@ -8,6 +8,8 @@ struct SchedulerInner {
     current_thread: *mut Thread,
 }
 
+/// The Scheduler schedules threads to be run.
+/// Currently, it's a simple, round-robin.
 pub struct Scheduler {
     inner: IrqSpinlock<SchedulerInner>,
     idle_thread: *mut Thread,

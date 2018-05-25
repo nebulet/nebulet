@@ -83,6 +83,7 @@ pub struct Local {
     pub cpu: &'static mut Cpu,
     /// The scheduler associated with this cpu.
     pub scheduler: Scheduler,
+    /// Pointer to current thread.
     current_thread: NonNull<Thread>,
 }
 

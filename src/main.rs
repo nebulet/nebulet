@@ -72,24 +72,21 @@ pub fn kmain() -> ! {
 
     use object::{ThreadRef, ProcessRef, CodeRef};
 
-    let code = CodeRef::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
-        .unwrap();
-
-    for _ in 0..10 {
-        let code = code.clone();
-        let thread = ThreadRef::new(1024 * 1024, move || {
-            let process = ProcessRef::create("abi-test process", code.clone())
+    let thread = ThreadRef::new(1024 * 1024, || {
+        let code = CodeRef::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
+            .unwrap();
+        for i in 0..10 {
+            let process = ProcessRef::create(format!("test-process[{}]", i), code.clone())
                 .unwrap();
             
             process.start().unwrap();
-        }).unwrap();
-        thread.resume().unwrap();
-    }
+        }
+    }).unwrap();
 
-    use arch::cpu::Local;
+    thread.resume().unwrap();
 
     unsafe {
-        Local::current()
+        arch::cpu::Local::current()
             .scheduler
             .switch();
     }
