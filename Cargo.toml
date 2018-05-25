@@ -20,7 +20,7 @@ panic = "abort"
 members = [
     "tools",
     "lib/nil",
-    "lib/kernel-ref-derive",
+    "lib/nebulet-derive",
 ]
 exclude = [
     "target/x86_64-nebulet/release/bootloader",
@@ -46,8 +46,8 @@ hashmap_core = "0.1.5"
 # lib/
 [dependencies.nil]
 path = "lib/nil"
-[dependencies.kernel-ref-derive]
-path = "lib/kernel-ref-derive"
+[dependencies.nebulet-derive]
+path = "lib/nebulet-derive"
 
 [dependencies.lazy_static]
 version = "1.0.0"

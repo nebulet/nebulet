@@ -6,7 +6,7 @@ pub use super::abi_types::AbiFunction;
 abi_map! {
     exit: { // eventually will exit maybe, right now is just for testing
         params: [I64],
-        returns: VOID, // indicates no return
-        abi::output_test,
+        returns: I64,
+        abi::test::output_test,
     },
 }

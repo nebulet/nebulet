@@ -1,6 +1,6 @@
 use object::{HandleTable, CodeRef, ThreadRef};
-use wasm::runtime::Instance;
-use alloc::{Vec, String};
+use wasm::Instance;
+use alloc::Vec;
 use alloc::boxed::Box;
 use nabi::Result;
 use nil::{Ref, KernelRef};
@@ -12,7 +12,7 @@ type ThreadList = Vec<Ref<ThreadRef>>;
 #[derive(KernelRef)]
 pub struct ProcessRef {
     /// The process name
-    name: String,
+    name: RwLock<Option<Box<str>>>,
     /// Compiled code can be shared between processes.
     code: Ref<CodeRef>,
     /// Process specific handle table.
@@ -27,11 +27,11 @@ pub struct ProcessRef {
 impl ProcessRef {
     /// Create a process from already existing code.
     /// This is the only way to create a process.
-    pub fn create<S: Into<String>>(name: S, code: Ref<CodeRef>) -> Result<Ref<ProcessRef>> {
+    pub fn create(code: Ref<CodeRef>) -> Result<Ref<ProcessRef>> {
         let instance = code.generate_instance();
 
         Ok(ProcessRef {
-            name: name.into(),
+            name: RwLock::new(None),
             code,
             handle_table: RwLock::new(HandleTable::new()),
             thread_list: RwLock::new(Vec::new()),
@@ -61,7 +61,7 @@ impl ProcessRef {
         Ok(())
     }
 
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &RwLock<Option<Box<str>>> {
         &self.name
     }
 

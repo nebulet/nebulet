@@ -23,6 +23,7 @@
 #![feature(arbitrary_self_types)]
 #![feature(nll)]
 #![feature(fnbox)]
+#![feature(proc_macro)]
 
 #![no_main]
 #![deny(warnings)]
@@ -47,7 +48,7 @@ extern crate cretonne_codegen;
 extern crate wasmparser;
 extern crate nil;
 #[macro_use]
-extern crate kernel_ref_derive;
+extern crate nebulet_derive;
 
 #[macro_use]
 pub mod arch;
@@ -75,8 +76,8 @@ pub fn kmain() -> ! {
     let thread = ThreadRef::new(1024 * 1024, || {
         let code = CodeRef::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
             .unwrap();
-        for i in 0..10 {
-            let process = ProcessRef::create(format!("test-process[{}]", i), code.clone())
+        for _ in 0..10 {
+            let process = ProcessRef::create(code.clone())
                 .unwrap();
             
             process.start().unwrap();

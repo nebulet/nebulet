@@ -75,11 +75,12 @@ impl<T: ?Sized> Ref<T> {
 }
 
 impl<T: KernelRef + ?Sized> Ref<T> {
-    pub fn cast<U: KernelRef>(&self) -> Option<&U> {
+    pub fn cast<U: KernelRef>(&self) -> Option<Ref<U>> {
         if TypeId::of::<T>() == TypeId::of::<U>() {
             let casted_ptr: NonNull<RefInner<U>> = self.ptr.cast();
-            let data = unsafe { &((*casted_ptr.as_ptr()).data) };
-            Some(&data)
+            Some(Ref {
+                ptr: casted_ptr,
+            })
         } else {
             None
         }

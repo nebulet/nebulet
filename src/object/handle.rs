@@ -1,6 +1,8 @@
 use nabi::{Result, Error};
 use nil::{Ref, KernelRef};
 
+pub type HandleOffset = u32;
+
 bitflags! {
     pub struct HandleRights: u32 {
         /// The right to duplicate a handle;
@@ -34,7 +36,7 @@ impl Handle {
         }
     }
 
-    pub fn cast<T: KernelRef>(&self) -> Result<&T> {
+    pub fn cast<T: KernelRef>(&self) -> Result<Ref<T>> {
         self.refptr.cast()
             .ok_or(Error::WRONG_TYPE)
     }

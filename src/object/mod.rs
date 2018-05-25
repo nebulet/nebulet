@@ -5,7 +5,7 @@ mod thread_ref;
 mod process_ref;
 mod code_ref;
 
-pub use self::handle::{Handle, HandleRights};
+pub use self::handle::{Handle, HandleRights, HandleOffset};
 pub use self::table::HandleTable;
 
 pub use self::thread_ref::ThreadRef;

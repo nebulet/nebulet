@@ -83,15 +83,6 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "kernel-ref-derive"
-version = "0.1.0"
-dependencies = [
- "proc-macro2 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -110,8 +101,8 @@ dependencies = [
  "cretonne-native 0.8.0",
  "cretonne-wasm 0.8.0",
  "hashmap_core 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "kernel-ref-derive 0.1.0",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nebulet-derive 0.1.0",
  "nebulet_abi 0.1.0",
  "nil 0.1.0",
  "os_bootinfo 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -119,6 +110,15 @@ dependencies = [
  "spin 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasmparser 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "x86_64 0.2.0-alpha-019 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "nebulet-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

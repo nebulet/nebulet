@@ -1,11 +1,13 @@
-use wasm::runtime::instance::{Instance, VmCtx};
-use wasm::runtime::{Module, DataInitializer};
-use wasm::compile_module;
+use wasm::instance::{Instance, VmCtx};
+use wasm::{Module, ModuleEnvironment, DataInitializer};
 use memory::{Region, MemFlags};
-use nabi::Result;
+use nabi::{Result, Error};
 use core::mem;
 use alloc::Vec;
 use nil::{Ref, KernelRef};
+use cretonne_codegen::settings::{self, Configurable};
+use cretonne_wasm::translate_module;
+use cretonne_native;
 
 /// A `CodeRef` represents
 /// webassembly code compiled
@@ -23,8 +25,25 @@ pub struct CodeRef {
 
 impl CodeRef {
     /// Compile webassembly bytecode into a CodeRef.
-    pub fn compile(wasm_bytes: &[u8]) -> Result<Ref<CodeRef>> {
-        compile_module(wasm_bytes)
+    pub fn compile(wasm: &[u8]) -> Result<Ref<CodeRef>> {
+        let (mut flag_builder, isa_builder) = cretonne_native::builders()
+        .map_err(|_| Error::INTERNAL)?;
+
+        flag_builder.set("opt_level", "best")
+            .map_err(|_| Error::INTERNAL)?;
+
+        let isa = isa_builder.finish(settings::Flags::new(flag_builder));
+
+        let module = Module::new();
+        let mut environ = ModuleEnvironment::new(isa.flags(), module);
+
+        translate_module(wasm, &mut environ)
+            .map_err(|_| Error::INTERNAL)?;
+
+        let translation = environ.finish_translation();
+        let (compliation, module, data_initializers) = translation.compile(&*isa)?;
+        
+        compliation.emit(module, data_initializers)
     }
 
     /// Used for internal use.
