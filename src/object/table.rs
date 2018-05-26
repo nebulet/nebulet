@@ -27,12 +27,9 @@ impl HandleTable {
 
     /// This makes a copy of the supplied handle
     /// and inserts it into `self`.
-    pub fn transfer_handle(&mut self, handle: &Handle, new_rights: HandleRights) -> Result<usize> {
+    pub fn transfer_handle(&mut self, handle: Handle) -> Result<usize> {
         if handle.rights().contains(HandleRights::TRANSFER) {
-            let dup = handle.duplicate(new_rights)
-                .ok_or(Error::ACCESS_DENIED)?;
-
-            self.allocate_handle(dup)
+            self.allocate_handle(handle)
         } else {
             Err(Error::ACCESS_DENIED)
         }
@@ -64,12 +61,8 @@ impl HandleTable {
     pub fn duplicate(&mut self, index: usize, new_rights: HandleRights) -> Result<usize> {
         let dup = {
             let handle = self.get(index)?;
-            if handle.rights().contains(HandleRights::TRANSFER) {
-                handle.duplicate(new_rights)
+            handle.duplicate(new_rights)
                     .ok_or(Error::ACCESS_DENIED)
-            } else {
-                Err(Error::ACCESS_DENIED)
-            }
         }?;
 
         self.allocate_handle(dup)

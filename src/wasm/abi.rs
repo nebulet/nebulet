@@ -9,4 +9,19 @@ abi_map! {
         returns: I64,
         abi::test::output_test,
     },
+    wasm_compile: {
+        params: [I32, I32],
+        returns: I64,
+        abi::process::wasm_compile,
+    },
+    process_create: {
+        params: [I32],
+        returns: I64,
+        abi::process::process_create,
+    },
+    process_start: {
+        params: [I32],
+        returns: I64,
+        abi::process::process_start,
+    },
 }
