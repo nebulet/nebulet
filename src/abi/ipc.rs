@@ -22,7 +22,7 @@ pub fn ipc_monocopy_create(buffer_offset: u32, buffer_size: u32, process: &Ref<P
     {
         let mut handle_table = process.handle_table().write();
 
-        handle_table.allocate(mono_copy_ref, HandleRights::WRITE)
+        handle_table.allocate(mono_copy_ref, HandleRights::WRITE | HandleRights::TRANSFER)
             .map(|handle| handle as u32)
     }
 }

@@ -26,7 +26,7 @@ pub fn process_create(code_handle: HandleOffset, process: &ProcessRef) -> Result
     {
         let mut handle_table = handle_table.write();
 
-        let rights = HandleRights::READ | HandleRights::WRITE;
+        let rights = HandleRights::READ | HandleRights::WRITE | HandleRights::TRANSFER;
 
         handle_table.allocate(new_proc, rights)
             .map(|handle| handle as u32)
@@ -68,7 +68,7 @@ pub fn wasm_compile(buffer_offset: u32, buffer_size: u32, process: &ProcessRef) 
 
     {
         let mut handle_table = process.handle_table().write();
-        let rights = HandleRights::READ;
+        let rights = HandleRights::READ | HandleRights::TRANSFER;
 
         handle_table.allocate(code_ref, rights)
             .map(|handle| handle as u32)
