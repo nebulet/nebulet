@@ -2,6 +2,8 @@ use x86_64::instructions::port::Port;
 
 // Mostly taken from Redox OS
 
+/// Nanoseconds per PIT
+pub const RATE: u32 = 2250286;
 pub static mut CHAN0: Port<u8> = Port::new(0x40);
 // These aren't used
 // pub static mut CHAN1: Port<u8> = Port::new(0x41);
