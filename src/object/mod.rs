@@ -1,13 +1,18 @@
 mod handle;
 mod table;
 // objects
-mod thread_ref;
-mod process_ref;
-mod code_ref;
+mod thread;
+mod process;
+mod code;
+mod mono_copy;
+mod event;
 
-pub use self::handle::{Handle, HandleRights, HandleOffset};
+pub use self::handle::{Handle, HandleOffset};
 pub use self::table::HandleTable;
+pub use nabi::HandleRights;
 
-pub use self::thread_ref::ThreadRef;
-pub use self::process_ref::ProcessRef;
-pub use self::code_ref::CodeRef;
+pub use self::thread::ThreadRef;
+pub use self::process::ProcessRef;
+pub use self::code::CodeRef;
+pub use self::mono_copy::MonoCopyRef;
+pub use self::event::EventRef;

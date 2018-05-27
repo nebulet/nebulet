@@ -36,12 +36,14 @@ fn impl_kernel_ref(ast: &syn::DeriveInput) -> proc_macro2::TokenStream {
 fn wrap_nebulet_abi(mut fn_item: syn::ItemFn) -> proc_macro2::TokenStream {
     let outer_func = fn_item.clone();
     let outer_ident = outer_func.ident;
-    let outer_inputs = outer_func.decl.inputs;
+    let mut outer_inputs = outer_func.decl.inputs;
+    outer_inputs.pop();
+    outer_inputs.push(syn::parse::<syn::FnArg>(quote!(vmctx: *const ()).into()).unwrap());
 
     let ident_span = fn_item.ident.span();
     fn_item.ident = syn::Ident::new("inner", ident_span);
     fn_item.vis = syn::Visibility::Inherited;
-    let inner_inputs = outer_inputs
+    let mut inner_inputs = outer_inputs
         .iter()
         .filter_map(|fnarg| {
             if let syn::FnArg::Captured(arg) = fnarg {
@@ -51,11 +53,17 @@ fn wrap_nebulet_abi(mut fn_item: syn::ItemFn) -> proc_macro2::TokenStream {
             }
         })
         .collect::<syn::punctuated::Punctuated<syn::Pat, syn::token::Comma>>();
+    inner_inputs.pop();
+    inner_inputs.push(syn::parse(quote!(process).into()).unwrap());
 
     quote! {
-        pub extern fn #outer_ident(#outer_inputs) -> usize {
+        pub extern fn #outer_ident(#outer_inputs) -> u64 {
             #fn_item
 
+            use wasm::instance::VmCtx;
+            let vmctx = unsafe { &*(vmctx as *const VmCtx) };
+
+            let process = &vmctx.process;
             let res = inner(#inner_inputs);
             Error::mux(res)
         }

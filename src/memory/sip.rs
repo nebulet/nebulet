@@ -135,6 +135,31 @@ impl WasmMemory {
         }
     }
 
+    pub fn get_array(&self, offset: u32, size: u32) -> Option<&[u8]> {
+        let start = offset as usize;
+        let end = start + size as usize;
+        let slice: &[u8] = &*self;
+
+        if end <= self.mapped_size() {
+            Some(&slice[start..end])
+        } else {
+            None
+        }
+    }
+
+    pub fn get_array_mut(&mut self, offset: u32, size: u32) -> Option<&mut [u8]> {
+        let start = offset as usize;
+        let end = start + size as usize;
+        let mapped_size = self.mapped_size();
+        let slice: &mut [u8] = &mut *self;
+
+        if end <= mapped_size {
+            Some(&mut slice[start..end])
+        } else {
+            None
+        }
+    }
+
     pub fn start(&self) -> VirtAddr {
         self.region.start()
     }

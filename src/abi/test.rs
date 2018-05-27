@@ -1,4 +1,4 @@
-use wasm::VmCtx;
+use object::ProcessRef;
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
 
@@ -10,7 +10,7 @@ use nebulet_derive::nebulet_abi;
 // }
 
 #[nebulet_abi]
-pub fn output_test(arg: usize, _vmctx: &VmCtx) -> Result<usize> {
+pub fn output_test(arg: usize, _process: &ProcessRef) -> Result<u32> {
     println!("wasm supplied arg = {}", arg);
 
     Ok(0)
