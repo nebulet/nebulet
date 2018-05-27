@@ -1,13 +1,12 @@
-use spin::RwLock;
 pub use core::time::Duration;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// Kernel start time, measured in (seconds, nanoseconds) since Unix epoch
-pub static START: RwLock<(u64, u32)> = RwLock::new((0, 0));
+pub static mut START: (u64, u32) = (0, 0);
 
 /// Return the start time of the kernel
 pub fn start() -> SystemTime {
-    let (secs, nanos) = *START.read();
+    let (secs, nanos) = unsafe{ START };
     SystemTime(Duration::new(secs, nanos))
 }
 
@@ -21,7 +20,7 @@ fn monotonic() -> u64 {
 #[inline]
 fn realtime() -> (u64, u32) {
     let offset = monotonic();
-    let start = *START.read();
+    let start = unsafe{ START };
     let sum = start.1 as u64 + offset;
     (start.0 + sum / 1_000_000_000, (sum % 1_000_000_000) as u32)
 }
