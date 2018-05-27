@@ -1,5 +1,6 @@
 pub use core::time::Duration;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
+use arch::devices::high_precision_timer;
 
 /// Kernel start time, measured in (seconds, nanoseconds) since Unix epoch
 pub static mut START: (u64, u32) = (0, 0);
@@ -13,7 +14,7 @@ pub fn start() -> SystemTime {
 /// Return the up time of the kernel in nanoseconds
 #[inline]
 fn monotonic() -> u64 {
-    ::arch::x64::devices::high_precision_timer::now()
+    high_precision_timer::now()
 }
 
 /// Returns the realtime of the kernel
