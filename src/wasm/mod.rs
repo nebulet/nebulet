@@ -598,10 +598,10 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
             compiler.define_function(context)?;
         }
 
-        let compliation = compiler.compile(&self.module)?;
+        let compilation = compiler.compile(&self.module)?;
 
 
 
-        Ok((compliation, self.module, self.lazy.data_initializers))
+        Ok((compilation, self.module, self.lazy.data_initializers))
     }
 }
