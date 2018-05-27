@@ -25,7 +25,8 @@
     arbitrary_self_types,
     nll,
     fnbox,
-    proc_macro
+    proc_macro,
+    integer_atomics
 )]
 
 #![no_main]

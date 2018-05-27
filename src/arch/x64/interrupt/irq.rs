@@ -1,5 +1,5 @@
 use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
-use arch::devices::pic;
+use arch::devices::{pic, pit};
 use arch::macros::interrupt;
 use arch;
 use time;
@@ -27,11 +27,9 @@ unsafe fn trigger(irq: u8) {
 }
 
 interrupt!(pit, {
-    const PIT_RATE: u32 = 2250286;
-
     {
         let mut offset = time::OFFSET.write();
-        let sum = offset.1 + PIT_RATE;
+        let sum = offset.1 + pit::RATE;
         offset.1 = sum % 1_000_000_000;
         offset.0 += sum as u64 / 1_000_000_000;
     }
@@ -60,6 +58,6 @@ interrupt!(keyboard, {
 
 interrupt!(rtc, {
     println!("RTC interrupt");
-    
+
     trigger(8);
 });
