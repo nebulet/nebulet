@@ -1,31 +1,29 @@
-use spin::RwLock;
 pub use core::time::Duration;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
+use arch::devices::high_precision_timer;
 
 /// Kernel start time, measured in (seconds, nanoseconds) since Unix epoch
-pub static START: RwLock<(u64, u32)> = RwLock::new((0, 0));
-/// Kernel up time, measured in (seconds, nanoseconds) since `time::START`
-pub static OFFSET: RwLock<(u64, u32)> = RwLock::new((0, 0));
+pub static mut START: (u64, u32) = (0, 0);
 
 /// Return the start time of the kernel
 pub fn start() -> SystemTime {
-    let (secs, nanos) = *START.read();
+    let (secs, nanos) = unsafe{ START };
     SystemTime(Duration::new(secs, nanos))
 }
 
-/// Return the up time of the kernel
+/// Return the up time of the kernel in nanoseconds
 #[inline]
-fn monotonic() -> (u64, u32) {
-    *OFFSET.read()
+fn monotonic() -> u64 {
+    high_precision_timer::now()
 }
 
 /// Returns the realtime of the kernel
 #[inline]
 fn realtime() -> (u64, u32) {
     let offset = monotonic();
-    let start = *START.read();
-    let sum = start.1 + offset.1;
-    (start.0 + offset.0 + sum as u64 / 1_000_000_000, sum % 1_000_000_000)
+    let start = unsafe{ START };
+    let sum = start.1 as u64 + offset;
+    (start.0 + sum / 1_000_000_000, (sum % 1_000_000_000) as u32)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -39,8 +37,8 @@ pub const INSTANT_INIT: Instant = Instant(Duration::from_secs(0));
 
 impl Instant {
     pub fn now() -> Instant {
-        let (secs, nanos) = monotonic();
-        Instant(Duration::new(secs, nanos))
+        let nanos = monotonic();
+        Instant(Duration::new(nanos / 1_000_000_000, (nanos % 1_000_000_000) as u32))
     }
 
     pub fn duration_since(&self, earlier: Instant) -> Duration {

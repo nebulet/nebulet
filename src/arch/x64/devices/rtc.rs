@@ -4,9 +4,9 @@ use time;
 
 // Pretty much copied from Redox OS
 
-pub fn init() {
+pub unsafe fn init() {
     let mut rtc = Rtc::new();
-    time::START.write().0 = rtc.time();
+    time::START.0 = rtc.time();
 }
 
 fn cvt_bcd(value: usize) -> usize {

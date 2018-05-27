@@ -1,8 +1,7 @@
 use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
-use arch::devices::{pic, pit};
+use arch::devices::pic;
 use arch::macros::interrupt;
 use arch;
-use time;
 use x86_64::instructions::port::Port;
 use arch::cpu::Local;
 
@@ -27,13 +26,6 @@ unsafe fn trigger(irq: u8) {
 }
 
 interrupt!(pit, {
-    {
-        let mut offset = time::OFFSET.write();
-        let sum = offset.1 + pit::RATE;
-        offset.1 = sum % 1_000_000_000;
-        offset.0 += sum as u64 / 1_000_000_000;
-    }
-
     // Saves CPU time by shortcutting
     pic::MASTER.ack();
 
