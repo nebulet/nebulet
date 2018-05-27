@@ -1,29 +1,32 @@
 
 #![no_std]
-#![feature(lang_items)]
-#![feature(abi_x86_interrupt)]
-#![feature(asm)]
-#![feature(const_fn)]
-#![feature(decl_macro)]
-#![feature(pointer_methods)]
-#![feature(thread_local)]
-#![feature(alloc)]
-#![feature(allocator_api)]
-#![feature(global_allocator)]
-#![feature(global_asm)]
-#![feature(core_intrinsics)]
-#![feature(naked_functions)]
-#![feature(compiler_builtins_lib)]
-#![feature(nonnull_cast)]
-#![feature(repr_transparent)]
-#![feature(box_into_raw_non_null)]
-#![feature(box_syntax)]
-#![feature(unsize, coerce_unsized)]
-#![feature(dropck_eyepatch)]
-#![feature(arbitrary_self_types)]
-#![feature(nll)]
-#![feature(fnbox)]
-#![feature(proc_macro)]
+#![feature(
+    lang_items,
+    abi_x86_interrupt,
+    asm,
+    const_fn,
+    decl_macro,
+    pointer_methods,
+    thread_local,
+    alloc,
+    allocator_api,
+    global_allocator,
+    global_asm,
+    core_intrinsics,
+    naked_functions,
+    compiler_builtins_lib,
+    nonnull_cast,
+    repr_transparent,
+    box_into_raw_non_null,
+    box_syntax,
+    unsize,
+    coerce_unsized,
+    dropck_eyepatch,
+    arbitrary_self_types,
+    nll,
+    fnbox,
+    proc_macro
+)]
 
 #![no_main]
 #![deny(warnings)]
@@ -79,7 +82,7 @@ pub fn kmain() -> ! {
         for _ in 0..10 {
             let process = ProcessRef::create(code.clone())
                 .unwrap();
-            
+
             process.start().unwrap();
         }
     }).unwrap();
