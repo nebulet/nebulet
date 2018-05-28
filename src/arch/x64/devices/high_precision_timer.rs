@@ -28,7 +28,9 @@ pub fn rdtsc() -> u64 {
     unsafe {
         let lower: u64;
         let higher: u64;
-        asm!(" rdtsc "
+        asm!("
+            lfence
+            rdtsc"
             : "={edx}"(higher), "={eax}"(lower)
         );
 

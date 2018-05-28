@@ -15,3 +15,13 @@ pub fn output_test(arg: usize, _process: &ProcessRef) -> Result<u32> {
 
     Ok(0)
 }
+
+// #[nebulet_abi]
+pub fn swap_stack(_: &ProcessRef) -> Result<u32> {
+    // use memory::WasmStack;
+
+    // let mut stack = WasmStack::allocate(1024 * 1024)?;
+
+
+    Ok(0)
+}

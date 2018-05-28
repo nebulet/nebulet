@@ -19,6 +19,7 @@ impl<T: FrameAllocator> FrameCache<T> {
 }
 
 impl<T: FrameAllocator> FrameAllocator for FrameCache<T> {
+    #[inline]
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
         self.freed
             .pop()

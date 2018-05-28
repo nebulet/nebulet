@@ -1,4 +1,6 @@
 .global x86_64_context_switch
+.global erms_memcpy
+.global erms_memset
 .intel_syntax noprefix
 
 # Context Switching
@@ -44,4 +46,46 @@ x86_64_context_switch:
     popfq
     
     # leap of faith
+    ret
+
+
+# Enable SSE
+enable_sse:
+    mov rax, cr0
+    and ax, 0xfffb
+    or ax, 0x2
+    mov cr0, rax
+    mov rax, cr4
+    or ax, 3 << 9
+    mov cr4, rax
+    ret
+
+# Enable AVX
+enable_avx:
+    push rax
+    push rcx
+
+    xor rcx, rcx
+    xgetbv
+    or eax, 7
+    xsetbv
+
+    pop rcx
+    pop rax
+    ret
+
+# ERMS Memcpy
+erms_memcpy:
+    mov rax, rdi
+    mov rcx, rdx
+    rep movsb
+    ret
+
+# ERMS memset
+erms_memset:
+    mov r9, rdi
+    mov al, sil
+    mov rcx, rdx
+    rep stosb
+    mov rax, r9
     ret

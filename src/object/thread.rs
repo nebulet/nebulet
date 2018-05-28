@@ -31,8 +31,13 @@ impl ThreadRef {
     }
 
     pub fn resume(self: &Ref<Self>) -> Result<()> {
-        // increase ref count so that the 
-        // thread pointer doesn't get deallocated
+        debug_assert!({
+           let state = self.state();
+           state == State::Blocked || state == State::Suspended 
+        });
+        self.set_state(State::Ready);
+        // increase ref count so that the
+        // thread pointer doesn't get deallocated 
         // while being used in the scheduler.
         self.inc_ref();
 
