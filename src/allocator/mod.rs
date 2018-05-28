@@ -11,8 +11,9 @@ unsafe fn map_heap(mapper: &mut PageMapper, offset: usize, size: usize) -> (*mut
     let heap_start_page = Page::containing_address(VirtAddr::new(offset as u64));
     let heap_end_page = Page::containing_address(VirtAddr::new((offset + size) as u64));
     let flags = PageTableFlags::PRESENT | PageTableFlags::GLOBAL | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+    let mut locked_mapper = mapper.lock();
     for page in Page::range(heap_start_page, heap_end_page) {
-        mapper.map(page, flags)
+        locked_mapper.map(page, flags)
             .expect("Couldn't map heap")
             .flush();
     }

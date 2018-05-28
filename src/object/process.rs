@@ -10,6 +10,7 @@ type ThreadList = Vec<Ref<ThreadRef>>;
 
 /// Represents a process.
 #[derive(KernelRef)]
+#[allow(dead_code)]
 pub struct ProcessRef {
     /// The process name
     name: RwLock<Option<Box<str>>>,
@@ -34,7 +35,7 @@ impl ProcessRef {
             name: RwLock::new(None),
             code,
             handle_table: RwLock::new(HandleTable::new()),
-            thread_list: RwLock::new(Vec::new()),
+            thread_list: RwLock::new(Vec::with_capacity(1)),
             instance: RwLock::new(instance),
         }.into())
     }

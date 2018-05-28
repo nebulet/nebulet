@@ -9,6 +9,10 @@ use core::slice;
 
 use nabi::Result;
 
+extern "C" {
+    fn erms_memset(dest: *mut u8, value: u8, size: usize);
+}
+
 bitflags! {
     pub struct MemFlags: u8 {
         const READ  = 1 << 0;
@@ -94,7 +98,7 @@ impl Region {
         if zero {
             debug_assert!(self.flags.contains(PageTableFlags::WRITABLE));
             unsafe {
-                (self.start.as_u64() as *mut u8).write_bytes(0, self.size);
+                erms_memset(self.start().as_mut_ptr(), 0, self.size);
             }
         }
         Ok(())
@@ -142,7 +146,7 @@ impl Region {
             if zero {
                 debug_assert!(self.flags.contains(PageTableFlags::WRITABLE));
                 unsafe {
-                    (self.start.as_u64() as *mut u8).write_bytes(0, self.size);
+                    erms_memset(self.start().as_mut_ptr(), 0, self.size);
                 }
             }
         } else if new_size < self.size {

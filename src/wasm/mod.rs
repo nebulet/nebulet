@@ -594,7 +594,7 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
             let reader = wasmparser::BinaryReader::new(input);
             trans.translate_from_reader(reader, &mut context.func, &mut self.func_env())
                 .map_err(|_| nabi::internal_error!())?;
-
+          
             compiler.define_function(context)?;
         }
 

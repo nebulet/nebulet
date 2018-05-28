@@ -10,6 +10,7 @@ pub enum State {
     /// The thread is currently executing.
     Running,
     /// This thread is not currently running, but it's ready to execute.
+    /// For example, in the cpu thread queue.
     Ready,
     /// The thread has been suspended and cannot be run right now.
     Suspended,
@@ -34,7 +35,7 @@ impl Thread {
             .ok_or(Error::NO_MEMORY)?;
 
         let thread = Thread {
-            state: State::Ready,
+            state: State::Suspended,
             ctx: ThreadContext::new(stack.top(), common_thread_entry),
             stack,
             entry: Some(entry),

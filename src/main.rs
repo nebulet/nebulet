@@ -39,7 +39,6 @@ extern crate bitflags;
 extern crate os_bootinfo;
 extern crate x86_64;
 extern crate spin;
-extern crate rlibc;
 extern crate bit_field;
 #[macro_use]
 extern crate alloc;
@@ -67,6 +66,7 @@ pub mod abi;
 pub mod object;
 pub mod task;
 pub mod wasm;
+pub mod externs;
 
 pub use consts::*;
 
@@ -76,20 +76,34 @@ pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 pub fn kmain() -> ! {
     println!("Nebulet v{}", VERSION);
 
-    use object::{ThreadRef, ProcessRef, CodeRef};
+    // use object::{ThreadRef, ProcessRef, CodeRef};
 
-    let thread = ThreadRef::new(1024 * 1024, || {
-        let code = CodeRef::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
-            .unwrap();
-        for _ in 0..10 {
-            let process = ProcessRef::create(code.clone())
-                .unwrap();
+    // let thread = ThreadRef::new(1024 * 1024, move || {
+    //     let code = CodeRef::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
+    //         .unwrap();
+    //     for _ in 0..10 {
+    //         let process = ProcessRef::create(code.clone())
+    //             .unwrap();
 
-            process.start().unwrap();
-        }
-    }).unwrap();
+    //         process.start().unwrap();
+    //     }
+    // }).unwrap();
 
-    thread.resume().unwrap();
+    // thread.resume().unwrap();
+
+    use object::{ProcessRef, CodeRef};
+
+    let code = CodeRef::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
+        .unwrap();
+
+    let start_ticks = arch::devices::high_precision_timer::rdtsc();
+
+    let process = ProcessRef::create(code).unwrap();
+    process.start().unwrap();
+
+    let end_ticks = arch::devices::high_precision_timer::rdtsc();
+
+    println!("elapsed: {} cycles", end_ticks - start_ticks);
 
     unsafe {
         arch::cpu::Local::current()
