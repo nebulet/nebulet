@@ -4,6 +4,7 @@
 use super::module::Module;
 use super::{Relocations, DataInitializer};
 use cretonne_codegen::{self, isa::TargetIsa, binemit::Reloc};
+use cretonne_wasm::FunctionIndex;
 use super::RelocSink;
 use super::abi::ABI_MAP;
 
@@ -84,8 +85,8 @@ impl Compilation {
         Ok(())
     }
 
-    fn get_function_addr(&self, module_ref: &Module, index: usize) -> Result<(*const u8, bool)> {
-        match self.functions[index] {
+    fn get_function_addr(&self, module_ref: &Module, func_index: FunctionIndex) -> Result<(*const u8, bool)> {
+        match self.functions[func_index] {
             FunctionType::Local {
                 offset,
                 size: _,
@@ -100,7 +101,8 @@ impl Compilation {
                     "abi" => {
                         let abi_func = ABI_MAP.get(name.as_str())?;
 
-                        let imported_sig = &module_ref.signatures[index];
+                        let sig_index = module_ref.functions[func_index];
+                        let imported_sig = &module_ref.signatures[sig_index];
 
                         if abi_func.same_sig(imported_sig) {
                             Ok((abi_func.ptr, false))
