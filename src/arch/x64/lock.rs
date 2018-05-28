@@ -116,6 +116,22 @@ impl<T> IrqLock<T> {
             was_enabled,
         }
     }
+
+    pub fn lock_map<F, U>(&self, f: F) -> IrqGuard<U>
+        where F: FnOnce(&mut T) -> &mut U
+    {
+        let was_enabled = IrqController::enabled();
+        if was_enabled {
+            unsafe { IrqController::disable(); }
+        }
+
+        let data = f(unsafe { &mut *self.data.get() });
+
+        IrqGuard {
+            data,
+            was_enabled,
+        }
+    }
 }
 
 impl<T: ?Sized + Default> Default for IrqLock<T> {

@@ -39,6 +39,7 @@ impl BumpAllocator {
 }
 
 impl FrameAllocator for BumpAllocator {
+    #[inline]
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KB>> {
         if let Some(region) = self.current_region {
             let found_frame = self.next_free_frame;
