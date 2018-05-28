@@ -89,7 +89,7 @@ pub struct Local {
 
 impl Local {
     fn new(cpu: &'static mut Cpu) -> Local {
-        let idle_thread = Box::new(Thread::new(4096, Box::new(|| {
+        let mut idle_thread = Box::new(Thread::new(4096, Box::new(|| {
             loop {
                 unsafe { ::arch::interrupt::halt(); }
             }
@@ -98,7 +98,8 @@ impl Local {
         let mut kernel_thread = Box::new(Thread::new(0, Box::new(|| {}))
             .unwrap());
             
-        kernel_thread.state = State::Suspended;
+        idle_thread.state = State::Ready;
+        kernel_thread.state = State::Ready;
 
         let kernel_thread_nonnull = Box::into_raw_non_null(kernel_thread);
 
