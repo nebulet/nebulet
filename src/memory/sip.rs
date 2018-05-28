@@ -5,10 +5,10 @@ use core::ops::{Deref, DerefMut};
 
 use memory::{Region, MemFlags};
 
-use nabi::{Result, Error};
+use nabi::Result;
 
 /// Represents the entirety of the virtual memory that can be allocated to SIPs
-/// 
+///
 /// This contains both code-memory, heap-memory, and guard-memory
 pub struct SipAllocator {
     /// The end of available SIP memory
@@ -26,7 +26,7 @@ impl SipAllocator {
     }
 
     /// Allocate a memory region of `size`.
-    /// 
+    ///
     /// `size` will be rounded up to a multiple of 4KiB.
     pub(super) fn allocate_region(&mut self, size: usize) -> Option<Region> {
         let allocated_size = {
@@ -47,7 +47,7 @@ impl SipAllocator {
     /// Allocate a `Memory`.
     fn allocate_wasm_memory(&mut self) -> Option<WasmMemory> {
         let allocated_size = WasmMemory::DEFAULT_SIZE; // 8 GiB
-        
+
         if self.bump + allocated_size > self.end {
             None
         } else {
@@ -87,8 +87,8 @@ impl SipAllocator {
 }
 
 /// This represents a WebAssembly Memory.
-/// 
-/// When this is dropped, the internal mapped region 
+///
+/// When this is dropped, the internal mapped region
 /// will be unmapped.
 #[derive(Debug)]
 pub struct WasmMemory {
@@ -128,7 +128,7 @@ impl WasmMemory {
     pub fn grow(&mut self, count: usize) -> Result<()> {
         let new_size = count * Self::WASM_PAGE_SIZE + self.region.size();
         if new_size > self.total_size {
-            Err(Error::INTERNAL)
+            Err(internal_error!())
         } else {
             self.region.resize(new_size, true)?;
             Ok(())

@@ -107,13 +107,16 @@ impl Compilation {
                         if abi_func.same_sig(imported_sig) {
                             Ok((abi_func.ptr, false))
                         } else {
-                            println!("Incorrect signature");
+                            println!("Incorrect signature for '{}'", name.as_str());
                             println!("ABI sig: {:?}", abi_func);
                             println!("Import sig: {:?}", imported_sig);
-                            Err(Error::INTERNAL)
+                            Err(internal_error!())
                         }
                     },
-                    _ => Err(Error::INTERNAL),
+                    _ => {
+                        println!("Unimplemented function abi");
+                        Err(internal_error!())
+                    }
                 }
             },
         }
@@ -158,7 +161,7 @@ impl<'isa> Compiler<'isa> {
         let code_size = ctx.compile(self.isa)
             .map_err(|e| {
                 println!("Compile error: {:?}", e);
-                Error::INTERNAL
+                internal_error!()
             })? as usize;
 
         self.contexts.push((ctx, code_size));
