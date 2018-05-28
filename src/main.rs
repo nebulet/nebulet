@@ -44,6 +44,7 @@ extern crate bit_field;
 #[macro_use]
 extern crate alloc;
 extern crate hashmap_core;
+#[macro_use]
 extern crate nabi;
 
 extern crate cretonne_wasm;
