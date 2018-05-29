@@ -7,7 +7,11 @@ use arch::paging::PageMapper;
 use core::ops::{Deref, DerefMut};
 use core::slice;
 
-use nabi::{Result, Error};
+use nabi::Result;
+
+extern "C" {
+    fn erms_memset(dest: *mut u8, value: u8, size: usize);
+}
 
 extern "C" {
     fn erms_memset(dest: *mut u8, value: u8, size: usize);
@@ -24,7 +28,7 @@ bitflags! {
 impl Into<PageTableFlags> for MemFlags {
     fn into(self) -> PageTableFlags {
         let mut flags = PageTableFlags::empty();
-        
+
         if self.contains(MemFlags::READ) {
             flags |= PageTableFlags::PRESENT | PageTableFlags::GLOBAL;
         }
@@ -40,7 +44,7 @@ impl Into<PageTableFlags> for MemFlags {
 }
 
 /// Represents any region of memory that needs to be mapped/unmapped/remapped
-/// 
+///
 /// Derefs to a slice that contains the memory to which this refers.
 #[derive(Debug)]
 pub struct Region {
@@ -63,7 +67,7 @@ impl Region {
         };
 
         region.map(zero)
-            .map_err(|_| Error::INTERNAL)?;
+            .map_err(|_| internal_error!())?;
 
         Ok(region)
     }
@@ -91,7 +95,7 @@ impl Region {
 
         for page in self.pages() {
             mapper.map(page, self.flags)
-                .map_err(|_| Error::INTERNAL)?
+                .map_err(|_| internal_error!())?
                 .flush();
         }
 
@@ -109,7 +113,7 @@ impl Region {
 
         for page in self.pages() {
             mapper.unmap(page)
-                .map_err(|_| Error::INTERNAL)?
+                .map_err(|_| internal_error!())?
                 .flush();
         }
         Ok(())
@@ -121,7 +125,7 @@ impl Region {
 
         for page in self.pages() {
             mapper.remap(page, new_flags)
-                .map_err(|_| Error::INTERNAL)?
+                .map_err(|_| internal_error!())?
                 .flush();
         }
 
@@ -138,7 +142,7 @@ impl Region {
             for page in Page::range_inclusive(start_page, end_page) {
                 if mapper.translate(page.clone()).is_none() {
                     mapper.map(page, self.flags)
-                        .map_err(|_| Error::INTERNAL)?
+                        .map_err(|_| internal_error!())?
                         .flush();
                 }
             }
@@ -155,7 +159,7 @@ impl Region {
             for page in Page::range_inclusive(start_page, end_page) {
                 if mapper.translate(page.clone()).is_some() {
                     mapper.unmap(page)
-                        .map_err(|_| Error::INTERNAL)?
+                        .map_err(|_| internal_error!())?
                         .flush();
                 }
             }
