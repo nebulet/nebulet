@@ -13,10 +13,6 @@ extern "C" {
     fn erms_memset(dest: *mut u8, value: u8, size: usize);
 }
 
-extern "C" {
-    fn erms_memset(dest: *mut u8, value: u8, size: usize);
-}
-
 bitflags! {
     pub struct MemFlags: u8 {
         const READ  = 1 << 0;
