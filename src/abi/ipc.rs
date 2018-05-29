@@ -13,7 +13,7 @@ pub fn ipc_monocopy_create(buffer_offset: u32, buffer_size: u32, process: &Ref<P
         let memory = &instance.memories[0];
 
         // Validate buffer constraints
-        memory.get_array(buffer_offset, buffer_size)
+        memory.carve_slice(buffer_offset, buffer_size)
             .ok_or(Error::INVALID_ARG)?;
     }
 

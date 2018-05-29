@@ -16,10 +16,10 @@ pub struct ChannelRef {
 
 impl ChannelRef {
     pub fn new() -> Result<Ref<Self>> {
-        Ok(ChannelRef {
+        Ref::new(ChannelRef {
             data_buffer: RwLock::new(Vec::new()),
             handle_buffer: RwLock::new(Vec::new()),
-        }.into())
+        })
     }
 
     // pub fn write_data(&self, data: &[u8]) -> Result<()> {

@@ -1,21 +1,14 @@
 use core::any::{Any, TypeId};
-use alloc::boxed::Box;
 use core::marker::Unsize;
 use core::ops::{Deref, CoerceUnsized};
 use core::sync::atomic::{self, AtomicUsize, Ordering};
-use core::ptr::{self, NonNull};
-use alloc::heap::{Global, Layout};
-use core::alloc::GlobalAlloc;
+use core::ptr::NonNull;
+use mem::Bin;
+use nabi::Result;
 
 /// All kernel objects must implement this trait.
 /// Kernel objects are intrusively refcounted.
 pub trait KernelRef: Any + Send + Sync {}
-
-impl<T: KernelRef> From<T> for Ref<T> {
-    fn from(kref: T) -> Ref<T> {
-        Ref::new(kref)
-    }
-}
 
 struct RefInner<T: ?Sized> {
     count: AtomicUsize,
@@ -35,14 +28,15 @@ unsafe impl<T: ?Sized + Sync + Send> Sync for Ref<T> {}
 impl<T: ?Sized + Unsize<U>, U: ?Sized> CoerceUnsized<Ref<U>> for Ref<T> {}
 
 impl<T> Ref<T> {
-    pub fn new(data: T) -> Ref<T> {
-        let boxed: Box<_> = box RefInner {
+    pub fn new(data: T) -> Result<Ref<T>> {
+        let bin = Bin::new(RefInner {
             count: AtomicUsize::new(1),
             data,
-        };
-        Ref {
-            ptr: Box::into_raw_non_null(boxed),
-        }
+        })?;
+
+        Ok(Ref {
+            ptr: bin.into_nonnull(),
+        })
     }
 }
 
@@ -104,19 +98,19 @@ unsafe impl<#[may_dangle] T: ?Sized> Drop for Ref<T> {
         let ptr = self.ptr;
 
         unsafe {
-            ptr::drop_in_place(&mut self.ptr.as_mut().data);
+            let _ = Bin::from_nonnull(ptr);
 
             atomic::fence(Ordering::Acquire);
-
-            Global.dealloc(ptr.as_opaque().as_ptr(), Layout::for_value(ptr.as_ref()));
         }     
     }
 }
 
-impl<T: ?Sized> PartialEq for Ref<T> {
+impl<T: ?Sized + PartialEq> PartialEq for Ref<T> {
     #[inline]
     fn eq(&self, other: &Ref<T>) -> bool {
-        self.ptr_eq(other)
+        let self_: &T = &*self;
+        let other_: &T = &*other;
+        self_ == other_
     }
 }
 

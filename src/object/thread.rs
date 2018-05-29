@@ -2,7 +2,7 @@ use task::{Thread, State};
 use arch::cpu::Local;
 use nabi::Result;
 use nil::{Ref, KernelRef};
-use alloc::boxed::Box;
+use nil::mem::Bin;
 use spin::RwLock;
 
 /// Represents a thread.
@@ -13,13 +13,13 @@ pub struct ThreadRef {
 
 impl ThreadRef {
     pub fn new<F>(stack_size: usize, f: F) -> Result<Ref<ThreadRef>>
-        where F: FnOnce() + Send + Sync + 'static
+        where F: FnOnce() + Send + Sync
     {
-        let thread = RwLock::new(Thread::new(stack_size, Box::new(move || f()))?);
+        let thread = RwLock::new(Thread::new(stack_size, Bin::new(move || f())?)?);
 
-        Ok(ThreadRef {
+        Ref::new(ThreadRef {
             thread,
-        }.into())
+        })
     }
 
     pub fn set_state(&self, state: State) {

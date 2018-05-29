@@ -1,19 +1,18 @@
 use object::{HandleTable, CodeRef, ThreadRef};
 use wasm::Instance;
-use alloc::Vec;
-use alloc::boxed::Box;
 use nabi::Result;
 use nil::{Ref, KernelRef};
+use nil::mem::{Bin, Array};
 use spin::RwLock;
 
-type ThreadList = Vec<Ref<ThreadRef>>;
+type ThreadList = Array<Ref<ThreadRef>>;
 
 /// Represents a process.
 #[derive(KernelRef)]
 #[allow(dead_code)]
 pub struct ProcessRef {
     /// The process name
-    name: RwLock<Option<Box<str>>>,
+    name: RwLock<Option<Bin<str>>>,
     /// Compiled code can be shared between processes.
     code: Ref<CodeRef>,
     /// Process specific handle table.
@@ -31,13 +30,13 @@ impl ProcessRef {
     pub fn create(code: Ref<CodeRef>) -> Result<Ref<ProcessRef>> {
         let instance = code.generate_instance();
 
-        Ok(ProcessRef {
+        Ref::new(ProcessRef {
             name: RwLock::new(None),
             code,
             handle_table: RwLock::new(HandleTable::new()),
-            thread_list: RwLock::new(Vec::with_capacity(1)),
+            thread_list: RwLock::new(Array::with_capacity(1)?),
             instance: RwLock::new(instance),
-        }.into())
+        })
     }
 
     /// Start the process by spawning a thread at the entry point.
@@ -49,20 +48,20 @@ impl ProcessRef {
             let entry_point = process.code.start_func();
             let vmctx = {
                 let mut vmctx_packing = process.instance.write().generate_vmctx_backing();
-                Box::new(vmctx_packing.vmctx(process))
+                Bin::new(vmctx_packing.vmctx(process)).unwrap()
             };
 
             entry_point(&vmctx);
         })?;
 
-        self.thread_list.write().push(thread.clone());
+        self.thread_list.write().push(thread.clone())?;
 
         thread.resume()?;
         
         Ok(())
     }
 
-    pub fn name(&self) -> &RwLock<Option<Box<str>>> {
+    pub fn name(&self) -> &RwLock<Option<Bin<str>>> {
         &self.name
     }
 

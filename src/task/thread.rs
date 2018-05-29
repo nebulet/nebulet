@@ -1,8 +1,8 @@
 use memory::WasmStack;
 use arch::context::ThreadContext;
 use arch::cpu::Local;
-use alloc::boxed::{Box, FnBox};
 use nabi::{Result, Error};
+use nil::mem::Bin;
 
 /// The current state of a process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -26,19 +26,21 @@ pub struct Thread {
     pub state: State,
     ctx: ThreadContext,
     stack: WasmStack,
-    entry: Option<Box<FnBox() + Send + Sync + 'static>>,
+    entry: usize,
 }
 
 impl Thread {
-    pub fn new(stack_size: usize, entry: Box<FnBox() + Send + Sync + 'static>) -> Result<Thread> {
+    pub fn new<F>(stack_size: usize, entry: Bin<F>) -> Result<Thread>
+        where F: FnOnce() + Send + Sync
+    {
         let stack = WasmStack::allocate(stack_size)
             .ok_or(Error::NO_MEMORY)?;
 
         let thread = Thread {
             state: State::Suspended,
-            ctx: ThreadContext::new(stack.top(), common_thread_entry),
+            ctx: ThreadContext::new(stack.top(), common_thread_entry::<F>),
             stack,
-            entry: Some(entry),
+            entry: entry.into_nonnull().as_ptr() as *const () as usize,
         };
 
         Ok(thread)
@@ -49,10 +51,12 @@ impl Thread {
     }
 }
 
-extern fn common_thread_entry() {
+extern fn common_thread_entry<F>()
+    where F: FnOnce() + Send + Sync
+{
     let thread = unsafe { &mut *Local::current_thread().as_ptr() };
 
-    let f: Box<FnBox()> = thread.entry.take().unwrap();
+    let f = unsafe { (thread.entry as *const F).read() };
     f();
 
     thread.state = State::Dead;

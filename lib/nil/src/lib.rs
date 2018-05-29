@@ -3,6 +3,7 @@
 //! writing and working on Nebulet.
 
 #![no_std]
+
 #![feature(
     repr_transparent,
     box_syntax,
@@ -13,10 +14,13 @@
     coerce_unsized,
     box_into_raw_non_null,
 )]
+
 #![deny(warnings)]
 
 extern crate alloc;
+extern crate nabi;
 
 mod refptr;
+pub mod mem;
 
 pub use refptr::{Ref, KernelRef};

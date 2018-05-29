@@ -15,9 +15,9 @@ impl EventRef {
     pub fn new(thread: Ref<ThreadRef>) -> Result<Ref<Self>> {
         thread.set_state(State::Blocked);
 
-        Ok(EventRef {
+        Ref::new(EventRef {
             thread,
-        }.into())
+        })
     }
     
     /// Trigger the event.

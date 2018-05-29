@@ -76,34 +76,20 @@ pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 pub fn kmain() -> ! {
     println!("Nebulet v{}", VERSION);
 
-    // use object::{ThreadRef, ProcessRef, CodeRef};
+    use object::{ThreadRef, ProcessRef, CodeRef};
 
-    // let thread = ThreadRef::new(1024 * 1024, move || {
-    //     let code = CodeRef::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
-    //         .unwrap();
-    //     for _ in 0..10 {
-    //         let process = ProcessRef::create(code.clone())
-    //             .unwrap();
+    let thread = ThreadRef::new(1024 * 1024, move || {
+        let code = CodeRef::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
+            .unwrap();
+        for _ in 0..10 {
+            let process = ProcessRef::create(code.clone())
+                .unwrap();
 
-    //         process.start().unwrap();
-    //     }
-    // }).unwrap();
+            process.start().unwrap();
+        }
+    }).unwrap();
 
-    // thread.resume().unwrap();
-
-    use object::{ProcessRef, CodeRef};
-
-    let code = CodeRef::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
-        .unwrap();
-
-    let start_ticks = arch::devices::high_precision_timer::rdtsc();
-
-    let process = ProcessRef::create(code).unwrap();
-    process.start().unwrap();
-
-    let end_ticks = arch::devices::high_precision_timer::rdtsc();
-
-    println!("elapsed: {} cycles", end_ticks - start_ticks);
+    thread.resume().unwrap();
 
     unsafe {
         arch::cpu::Local::current()

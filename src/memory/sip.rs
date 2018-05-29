@@ -2,6 +2,7 @@ use x86_64::structures::paging::{Size4KB, PageSize};
 use x86_64::VirtAddr;
 
 use core::ops::{Deref, DerefMut};
+use core::mem;
 
 use memory::{Region, MemFlags};
 
@@ -135,7 +136,7 @@ impl WasmMemory {
         }
     }
 
-    pub fn get_array(&self, offset: u32, size: u32) -> Option<&[u8]> {
+    pub fn carve_slice(&self, offset: u32, size: u32) -> Option<&[u8]> {
         let start = offset as usize;
         let end = start + size as usize;
         let slice: &[u8] = &*self;
@@ -147,7 +148,7 @@ impl WasmMemory {
         }
     }
 
-    pub fn get_array_mut(&mut self, offset: u32, size: u32) -> Option<&mut [u8]> {
+    pub fn carve_slice_mut(&mut self, offset: u32, size: u32) -> Option<&mut [u8]> {
         let start = offset as usize;
         let end = start + size as usize;
         let mapped_size = self.mapped_size();
@@ -155,6 +156,38 @@ impl WasmMemory {
 
         if end <= mapped_size {
             Some(&mut slice[start..end])
+        } else {
+            None
+        }
+    }
+
+    pub fn carve<T>(&self, offset: u32) -> Option<&T> {
+        let end_offset = offset as usize + mem::size_of::<T>();
+        let mapped_size = self.mapped_size();
+
+        if end_offset <= mapped_size {
+            // in bounds
+            unsafe {
+                let start_ptr = self.start().as_ptr() as *const T;
+                let ptr = start_ptr.add(offset as usize);
+                Some(&*ptr)
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn carve_mut<T>(&mut self, offset: u32) -> Option<&mut T> {
+        let end_offset = offset as usize + mem::size_of::<T>();
+        let mapped_size = self.mapped_size();
+
+        if end_offset <= mapped_size {
+            // in bounds
+            unsafe {
+                let start_ptr = self.start().as_mut_ptr() as *mut T;
+                let ptr = start_ptr.add(offset as usize);
+                Some(&mut*ptr)
+            }
         } else {
             None
         }

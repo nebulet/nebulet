@@ -59,12 +59,12 @@ impl CodeRef {
             mem::transmute(start_func)
         };
 
-        Ok(CodeRef {
+        Ref::new(CodeRef {
             data_initializers,
             module,
             region,
             start_func,
-        }.into())
+        })
     }
 
     pub fn generate_instance(&self) -> Instance {
