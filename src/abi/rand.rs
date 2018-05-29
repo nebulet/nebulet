@@ -1,7 +1,7 @@
 use object::ProcessRef;
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
-use arch::x64::rand::RdRand;
+use arch::x64::devices::rand::RdRand;
 use rand_core::RngCore;
 
 fn get_rdrand() -> Result<RdRand> {

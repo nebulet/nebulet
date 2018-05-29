@@ -26,6 +26,4 @@ pub mod context;
 
 pub mod memory;
 
-pub mod rand;
-
 global_asm!(include_str!("routines.asm"));
