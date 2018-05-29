@@ -26,7 +26,8 @@
     nll,
     fnbox,
     proc_macro,
-    integer_atomics
+    integer_atomics,
+    platform_intrinsics
 )]
 
 #![no_main]
@@ -45,6 +46,8 @@ extern crate alloc;
 extern crate hashmap_core;
 #[macro_use]
 extern crate nabi;
+extern crate raw_cpuid;
+extern crate rand_core;
 
 extern crate cretonne_wasm;
 extern crate cretonne_native;

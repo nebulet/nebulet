@@ -41,6 +41,7 @@ serial = [] # log to serial
 spin = "0.4.6"
 bitflags = "1.0"
 bit_field = "0.9.0"
+raw-cpuid = "3.1.0"
 
 x86_64 = "0.2.0-alpha-019"
 os_bootinfo = "0.2.0"
@@ -55,6 +56,10 @@ path = "lib/nebulet-derive"
 [dependencies.lazy_static]
 version = "1.0.0"
 features = ["spin_no_std"]
+
+[dependencies.rand_core]
+version = "0.2"
+default-features = false
 
 [dependencies.nebulet_abi]
 path = "nabi"
