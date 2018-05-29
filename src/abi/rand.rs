@@ -10,6 +10,11 @@ fn get_rdrand() -> Result<RdRand> {
 
 static mut RDRAND : Option<Result<RdRand>> = None;
 
+/// Provides random bytes
+/// No guarantee is made that the random bytes are of cryptographic
+/// quality, or that they were seeded from a good entropy pool.
+/// This currently requires the rdrand instruction, which is fast
+/// but not supported everywhere.
 #[nebulet_abi]
 pub fn random_fill(buffer_offset: u32, buffer_size: u32, process: &ProcessRef) -> Result<u32> {
     let rdrand;
