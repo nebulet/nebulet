@@ -1,21 +1,21 @@
 use super::{Handle, HandleRights};
 use nil::{Ref, KernelRef};
-use alloc::Vec;
+use nil::mem::Array;
 
 use nabi::{Result, Error};
 
 pub struct HandleTable {
     /// Raw array of handles,
-    array: Vec<Option<Handle>>,
+    array: Array<Option<Handle>>,
     /// Stack/queue of free indices.
-    free_indices: Vec<usize>,
+    free_indices: Array<usize>,
 }
 
 impl HandleTable {
     pub fn new() -> HandleTable {
         HandleTable {
-            array: Vec::new(),
-            free_indices: Vec::new(),
+            array: Array::new(),
+            free_indices: Array::new(),
         }
     }
 
@@ -41,7 +41,7 @@ impl HandleTable {
             self.array[index] = Some(handle);
             Ok(index)
         } else {
-            self.array.push(Some(handle));
+            self.array.push(Some(handle))?;
             Ok(self.array.len() - 1)
         }
     }
@@ -52,9 +52,12 @@ impl HandleTable {
     }
 
     pub fn free(&mut self, index: usize) -> Result<Handle> {
-        let handle = self.array.remove(index)
+        let handle = self.array.replace_at(index, None)
+            .and_then(|opt| opt)
+            .and_then(|handle| Some(handle))
             .ok_or(Error::NOT_FOUND)?;
-        self.free_indices.push(index);
+        
+        self.free_indices.push(index)?;
         Ok(handle)
     }
 

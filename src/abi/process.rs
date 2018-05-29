@@ -60,7 +60,7 @@ pub fn wasm_compile(buffer_offset: u32, buffer_size: u32, process: &ProcessRef) 
     let code_ref = {
         let instance = process.instance().read();
         let wasm_memory = &instance.memories[0];
-        let wasm_bytecode = wasm_memory.get_array(buffer_offset, buffer_size)
+        let wasm_bytecode = wasm_memory.carve_slice(buffer_offset, buffer_size)
             .ok_or(Error::INVALID_ARG)?;
 
         CodeRef::compile(wasm_bytecode)?

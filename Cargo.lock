@@ -130,6 +130,9 @@ dependencies = [
 [[package]]
 name = "nil"
 version = "0.1.0"
+dependencies = [
+ "nebulet_abi 0.1.0",
+]
 
 [[package]]
 name = "os_bootinfo"

@@ -11,10 +11,10 @@ pub struct MonoCopyRef {
 
 impl MonoCopyRef {
     pub fn new(process: Ref<ProcessRef>, buffer: (u32, u32)) -> Result<Ref<MonoCopyRef>> {
-        Ok(MonoCopyRef {
+        Ref::new(MonoCopyRef {
             process,
             buffer,
-        }.into())
+        })
     }
 
     /// Write data directly into the buffer contained in the process.
@@ -22,7 +22,7 @@ impl MonoCopyRef {
         if data.len() <= self.buffer.1 as usize {
             let mut instance = self.process.instance().write();
             let memory = &mut instance.memories[0];
-            let buffer = memory.get_array_mut(self.buffer.0, self.buffer.1)
+            let buffer = memory.carve_slice_mut(self.buffer.0, self.buffer.1)
                 .ok_or(Error::OUT_OF_BOUNDS)?;
             // copy over the data
             buffer[0..data.len()].copy_from_slice(data);

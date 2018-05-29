@@ -8,7 +8,7 @@ use arch::asm::read_gs_offset64;
 use task::{Thread, State, scheduler::Scheduler};
 
 use alloc::boxed::Box;
-// use alloc::Vec;
+use nil::mem::Bin;
 
 // static GLOBAL: Once<Global> = Once::new();
 
@@ -89,13 +89,13 @@ pub struct Local {
 
 impl Local {
     fn new(cpu: &'static mut Cpu) -> Local {
-        let mut idle_thread = Box::new(Thread::new(4096, Box::new(|| {
+        let mut idle_thread = Box::new(Thread::new(4096, Bin::new(|| {
             loop {
                 unsafe { ::arch::interrupt::halt(); }
             }
-        })).unwrap());
+        }).unwrap()).unwrap());
 
-        let mut kernel_thread = Box::new(Thread::new(0, Box::new(|| {}))
+        let mut kernel_thread = Box::new(Thread::new(0, Bin::new(|| {}).unwrap())
             .unwrap());
             
         idle_thread.state = State::Ready;
