@@ -8,3 +8,5 @@ pub mod process;
 pub mod ipc;
 /// ABIs for manipulating handles
 pub mod handle;
+/// ABIs for random numbers
+pub mod rand;
