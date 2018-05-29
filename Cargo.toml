@@ -46,6 +46,16 @@ default = ["vga", "serial"]
 vga = [] # log to vga
 serial = [] # log to serial
 
+# Sources that may be trusted for providing entropy
+# None of them are trusted by default
+# The first working, trusted source will be used to seed
+# a CPRNG.  Sources will be ignored after that point.
+# http://blog.cr.yp.to/20140205-entropy.html
+virtio_entropy = []
+rdseed_entropy = []
+jitter_entropy = []
+rdrand_entropy = []
+
 [dependencies]
 spin = "0.4.6"
 bitflags = "1.0"
