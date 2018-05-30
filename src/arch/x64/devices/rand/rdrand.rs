@@ -34,7 +34,7 @@ macro_rules! loop_rand {
 fn has_rdrand() -> bool {
     // https://github.com/rust-lang-nursery/stdsimd/issues/464
     //core::is_x86_feature_detected!("rdrand")
-    
+
     CpuId::new()
         .get_feature_info()
         .map_or(false, |v| v.has_rdrand())
