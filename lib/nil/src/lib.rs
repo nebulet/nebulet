@@ -13,6 +13,7 @@
     unsize,
     coerce_unsized,
     box_into_raw_non_null,
+    untagged_unions,
 )]
 
 #![deny(warnings)]

@@ -124,15 +124,26 @@ impl WasmMemory {
         Self::with_capacity(start, Self::DEFAULT_SIZE, 0)
     }
 
-    /// Map virtual memory to physical memory by multiples of `Memory::PAGE_SIZE`.
+    /// Map virtual memory to physical memory by 
+    /// multiples of `WasmMemory::WASM_PAGE_SIZE`.
     /// This starts at `mapped_end` and bump up.
-    pub fn grow(&mut self, count: usize) -> Result<()> {
-        let new_size = count * Self::WASM_PAGE_SIZE + self.region.size();
+    /// 
+    /// Returns the number of pages before growing.
+    pub fn grow(&mut self, count: usize) -> Result<usize> {
+        let old_count = self.page_count();
+
+        if count == 0 {
+            println!("count == 0");
+            return Ok(old_count);
+        }
+
+        let new_size = (old_count + count) * Self::WASM_PAGE_SIZE; 
         if new_size > self.total_size {
             Err(internal_error!())
         } else {
+            println!("resizing");
             self.region.resize(new_size, true)?;
-            Ok(())
+            Ok(old_count)
         }
     }
 
@@ -203,6 +214,12 @@ impl WasmMemory {
 
     pub fn mapped_size(&self) -> usize {
         self.region.size()
+    }
+
+    /// Returns the number of `WASM_PAGE_SIZE` pages
+    /// currently mapped.
+    pub fn page_count(&self) -> usize {
+        self.mapped_size() / Self::WASM_PAGE_SIZE
     }
 }
 

@@ -87,6 +87,18 @@ impl Instance {
             v.resize(len, 0);
             self.tables.push(v);
         }
+        // instantiate tables
+        for table_element in &module.table_elements {
+            // let base = table_element.base.map_or(0, |base| {
+                
+            // });
+            let base = 0;
+
+            let table = &mut self.tables[table_element.table_index];
+            for (i, elem) in table_element.elements.iter().enumerate() {
+                table[base + table_element.offset + i] = *elem;
+            }
+        }
     }
 
     /// Allocate memory in `self` for just the memories of the current module,

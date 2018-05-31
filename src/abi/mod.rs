@@ -10,3 +10,5 @@ pub mod ipc;
 pub mod handle;
 /// ABIs for random numbers
 pub mod rand;
+/// Intrinsics
+pub mod intrinsics;

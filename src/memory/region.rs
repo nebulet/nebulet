@@ -133,10 +133,11 @@ impl Region {
         let mut mapper = unsafe { PageMapper::new() };
 
         if new_size > self.size {
+            println!("new_size = {}, self.size = {}", new_size, self.size);
             let start_page = Page::containing_address(self.start + self.size as u64);
             let end_page = Page::containing_address(self.start + new_size as u64  - 1 as u64);
             for page in Page::range_inclusive(start_page, end_page) {
-                if mapper.translate(page.clone()).is_none() {
+                if mapper.translate(page).is_none() {
                     mapper.map(page, self.flags)
                         .map_err(|_| internal_error!())?
                         .flush();
