@@ -101,5 +101,5 @@ pub fn kmain() -> ! {
             .switch();
     }
 
-    unimplemented!("Arrived back in `kmain` somehow.");
+    unreachable!();
 }
