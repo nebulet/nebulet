@@ -43,7 +43,7 @@ bitflags = "1.0"
 bit_field = "0.9.0"
 raw-cpuid = "3.1.0"
 
-x86_64 = "0.2.0-alpha-019"
+x86_64 = { path = "../x86_64" }
 os_bootinfo = "0.2.0"
 hashmap_core = "0.1.5"
 
@@ -65,6 +65,10 @@ default-features = false
 path = "nabi"
 
 # Cretonne compiler
+[dependencies.target-lexicon]
+version = "0.0.1"
+default-features = false
+
 [dependencies.cretonne-codegen]
 path = "cretonne/lib/codegen"
 default-features = false

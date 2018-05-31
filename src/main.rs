@@ -52,6 +52,7 @@ extern crate rand_core;
 extern crate cretonne_wasm;
 extern crate cretonne_native;
 extern crate cretonne_codegen;
+extern crate target_lexicon;
 extern crate wasmparser;
 extern crate nil;
 #[macro_use]

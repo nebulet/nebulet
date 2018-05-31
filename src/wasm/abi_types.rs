@@ -5,7 +5,7 @@ use cretonne_codegen::settings::CallConv;
 pub struct AbiFunction {
     pub params: &'static [Type],
     pub returns: Type,
-    pub ptr: *const u8,
+    pub ptr: *const (),
 }
 
 impl AbiFunction {

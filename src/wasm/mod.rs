@@ -26,6 +26,7 @@ use cretonne_codegen::ir::immediates::Offset32;
 use cretonne_codegen::settings::CallConv;
 use cretonne_codegen::cursor::FuncCursor;
 use cretonne_codegen::{self, isa, settings, binemit};
+use target_lexicon::{Triple, Architecture, Vendor, OperatingSystem, Environment, BinaryFormat, PointerWidth};
 use wasmparser;
 
 use nabi;
@@ -54,7 +55,7 @@ pub enum Export {
 pub struct RelocSink {
     // func: &'func ir::Function,
     /// Relocations recorded for the function.
-    pub func_relocs: Vec<Relocation>,
+    pub func_relocs: Vec<(Relocation, RelocationType)>,
 }
 
 impl binemit::RelocSink for RelocSink {
@@ -79,12 +80,34 @@ impl binemit::RelocSink for RelocSink {
                 namespace: 0,
                 index,
             } => {
-                self.func_relocs.push(Relocation {
-                    reloc,
-                    func_index: index as usize,
-                    offset,
-                    addend,
-                });
+                self.func_relocs.push(
+                    (
+                        Relocation {
+                            reloc,
+                            offset,
+                            addend,
+                        },
+                        RelocationType::Normal(index as _),
+                    )
+                );
+            },
+            ExternalName::TestCase {
+                length,
+                ascii,
+            } => {
+                let (slice, _) = ascii.split_at(length as usize);
+                let name = String::from_utf8(slice.to_vec()).unwrap();
+
+                self.func_relocs.push(
+                    (
+                        Relocation {
+                            reloc,
+                            offset,
+                            addend,
+                        },
+                        RelocationType::Intrinsic(name),
+                    )
+                );
             },
             _ => {
                 unimplemented!();
@@ -231,13 +254,28 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
     }
 
     fn ptr_size(&self) -> usize {
-        if self.settings_flags.is_64bit() { 8 } else { 4 }
+        use cretonne_wasm::FuncEnvironment;
+        if self.triple().pointer_width().unwrap() == PointerWidth::U64 {
+            8
+        } else {
+            4
+        }
     }
 }
 
 impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'module_environment> {
     fn flags(&self) -> &settings::Flags {
         &self.settings_flags
+    }
+
+    fn triple(&self) -> &Triple {
+        &Triple {
+            architecture: Architecture::X86_64,
+            vendor: Vendor::Unknown,
+            operating_system: OperatingSystem::Nebulet,
+            environment: Environment::Unknown,
+            binary_format: BinaryFormat::Unknown,
+        }
     }
 
     fn make_global(&mut self, func: &mut ir::Function, index: GlobalIndex) -> GlobalValue {
@@ -547,16 +585,21 @@ impl<'data, 'flags> cretonne_wasm::ModuleEnvironment<'data> for ModuleEnvironmen
 pub struct Relocation {
     /// The relocation code.
     pub reloc: binemit::Reloc,
-    /// The function index.
-    pub func_index: FunctionIndex,
     /// The offset where to apply the relocation.
     pub offset: binemit::CodeOffset,
     /// The addend to add to the relocation value.
     pub addend: binemit::Addend,
 }
 
+/// Specify the type of relocation
+#[derive(Debug)]
+pub enum RelocationType {
+    Normal(FunctionIndex),
+    Intrinsic(String),
+}
+
 /// Relocations to apply to function bodies.
-pub type Relocations = Vec<Vec<Relocation>>;
+pub type Relocations = Vec<Vec<(Relocation, RelocationType)>>;
 
 /// The result of translating via `ModuleEnvironment`.
 pub struct ModuleTranslation<'data, 'flags> {

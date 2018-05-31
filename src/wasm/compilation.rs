@@ -2,8 +2,8 @@
 //! module
 
 use super::module::Module;
-use super::{Relocations, DataInitializer};
-use cretonne_codegen::{self, isa::TargetIsa, binemit::Reloc};
+use super::{Relocation, Relocations, RelocationType, DataInitializer};
+use cretonne_codegen::{self, isa::TargetIsa, binemit::Reloc, ir::Signature};
 use cretonne_wasm::FunctionIndex;
 use super::RelocSink;
 use super::abi::ABI_MAP;
@@ -13,9 +13,23 @@ use object::CodeRef;
 use nil::Ref;
 
 use nabi::{Result, Error};
-
-use core::ptr::write_unaligned;
 use alloc::{Vec, String};
+
+fn get_abi_func(name: &str, sig: &Signature) -> Result<*const ()> {
+    let abi_func = ABI_MAP.get(name)?;
+
+    if abi_func.same_sig(sig) {
+        Ok(abi_func.ptr)
+    } else {
+        Err(internal_error!())
+    }
+}
+
+fn get_abi_intrinsic(name: &str) -> Result<*const()> {
+    let func = ABI_MAP.get(name)?;
+    
+    Ok(func.ptr)
+}
 
 #[derive(Debug)]
 enum FunctionType {
@@ -61,37 +75,54 @@ impl Compilation {
         }
     }
 
+    fn relocate_function(&self, module: &Module, reloc_num: usize, r: &Relocation, target_func_addr: *const ()) -> Result<()> {
+        let body_addr = self.get_function_addr(module, reloc_num + self.first_local_function)?;
+        let reloc_addr = unsafe { (body_addr as *const u8).offset(r.offset as isize) };
+
+        println!("target_addr: {:p}", target_func_addr);
+
+        match r.reloc {
+            Reloc::Abs8 => {
+                unsafe {
+                    (reloc_addr as *mut usize).write(target_func_addr as usize);
+                }
+            }
+            _ => unimplemented!()
+        }
+
+        Ok(())
+    }
+
     /// Relocate the compliation.
     fn relocate(&mut self, module: &Module) -> Result<()> {
         // The relocations are absolute addresses
         // TODO: Support architectures other than x86_64, and other reloc kinds.
         for (i, function_relocs) in self.relocations.iter().enumerate() {
-            for ref r in function_relocs {
-                let (target_func_addr, _is_local) = self.get_function_addr(module, r.func_index)?;
-                let body_addr = self.get_function_addr(module, i + self.first_local_function)?.0;
-                let reloc_addr = unsafe{ body_addr.offset(r.offset as isize) };
+            for (ref reloc, ref reloc_type) in function_relocs {
+                let target_func = match reloc_type {
+                    RelocationType::Normal(func_index) => {
+                        self.get_function_addr(module, *func_index)?
+                    },
+                    RelocationType::Intrinsic(name) => {
+                        println!("intrinsic: {}", name);
+                        get_abi_intrinsic(name)?
+                    },
+                };
 
-                match r.reloc {
-                    Reloc::Abs8 => {
-                        unsafe {
-                            write_unaligned(reloc_addr as *mut usize, target_func_addr as usize)
-                        };
-                    }
-                    _ => unimplemented!()
-                }
+                self.relocate_function(module, i, reloc, target_func)?;
             }
         }
 
         Ok(())
     }
 
-    fn get_function_addr(&self, module_ref: &Module, func_index: FunctionIndex) -> Result<(*const u8, bool)> {
+    fn get_function_addr(&self, module_ref: &Module, func_index: FunctionIndex) -> Result<*const ()> {
         match self.functions[func_index] {
             FunctionType::Local {
                 offset,
                 size: _,
             } => {
-                Ok(((self.region.start().as_u64() as usize + offset) as *const u8, true))
+                Ok((self.region.start().as_u64() as usize + offset) as _)
             },
             FunctionType::External {
                 ref module,
@@ -99,22 +130,12 @@ impl Compilation {
             } => {
                 match module.as_str() {
                     "abi" => {
-                        let abi_func = ABI_MAP.get(name.as_str())?;
-
                         let sig_index = module_ref.functions[func_index];
                         let imported_sig = &module_ref.signatures[sig_index];
 
-                        if abi_func.same_sig(imported_sig) {
-                            Ok((abi_func.ptr, false))
-                        } else {
-                            println!("Incorrect signature for '{}'", name.as_str());
-                            println!("ABI sig: {:?}", abi_func);
-                            println!("Import sig: {:?}", imported_sig);
-                            Err(internal_error!())
-                        }
+                        get_abi_func(name, imported_sig)
                     },
                     _ => {
-                        println!("Unimplemented function abi");
                         Err(internal_error!())
                     }
                 }
@@ -127,7 +148,7 @@ impl Compilation {
         self.relocate(&module)?;
 
         let start_index = module.start_func?;
-        let start_ptr = self.get_function_addr(&module, start_index)?.0;
+        let start_ptr = self.get_function_addr(&module, start_index)?;
 
         CodeRef::new(module, data_initializers, self.region, start_ptr)
     }

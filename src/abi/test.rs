@@ -16,12 +16,19 @@ pub fn output_test(arg: usize, _process: &ProcessRef) -> Result<u32> {
     Ok(0)
 }
 
-// #[nebulet_abi]
-pub fn swap_stack(_: &ProcessRef) -> Result<u32> {
-    // use memory::WasmStack;
+#[nebulet_abi]
+pub fn write_i64(offset: u32, value: u64, process: &ProcessRef) -> Result<u32> {
+    let mut instance = process.instance().write();
+    let wasm_memory = &mut instance.memories[0];
+    let value_ref = wasm_memory.carve_mut(offset)?;
 
-    // let mut stack = WasmStack::allocate(1024 * 1024)?;
+    *value_ref = value;
 
+    Ok(0)
+}
 
+#[nebulet_abi]
+pub fn assert_eq(left: u64, right: u64, _: &ProcessRef) -> Result<u32> {
+    assert_eq!(left, right);
     Ok(0)
 }

@@ -47,7 +47,7 @@ impl CodeRef {
     }
 
     /// Used for internal use.
-    pub fn new(module: Module, data_initializers: Vec<DataInitializer>, mut region: Region, start_func: *const u8)
+    pub fn new(module: Module, data_initializers: Vec<DataInitializer>, mut region: Region, start_func: *const ())
         -> Result<Ref<CodeRef>>
     {
         let flags = MemFlags::READ | MemFlags::EXEC;
