@@ -42,8 +42,7 @@ spin = "0.4.6"
 bitflags = "1.0"
 bit_field = "0.9.0"
 raw-cpuid = "3.1.0"
-
-x86_64 = { path = "../x86_64" }
+x86_64 = "0.2.0-alpha-019"
 os_bootinfo = "0.2.0"
 hashmap_core = "0.1.5"
 

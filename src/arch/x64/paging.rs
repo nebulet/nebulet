@@ -1,6 +1,6 @@
 use x86_64::structures::paging::{PageTable, PageTableFlags, RecursivePageTable,
-    PhysFrame, Page, Mapper, Size4KB, MapperFlush, DoubleMapperFlush, 
-    MapToError, UnmapError, FlagUpdateError, SwapPageError};
+    PhysFrame, Page, Mapper, Size4KB, MapperFlush, 
+    MapToError, UnmapError, FlagUpdateError};
 use x86_64::ux::u9;
 
 use arch::lock::{IrqLock, IrqGuard};
@@ -93,9 +93,9 @@ impl<'table, 'allocator, FA: memory::FrameAllocator> LockedPageMapper<'table, 'a
         self.table().update_flags(page, flags)
     }
 
-    pub fn swap(&mut self, x: Page<Size4KB>, y: Page<Size4KB>) -> Result<DoubleMapperFlush<Size4KB>, SwapPageError> {
-        self.table().swap(x, y)
-    }
+    // pub fn swap(&mut self, x: Page<Size4KB>, y: Page<Size4KB>) -> Result<DoubleMapperFlush<Size4KB>, SwapPageError> {
+    //     self.table().swap(x, y)
+    // }
 
     pub fn translate(&self, page: Page<Size4KB>) -> Option<PhysFrame> {
         self.table().translate(page)

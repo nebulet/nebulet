@@ -124,7 +124,7 @@ dependencies = [
  "spin 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "target-lexicon 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasmparser 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "x86_64 0.2.0-alpha-019",
+ "x86_64 0.2.0-alpha-019 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -292,6 +292,7 @@ dependencies = [
 [[package]]
 name = "x86_64"
 version = "0.2.0-alpha-019"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -330,3 +331,4 @@ dependencies = [
 "checksum usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f70329e2cbe45d6c97a5112daad40c34cd9a4e18edb5a2a18fefeb584d8d25e5"
 "checksum ux 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "53d8df5dd8d07fedccd202de1887d94481fadaea3db70479f459e8163a1fab41"
 "checksum wasmparser 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4e58becacade32185edd389bc18fed36000d6c208d92cb46d5f93fa4c08a2e67"
+"checksum x86_64 0.2.0-alpha-019 (registry+https://github.com/rust-lang/crates.io-index)" = "dc592fbe51c59b187c7790cdcc3e8cdf4a589061e152dc47e230158b37e8f110"
