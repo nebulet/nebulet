@@ -6,6 +6,11 @@ authors = ["Lachlan Sneff <lachlan.sneff@gmail.com>"]
 [package.metadata.bootimage]
 default-target = "x86_64-nebulet.json"
 output = "bootimage.bin"
+run-command = [
+    "qemu-system-x86_64",
+    "-machine", "q35,accel=kvm:xen:hax:tcg",
+    "-drive", "format=raw,file={}"
+]
 
 # We're pulling down the pre-compiled bootloader, so no
 # need to build it. (Also avoids a bug in xargo)
