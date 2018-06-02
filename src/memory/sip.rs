@@ -133,7 +133,6 @@ impl WasmMemory {
         let old_count = self.page_count();
 
         if count == 0 {
-            println!("count == 0");
             return Ok(old_count);
         }
 
@@ -141,7 +140,6 @@ impl WasmMemory {
         if new_size > self.total_size {
             Err(internal_error!())
         } else {
-            println!("resizing");
             self.region.resize(new_size, true)?;
             Ok(old_count)
         }
