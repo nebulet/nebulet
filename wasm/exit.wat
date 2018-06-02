@@ -5,7 +5,9 @@
   (export "memory" (memory $0))
   (memory $0 0)
   (func $main
-    i64.const 42
+    i32.const 1
+    grow_memory
+    i64.extend_u/i32
     (drop (call $exit))
   )
   (start $main)

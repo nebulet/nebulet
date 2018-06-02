@@ -394,7 +394,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
             let sig_ref = pos.func.import_signature(Signature {
                 call_conv: CallConv::SystemV,
                 argument_bytes: None,
-                params: vec![AbiParam::new(I32)],
+                params: vec![AbiParam::new(I32), AbiParam::special(I64, ArgumentPurpose::VMContext)],
                 returns: vec![AbiParam::new(I32)],
             });
             // FIXME: Use a real ExternalName system.
@@ -405,8 +405,12 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
                 colocated: false,
             })
         });
+
         self.grow_memory_extfunc = Some(grow_mem_func);
-        let call_inst = pos.ins().call(grow_mem_func, &[val]);
+
+        let vmctx = pos.func.special_param(ArgumentPurpose::VMContext).unwrap();
+
+        let call_inst = pos.ins().call(grow_mem_func, &[val, vmctx]);
         Ok(*pos.func.dfg.inst_results(call_inst).first().unwrap())
     }
 
@@ -421,7 +425,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
             let sig_ref = pos.func.import_signature(Signature {
                 call_conv: CallConv::SystemV,
                 argument_bytes: None,
-                params: Vec::new(),
+                params: vec![AbiParam::special(I64, ArgumentPurpose::VMContext)],
                 returns: vec![AbiParam::new(I32)],
             });
             // FIXME: Use a real ExternalName system.
@@ -432,8 +436,12 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
                 colocated: false,
             })
         });
+
         self.current_memory_extfunc = Some(cur_mem_func);
-        let call_inst = pos.ins().call(cur_mem_func, &[]);
+
+        let vmctx = pos.func.special_param(ArgumentPurpose::VMContext).unwrap();
+
+        let call_inst = pos.ins().call(cur_mem_func, &[vmctx]);
         Ok(*pos.func.dfg.inst_results(call_inst).first().unwrap())
     }
 }
