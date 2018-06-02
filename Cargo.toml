@@ -12,6 +12,9 @@ run-command = [
     "-drive", "format=raw,file={}"
 ]
 
+[package.metadata.cargo-xbuild]
+memcpy = true
+
 # We're pulling down the pre-compiled bootloader, so no
 # need to build it. (Also avoids a bug in xargo)
 #[package.metadata.bootimage.bootloader]
@@ -97,3 +100,6 @@ features = ["core"]
 version = "0.16.0"
 default_features = false
 features = ["core"]
+
+[replace]
+"hashmap_core:0.1.5" = { git = "https://github.com/lachlansneff/hashmap_core" }
