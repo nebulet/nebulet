@@ -1,0 +1,8 @@
+[package]
+name = "userspace"
+version = "0.1.0"
+authors = ["morenzg <morenzg@gmail.com>"]
+
+# Fails to build correctly without optimizations.
+[profile.dev]
+opt-level = 3

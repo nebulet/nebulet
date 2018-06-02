@@ -1,7 +1,7 @@
 //! A `Compilation` contains the compiled function bodies for a WebAssembly
 //! module
 
-use super::module::Module;
+use super::module::{Module, Export};
 use super::{Relocation, Relocations, RelocationType, DataInitializer};
 use cretonne_codegen::{self, isa::TargetIsa, binemit::Reloc, ir::Signature};
 use cretonne_wasm::FunctionIndex;
@@ -16,7 +16,7 @@ use nabi::{Result, Error};
 use alloc::{Vec, String};
 
 fn get_abi_func(name: &str, sig: &Signature) -> Result<*const ()> {
-    let abi_func = ABI_MAP.get(name)?;
+    let abi_func = ABI_MAP.get(name).ok_or_else(|| internal_error!())?;
 
     if abi_func.same_sig(sig) {
         Ok(abi_func.ptr)
@@ -27,7 +27,7 @@ fn get_abi_func(name: &str, sig: &Signature) -> Result<*const ()> {
 
 fn get_abi_intrinsic(name: &str) -> Result<*const()> {
     let func = ABI_MAP.get(name)?;
-    
+
     Ok(func.ptr)
 }
 
@@ -147,7 +147,19 @@ impl Compilation {
     pub fn emit(mut self, module: Module, data_initializers: Vec<DataInitializer>) -> Result<Ref<CodeRef>> {
         self.relocate(&module)?;
 
-        let start_index = module.start_func?;
+        let start_index;
+        if let Some(index) = module.start_func {
+            start_index = index;
+        }
+        else if let Some(&Export::Function(index)) = module.exports.get("main") {
+            start_index = index;
+        }
+        else {
+            // TODO: We really need to handle this error nicely
+            return Err(internal_error!());
+        }
+
+        // TODO: Check start func abi
         let start_ptr = self.get_function_addr(&module, start_index)?;
 
         CodeRef::new(module, data_initializers, self.region, start_ptr)

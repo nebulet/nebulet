@@ -38,6 +38,7 @@ exclude = [
     "target/x86_64-nebulet/release/bootloader",
     "target/x86_64-nebulet/debug/bootloader",
     "cretonne",
+    "userspace",
 ]
 
 [features]

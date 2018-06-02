@@ -16,6 +16,7 @@ cache:
 
 before_script:
 - rustup component add rust-src
+- rustup target add wasm32-unknown-unknown
 - "(test -x $HOME/.cargo/bin/xargo || cargo install xargo)"
 - "(test -x $HOME/.cargo/bin/bootimage || cargo install bootimage)"
 - "(test -x $HOME/.cargo/bin/cargo-xbuild || cargo install cargo-xbuild)"

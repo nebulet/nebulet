@@ -82,8 +82,11 @@ pub fn kmain() -> ! {
 
     use object::{ThreadRef, ProcessRef, CodeRef};
 
+    let code = include_bytes!("../userspace/target/wasm32-unknown-unknown/release/hello.wasm");
+
     let thread = ThreadRef::new(1024 * 1024, move || {
-        let code = CodeRef::compile(include_bytes!("wasm/wasmtests/exit.wasm"))
+        // TODO: Hardcoded path is only rebuilt when we build for release mode.
+        let code = CodeRef::compile(code)
             .unwrap();
         for _ in 0..10 {
             let process = ProcessRef::create(code.clone())
