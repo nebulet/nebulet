@@ -47,4 +47,10 @@ abi_map! {
         returns: I64,
         abi::process::process_start,
     },
+    // I/O
+    print: {
+        params: [I32, I32],
+        returns: VOID,
+        abi::io::print,
+    },
 }
