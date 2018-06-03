@@ -1,9 +1,11 @@
 use abi;
 pub use super::abi_types::AbiFunction;
+use hashmap_core::HashMap;
 
 // TODO: Verify function signatures so we don't
 // throw bad data at functions and crash everything.
 abi_map! {
+    ABI_MAP,
     // testing
     exit: { // eventually will exit maybe, right now is just for testing
         params: [I64],
@@ -19,17 +21,6 @@ abi_map! {
         params: [I64, I64],
         returns: I64,
         abi::test::assert_eq,
-    },
-    // intrinsics
-    grow_memory: {
-        params: [I32],
-        returns: I32,
-        abi::intrinsics::grow_memory,
-    },
-    current_memory: {
-        params: [],
-        returns: I32,
-        abi::intrinsics::current_memory,
     },
     // actual abis
     wasm_compile: {
@@ -52,5 +43,24 @@ abi_map! {
         params: [I32, I32],
         returns: VOID,
         abi::io::print,
+    },
+}
+
+abi_map! {
+    INTRINSIC_MAP,
+    grow_memory: {
+        params: [I32],
+        returns: I32,
+        abi::intrinsics::grow_memory,
+    },
+    current_memory: {
+        params: [],
+        returns: I32,
+        abi::intrinsics::current_memory,
+    },
+    debug_addr: {
+        params: [I64],
+        returns: VOID,
+        abi::intrinsics::debug_addr,
     },
 }

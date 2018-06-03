@@ -21,3 +21,7 @@ pub extern fn current_memory(vmctx: &VmCtx) -> u32 {
 
     memory.page_count() as u32
 }
+
+pub extern fn debug_addr(addr: *const (), _: &VmCtx) {
+    println!("addr: {:p}", addr);
+}

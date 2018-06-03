@@ -5,18 +5,49 @@
 use cretonne_codegen::ir;
 use cretonne_wasm::GlobalIndex;
 use super::module::Module;
-use super::DataInitializer;
+use super::{DataInitializer, FunctionIndex};
+use super::compilation::{FunctionType, get_abi_func};
 
 use memory::WasmMemory;
 use object::ProcessRef;
 use nil::Ref;
+use nabi::Result;
 
 use core::ptr::NonNull;
+use core::marker::PhantomData;
 use alloc::Vec;
+
+pub fn get_function_addr(base: *const (), functions: &[FunctionType], module_ref: &Module, func_index: FunctionIndex) -> Result<*const ()> {
+        match functions[func_index] {
+            FunctionType::Local {
+                offset,
+                size: _,
+            } => {
+                Ok((base as usize + offset) as _)
+            },
+            FunctionType::External {
+                ref module,
+                ref name,
+            } => {
+                match module.as_str() {
+                    "abi" => {
+                        let sig_index = module_ref.functions[func_index];
+                        let imported_sig = &module_ref.signatures[sig_index];
+
+                        get_abi_func(name, imported_sig)
+                    },
+                    _ => {
+                        Err(internal_error!())
+                    }
+                }
+            },
+        }
+    }
 
 pub struct VmCtxBacking {
     globals: NonNull<u8>,
     memories: Vec<NonNull<u8>>,
+    tables: Vec<NonNull<usize>>,
 }
 
 impl VmCtxBacking {
@@ -24,16 +55,20 @@ impl VmCtxBacking {
         VmCtx {
             globals: self.globals,
             memories: NonNull::new(self.memories.as_mut_ptr()).unwrap(),
+            tables: NonNull::new(self.tables.as_mut_ptr()).unwrap(),
             process,
+            _phantom: PhantomData,
         }
     }
 }
 
 #[repr(C)]
-pub struct VmCtx {
+pub struct VmCtx<'a> {
     globals: NonNull<u8>,
     memories: NonNull<NonNull<u8>>,
+    tables: NonNull<NonNull<usize>>,
     pub process: Ref<ProcessRef>,
+    _phantom: PhantomData<&'a ()>,
 }
 
 /// An Instance of a WebAssembly module
@@ -51,14 +86,14 @@ pub struct Instance {
 
 impl Instance {
     /// Create a new `Instance`.
-    pub fn new(module: &Module, data_initializers: &[DataInitializer]) -> Instance {
+    pub fn new(module: &Module, data_initializers: &[DataInitializer], code_base: *const (), functions: &[FunctionType]) -> Instance {
         let mut result = Instance {
             tables: Vec::new(),
             memories: Vec::new(),
             globals: Vec::new(),
         };
 
-        result.instantiate_tables(module);
+        result.instantiate_tables(module, code_base, functions);
         result.instantiate_memories(module, data_initializers);
         result.instantiate_globals(module);
         result
@@ -68,16 +103,21 @@ impl Instance {
         let memories = self.memories.iter_mut()
             .map(|mem| NonNull::new(mem.as_mut_ptr()).unwrap())
             .collect();
+
+        let tables = self.tables.iter_mut()
+            .map(|table| NonNull::new(table.as_mut_ptr()).unwrap())
+            .collect();
         
         VmCtxBacking {
             memories,
+            tables,
             globals: NonNull::new(self.globals.as_mut_ptr()).unwrap(),
         }
     }
 
     /// Allocate memory in `self` for just the tables of the current module,
     /// without initializers applied just yet.
-    fn instantiate_tables(&mut self, module: &Module) {
+    fn instantiate_tables(&mut self, module: &Module, code_base: *const (), functions: &[FunctionType]) {
         debug_assert!(self.tables.is_empty());
 
         self.tables.reserve_exact(module.tables.len());
@@ -96,7 +136,11 @@ impl Instance {
 
             let table = &mut self.tables[table_element.table_index];
             for (i, elem) in table_element.elements.iter().enumerate() {
-                table[base + table_element.offset + i] = *elem;
+                // since the table just contains functions in the MVP
+                // we get the address of the specified function indexes
+                // populate the table.
+                let func_addr = get_function_addr(code_base, functions, module, *elem).unwrap();
+                table[base + table_element.offset + i] = func_addr as _;
             }
         }
     }

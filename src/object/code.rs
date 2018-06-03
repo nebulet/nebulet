@@ -1,5 +1,6 @@
 use wasm::instance::{Instance, VmCtx};
 use wasm::{Module, ModuleEnvironment, DataInitializer};
+use wasm::compilation::FunctionType;
 use memory::{Region, MemFlags};
 use nabi::Result;
 use core::mem;
@@ -18,6 +19,7 @@ use cretonne_native;
 #[derive(KernelRef)]
 pub struct CodeRef {
     data_initializers: Vec<DataInitializer>,
+    functions: Vec<FunctionType>,
     module: Module,
     region: Region,
     start_func: extern fn(&VmCtx),
@@ -47,7 +49,13 @@ impl CodeRef {
     }
 
     /// Used for internal use.
-    pub fn new(module: Module, data_initializers: Vec<DataInitializer>, mut region: Region, start_func: *const ())
+    pub fn new(
+        module: Module,
+        data_initializers: Vec<DataInitializer>,
+        mut region: Region,
+        start_func: *const (),
+        functions: Vec<FunctionType>,
+    )
         -> Result<Ref<CodeRef>>
     {
         let flags = MemFlags::READ | MemFlags::EXEC;
@@ -62,13 +70,15 @@ impl CodeRef {
         Ref::new(CodeRef {
             data_initializers,
             module,
+            functions,
             region,
             start_func,
         })
     }
 
     pub fn generate_instance(&self) -> Instance {
-        Instance::new(&self.module, &self.data_initializers)
+        let code_base = self.region.start().as_ptr() as _;
+        Instance::new(&self.module, &self.data_initializers, code_base, &self.functions)
     }
 
     pub fn start_func(&self) -> extern fn(&VmCtx) {

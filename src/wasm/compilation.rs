@@ -6,7 +6,7 @@ use super::{Relocation, Relocations, RelocationType, DataInitializer};
 use cretonne_codegen::{self, isa::TargetIsa, binemit::Reloc, ir::Signature};
 use cretonne_wasm::FunctionIndex;
 use super::RelocSink;
-use super::abi::ABI_MAP;
+use super::abi::{ABI_MAP, INTRINSIC_MAP};
 
 use memory::Region;
 use object::CodeRef;
@@ -15,7 +15,7 @@ use nil::Ref;
 use nabi::{Result, Error};
 use alloc::{Vec, String};
 
-fn get_abi_func(name: &str, sig: &Signature) -> Result<*const ()> {
+pub fn get_abi_func(name: &str, sig: &Signature) -> Result<*const ()> {
     let abi_func = ABI_MAP.get(name).ok_or_else(|| internal_error!())?;
 
     if abi_func.same_sig(sig) {
@@ -26,13 +26,13 @@ fn get_abi_func(name: &str, sig: &Signature) -> Result<*const ()> {
 }
 
 fn get_abi_intrinsic(name: &str) -> Result<*const()> {
-    let func = ABI_MAP.get(name)?;
+    let func = INTRINSIC_MAP.get(name)?;
 
     Ok(func.ptr)
 }
 
 #[derive(Debug)]
-enum FunctionType {
+pub enum FunctionType {
     Local {
         offset: usize,
         size: usize,
@@ -116,7 +116,7 @@ impl Compilation {
         Ok(())
     }
 
-    fn get_function_addr(&self, module_ref: &Module, func_index: FunctionIndex) -> Result<*const ()> {
+    pub fn get_function_addr(&self, module_ref: &Module, func_index: FunctionIndex) -> Result<*const ()> {
         match self.functions[func_index] {
             FunctionType::Local {
                 offset,
@@ -162,7 +162,7 @@ impl Compilation {
         // TODO: Check start func abi
         let start_ptr = self.get_function_addr(&module, start_index)?;
 
-        CodeRef::new(module, data_initializers, self.region, start_ptr)
+        CodeRef::new(module, data_initializers, self.region, start_ptr, self.functions)
     }
 }
 
