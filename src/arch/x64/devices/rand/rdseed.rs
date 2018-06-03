@@ -51,6 +51,7 @@ unsafe fn rdseed_next_u64() -> u64 {
 }
 
 
+#[derive(Debug)]
 pub struct RdSeed(());
 
 impl RdSeed {

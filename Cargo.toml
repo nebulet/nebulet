@@ -48,8 +48,8 @@ serial = [] # log to serial
 
 # Sources that may be trusted for providing entropy
 # None of them are trusted by default
-# The first working, trusted source will be used to seed
-# a CPRNG.  Sources will be ignored after that point.
+# The first working, trusted source will be used to seed,
+# and periodically reseed, a CPRNG.
 # http://blog.cr.yp.to/20140205-entropy.html
 virtio_entropy = []
 rdseed_entropy = []
@@ -77,6 +77,10 @@ features = ["spin_no_std"]
 
 [dependencies.rand_core]
 version = "0.2"
+default-features = false
+
+[dependencies.rand]
+version = "0.5"
 default-features = false
 
 [dependencies.nebulet_abi]

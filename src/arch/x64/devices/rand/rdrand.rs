@@ -51,6 +51,7 @@ unsafe fn rdrand_next_u64() -> u64 {
 }
 
 
+#[derive(Debug)]
 pub struct RdRand(());
 
 impl RdRand {

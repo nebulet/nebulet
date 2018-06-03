@@ -48,6 +48,7 @@ extern crate hashmap_core;
 extern crate nabi;
 extern crate raw_cpuid;
 extern crate rand_core;
+extern crate rand;
 
 extern crate cretonne_wasm;
 extern crate cretonne_native;
