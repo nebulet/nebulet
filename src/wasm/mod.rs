@@ -222,11 +222,16 @@ pub struct FuncEnvironment<'module_environment> {
     /// The Cretonne global holding the base address of the globals vector.
     pub globals_base: Option<ir::GlobalVar>,
 
+    /// The list of globals that hold table bases.
+    pub tables_base: Option<ir::GlobalVar>,
+
     /// The external function declaration for implementing wasm's `current_memory`.
     pub current_memory_extfunc: Option<FuncRef>,
 
     /// The external function declaration for implementing wasm's `grow_memory`.
     pub grow_memory_extfunc: Option<FuncRef>,
+    
+    pub debug_addr_extfunc: Option<FuncRef>,
 }
 
 impl<'module_environment> FuncEnvironment<'module_environment> {
@@ -239,8 +244,10 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
             module,
             memories_base: None,
             globals_base: None,
+            tables_base: None,
             current_memory_extfunc: None,
             grow_memory_extfunc: None,
+            debug_addr_extfunc: None,
         }
     }
 
@@ -261,6 +268,46 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
             4
         }
     }
+
+    fn get_table(&mut self, func: &mut ir::Function, table_index: TableIndex) -> ir::GlobalVar {
+        let ptr_size = self.ptr_size();
+        let base = self.tables_base.unwrap_or_else(|| {
+            let offset = ((ptr_size as i32) * 2).into();
+            let new_base = func.create_global_var(
+                ir::GlobalVarData::VMContext { offset }
+            );
+            self.globals_base = Some(new_base);
+            new_base
+        });
+
+        let offset = table_index as usize * ptr_size;
+        let offset = (offset as i32).into();
+        func.create_global_var(ir::GlobalVarData::Deref {
+            base,
+            offset,
+        })
+    }
+
+    // fn debug_addr(&mut self, pos: &mut FuncCursor, addr: ir::Value) {
+    //     let debug_addr_func = self.debug_addr_extfunc.unwrap_or_else(|| {
+    //         let sig_ref = pos.func.import_signature(Signature {
+    //             call_conv: CallConv::SystemV,
+    //             argument_bytes: None,
+    //             params: vec![AbiParam::new(I64), AbiParam::special(I64, ArgumentPurpose::VMContext)],
+    //             returns: vec![],
+    //         });
+    //         // FIXME: Use a real ExternalName system.
+    //         // TODO(gmorenz): Can colocated be true?
+    //         pos.func.import_function(ExtFuncData {
+    //             name: ExternalName::testcase("debug_addr"),
+    //             signature: sig_ref,
+    //             colocated: false,
+    //         })
+    //     });
+    //     self.debug_addr_extfunc = Some(debug_addr_func);
+    //     let vmctx = pos.func.special_param(ArgumentPurpose::VMContext).unwrap();
+    //     pos.ins().call(debug_addr_func, &[addr, vmctx]);
+    // }
 }
 
 impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'module_environment> {
@@ -352,9 +399,38 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
     ) -> WasmResult<ir::Inst> {
         // TODO: Cretonne's call_indirect doesn't implement bounds checking
         // or signature checking, so we need to implement it ourselves.
-        debug_assert_eq!(table_index, 0, "non-default tables not supported yet");
+        assert_eq!(table_index, 0, "non-default tables not supported yet");
+        let table_gv = self.get_table(pos.func, table_index);
+        let gv_addr = pos.ins().global_addr(self.native_pointer(), table_gv);
+
+        let table_base = pos.ins().load(
+            self.native_pointer(),
+            ir::MemFlags::new(),
+            gv_addr,
+            0,
+        );
+
+        let entry_size = self.ptr_size() as i64;
+
+        let callee = if self.native_pointer() != ir::types::I32 {
+            pos.ins().uextend(self.native_pointer(), callee)
+        } else {
+            callee
+        };
+
+        let callee_scaled = pos.ins().imul_imm(callee, entry_size);
+        
+        let entry = pos.ins().iadd(table_base, callee_scaled);
+
+        let callee_func = pos.ins().load(
+            self.native_pointer(),
+            ir::MemFlags::new(),
+            entry,
+            0,
+        );
+
         let real_call_args = FuncEnvironment::get_real_call_args(pos.func, call_args);
-        Ok(pos.ins().call_indirect(sig_ref, callee, &real_call_args))
+        Ok(pos.ins().call_indirect(sig_ref, callee_func, &real_call_args))
     }
 
     fn translate_call(
@@ -645,12 +721,11 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
             let reader = wasmparser::BinaryReader::new(input);
             trans.translate_from_reader(reader, &mut context.func, &mut self.func_env())
                 .map_err(|_| nabi::internal_error!())?;
+
             compiler.define_function(context)?;
         }
 
         let compilation = compiler.compile(&self.module)?;
-
-
 
         Ok((compilation, self.module, self.lazy.data_initializers))
     }

@@ -46,11 +46,8 @@ impl ProcessRef {
 
         let thread = ThreadRef::new(1024 * 1024, move || {
             let entry_point = process.code.start_func();
-            let vmctx = {
-                let mut vmctx_packing = process.instance.write().generate_vmctx_backing();
-                Bin::new(vmctx_packing.vmctx(process)).unwrap()
-            };
-
+            let mut vmctx_backing = process.instance.write().generate_vmctx_backing();
+            let vmctx = Bin::new(vmctx_backing.vmctx(process)).unwrap();
             entry_point(&vmctx);
         })?;
 

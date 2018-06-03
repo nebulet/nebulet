@@ -48,10 +48,9 @@ unsafe impl Sync for AbiFunction {}
 unsafe impl Send for AbiFunction {}
 
 macro_rules! abi_map {
-    ( $($name:ident: { params: [ $($param:ident),* ], returns: $returns:ident, $func:path, }, )* ) => {
-        use hashmap_core::HashMap;
+    ( $map_name:ident, $($name:ident: { params: [ $($param:ident),* ], returns: $returns:ident, $func:path, }, )* ) => {
         lazy_static! {
-            pub static ref ABI_MAP: HashMap<&'static str, AbiFunction> = {
+            pub static ref $map_name: HashMap<&'static str, AbiFunction> = {
                 use cretonne_codegen::ir::types::*;
                 let mut m = HashMap::new();
                 $(
