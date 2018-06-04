@@ -27,7 +27,8 @@
     fnbox,
     proc_macro,
     integer_atomics,
-    platform_intrinsics
+    platform_intrinsics,
+    panic_implementation,
 )]
 
 #![no_main]
