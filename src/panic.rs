@@ -1,10 +1,19 @@
-use core::fmt;
+use core::panic::PanicInfo;
+use arch::cpu::IrqController;
+use arch::interrupt;
 
-#[lang = "panic_fmt"]
+#[panic_implementation]
 #[no_mangle]
-pub extern fn panic_fmt(msg: fmt::Arguments, file: &'static str, line: u32, col: u32) -> ! {
-    println!("panic: {} in {} at line {}:{}", msg, file, line, col);
-    loop {}
+pub fn panic(info: &PanicInfo) -> ! {
+    println!("{}", info);
+
+    unsafe {
+        IrqController::disable();
+        loop {
+            interrupt::halt();
+        }
+    }
 }
+
 
 #[lang = "eh_personality"] extern fn eh_personality() {}
