@@ -146,7 +146,8 @@ impl Region {
             if zero {
                 debug_assert!(self.flags.contains(PageTableFlags::WRITABLE));
                 unsafe {
-                    erms_memset(self.start().as_mut_ptr(), 0, self.size);
+                    let start = self.start().as_mut_ptr::<u8>().add(self.size) as *mut u8;
+                    erms_memset(start, 0, new_size - self.size);
                 }
             }
         } else if new_size < self.size {

@@ -31,7 +31,7 @@ fn get_abi_intrinsic(name: &str) -> Result<*const()> {
     Ok(func.ptr)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FunctionType {
     Local {
         offset: usize,
@@ -79,8 +79,6 @@ impl Compilation {
         let body_addr = self.get_function_addr(module, reloc_num + self.first_local_function)?;
         let reloc_addr = unsafe { (body_addr as *const u8).offset(r.offset as isize) };
 
-        println!("target_addr: {:p}", target_func_addr);
-
         match r.reloc {
             Reloc::Abs8 => {
                 unsafe {
@@ -104,7 +102,6 @@ impl Compilation {
                         self.get_function_addr(module, *func_index)?
                     },
                     RelocationType::Intrinsic(name) => {
-                        println!("intrinsic: {}", name);
                         get_abi_intrinsic(name)?
                     },
                 };
@@ -162,7 +159,20 @@ impl Compilation {
         // TODO: Check start func abi
         let start_ptr = self.get_function_addr(&module, start_index)?;
 
-        CodeRef::new(module, data_initializers, self.region, start_ptr, self.functions)
+        let local_func_list = self.functions[module.imported_funcs.len()..]
+            .iter()
+            .map(|func_type| {
+                match func_type {
+                    FunctionType::Local {
+                        offset,
+                        size: _,
+                    } => *offset,
+                    _ => unreachable!()
+                }
+            })
+            .collect();
+
+        CodeRef::new(module, data_initializers, self.region, start_ptr, local_func_list)
     }
 }
 

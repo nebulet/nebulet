@@ -1,8 +1,7 @@
-use wasm::instance::{Instance, VmCtx};
+use wasm::instance::{Instance, VmCtx, get_function_addr};
 use wasm::{Module, ModuleEnvironment, DataInitializer};
-use wasm::compilation::FunctionType;
 use memory::{Region, MemFlags};
-use nabi::Result;
+use nabi::{Result, Error};
 use core::mem;
 use alloc::Vec;
 use nil::{Ref, KernelRef};
@@ -19,7 +18,7 @@ use cretonne_native;
 #[derive(KernelRef)]
 pub struct CodeRef {
     data_initializers: Vec<DataInitializer>,
-    functions: Vec<FunctionType>,
+    functions: Vec<usize>,
     module: Module,
     region: Region,
     start_func: extern fn(&VmCtx),
@@ -29,9 +28,9 @@ impl CodeRef {
     /// Compile webassembly bytecode into a CodeRef.
     pub fn compile(wasm: &[u8]) -> Result<Ref<CodeRef>> {
         let (mut flag_builder, isa_builder) = cretonne_native::builders()
-        .map_err(|_| internal_error!())?;
+            .map_err(|_| internal_error!())?;
 
-        flag_builder.set("opt_level", "best")
+        flag_builder.set("opt_level", "default")
             .map_err(|_| internal_error!())?;
 
         let isa = isa_builder.finish(settings::Flags::new(flag_builder));
@@ -54,7 +53,7 @@ impl CodeRef {
         data_initializers: Vec<DataInitializer>,
         mut region: Region,
         start_func: *const (),
-        functions: Vec<FunctionType>,
+        functions: Vec<usize>,
     )
         -> Result<Ref<CodeRef>>
     {
@@ -83,5 +82,14 @@ impl CodeRef {
 
     pub fn start_func(&self) -> extern fn(&VmCtx) {
         self.start_func
+    }
+
+    pub fn lookup_func(&self, function_index: usize) -> Result<*const ()> {
+        let base = self.region.as_ptr() as _;
+        if function_index < self.functions.len() {
+            Ok(get_function_addr(base, &self.functions, function_index))
+        } else {
+            Err(Error::OUT_OF_BOUNDS)
+        }
     }
 }

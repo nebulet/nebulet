@@ -11,7 +11,6 @@ static CONTEXT_SWITCH_TICKS: usize = 10;
 #[inline]
 unsafe fn trigger(irq: u8) {
     if irq < 16 {
-        println!("acknowledged");
         if irq >= 8 {
             // pic::SLAVE.mask_set(irq - 8);
             pic::MASTER.ack();

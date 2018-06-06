@@ -6,3 +6,10 @@ authors = ["morenzg <morenzg@gmail.com>"]
 # Fails to build correctly without optimizations.
 [profile.dev]
 opt-level = 3
+
+[profile.release]
+lto = true
+
+[dependencies.wee_alloc]
+version = "0.4.0"
+# features = ["extra_assertions"]

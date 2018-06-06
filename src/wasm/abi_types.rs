@@ -23,6 +23,8 @@ impl AbiFunction {
             return false;
         } else if sig.returns.len() == 1 && sig.returns[0].value_type != self.returns {
             return false;
+        } else if sig.returns.len() == 0 && self.returns != types::VOID {
+            return false;
         }
 
         for i in 0..(sig.params.len() - 1) {

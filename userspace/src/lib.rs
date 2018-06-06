@@ -1,25 +1,12 @@
-#![no_std]
-#![feature(lang_items)]
-#![feature(start)]
-#![feature(wasm_import_module)]
+#![feature(
+    wasm_import_module,
+    global_allocator,
+)]
 
-#[lang = "panic_fmt"]
-fn panic_fmt() -> ! {
-    loop {}
-}
+extern crate wee_alloc;
 
-#[lang = "oom"]
-fn oom() -> ! {
-    loop {}
-}
-
-// This does nothing but satisfy the rust compiler
-// (well actually it exports a `main` function that calls this, but it doesn't
-// have the type we want it to have).
-#[start]
-pub fn rust_start_not_called(_argc: isize, _argv: *const *const u8) -> isize {
-    0xbadbad
-}
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 pub mod abi {
     #[wasm_import_module = "abi"]
