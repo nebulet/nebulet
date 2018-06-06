@@ -5,6 +5,8 @@ fn main() {
     // Remove sysroot flag... well remove all of them for now.
     remove_var("RUSTFLAGS");
 
+    println!("cargo:rerun-if-changed=userspace");
+
     let ret = Command::new("cargo")
         .args(&[
             "build",

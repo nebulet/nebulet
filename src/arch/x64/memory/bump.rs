@@ -49,7 +49,6 @@ impl FrameAllocator for BumpAllocator {
 
             if found_frame >= range.end {
                 // all frames of current area are used, switch to next area
-                println!("Switching to next area");
                 self.choose_next_area();
             } else {
                 // frame is unused, increment `next_free_frame` and return it

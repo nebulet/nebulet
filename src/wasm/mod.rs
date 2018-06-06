@@ -22,7 +22,7 @@ use cretonne_wasm::{self, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, G
 use cretonne_codegen::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam,
                    ArgumentPurpose, ArgumentLoc, ArgumentExtension, Function};
 use cretonne_codegen::ir::types::*;
-use cretonne_codegen::ir::immediates::Offset32;
+use cretonne_codegen::ir::condcodes::IntCC;
 use cretonne_codegen::settings::CallConv;
 use cretonne_codegen::cursor::FuncCursor;
 use cretonne_codegen::{self, isa, settings, binemit};
@@ -133,6 +133,7 @@ impl RelocSink {
 }
 
 /// A data initializer for linear memory.
+#[derive(Debug)]
 pub struct DataInitializer {
     /// The index of the memory to initialize.
     pub memory_index: MemoryIndex,
@@ -287,27 +288,6 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
             offset,
         })
     }
-
-    // fn debug_addr(&mut self, pos: &mut FuncCursor, addr: ir::Value) {
-    //     let debug_addr_func = self.debug_addr_extfunc.unwrap_or_else(|| {
-    //         let sig_ref = pos.func.import_signature(Signature {
-    //             call_conv: CallConv::SystemV,
-    //             argument_bytes: None,
-    //             params: vec![AbiParam::new(I64), AbiParam::special(I64, ArgumentPurpose::VMContext)],
-    //             returns: vec![],
-    //         });
-    //         // FIXME: Use a real ExternalName system.
-    //         // TODO(gmorenz): Can colocated be true?
-    //         pos.func.import_function(ExtFuncData {
-    //             name: ExternalName::testcase("debug_addr"),
-    //             signature: sig_ref,
-    //             colocated: false,
-    //         })
-    //     });
-    //     self.debug_addr_extfunc = Some(debug_addr_func);
-    //     let vmctx = pos.func.special_param(ArgumentPurpose::VMContext).unwrap();
-    //     pos.ins().call(debug_addr_func, &[addr, vmctx]);
-    // }
 }
 
 impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'module_environment> {
@@ -326,23 +306,18 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
     }
 
     fn make_global(&mut self, func: &mut ir::Function, index: GlobalIndex) -> GlobalValue {
-        let ptr_size = self.ptr_size();
+        // let ptr_size = self.ptr_size();
         let globals_base = self.globals_base.unwrap_or_else(|| {
-            let offset = 0 * ptr_size;
-            let offset32 = offset as i32;
-            debug_assert_eq!(offset32 as usize, offset);
             let new_base = func.create_global_var(
-                ir::GlobalVarData::VMContext { offset: Offset32::new(offset32) },
+                ir::GlobalVarData::VMContext { offset: 0.into() },
             );
             self.globals_base = Some(new_base);
             new_base
         });
-        let offset = index as usize * ptr_size;
-        let offset32 = offset as i32;
-        debug_assert_eq!(offset32 as usize, offset);
+        let offset = index as usize * self.ptr_size();
         let gv = func.create_global_var(ir::GlobalVarData::Deref {
             base: globals_base,
-            offset: Offset32::new(offset32),
+            offset: (offset as i32).into(),
         });
         GlobalValue::Memory {
             gv,
@@ -355,17 +330,15 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         let ptr_size = self.ptr_size();
         let memories_base = self.memories_base.unwrap_or_else(|| {
             let new_base = func.create_global_var(ir::GlobalVarData::VMContext {
-                offset: Offset32::new(ptr_size as i32),
+                offset: (ptr_size as i32).into(),
             });
             self.globals_base = Some(new_base);
             new_base
         });
         let offset = index as usize * ptr_size;
-        let offset32 = offset as i32;
-        debug_assert_eq!(offset32 as usize, offset);
         let heap_base = func.create_global_var(ir::GlobalVarData::Deref {
             base: memories_base,
-            offset: Offset32::new(offset32),
+            offset: (offset as i32).into(),
         });
         let h = func.create_heap(ir::HeapData {
             base: ir::HeapBase::GlobalVar(heap_base),
@@ -410,6 +383,21 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
             0,
         );
 
+        let table_len = pos.ins().load(
+            I32,
+            ir::MemFlags::new(),
+            gv_addr,
+            8 as i32,
+        );
+
+        let oob = pos.ins().icmp(
+            IntCC::UnsignedGreaterThanOrEqual,
+            callee,
+            table_len,
+        );
+
+        pos.ins().trapnz(oob, ir::TrapCode::OutOfBounds);
+
         let entry_size = self.ptr_size() as i64;
 
         let callee = if self.native_pointer() != ir::types::I32 {
@@ -427,6 +415,11 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
             ir::MemFlags::new(),
             entry,
             0,
+        );
+
+        pos.ins().trapz(
+            callee_func,
+            ir::TrapCode::IndirectCallToNull,
         );
 
         let real_call_args = FuncEnvironment::get_real_call_args(pos.func, call_args);

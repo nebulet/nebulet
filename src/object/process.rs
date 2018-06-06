@@ -47,8 +47,9 @@ impl ProcessRef {
         let thread = ThreadRef::new(1024 * 1024, move || {
             let entry_point = process.code.start_func();
             let mut vmctx_backing = process.instance.write().generate_vmctx_backing();
-            let vmctx = Bin::new(vmctx_backing.vmctx(process)).unwrap();
-            entry_point(&vmctx);
+            let vmctx = vmctx_backing.vmctx(process);
+            let vmctx_bin = Bin::new(vmctx).unwrap();
+            entry_point(&vmctx_bin);
         })?;
 
         self.thread_list.write().push(thread.clone())?;
@@ -72,5 +73,9 @@ impl ProcessRef {
 
     pub fn thread_list(&self) -> &RwLock<ThreadList> {
         &self.thread_list
+    }
+
+    pub fn code(&self) -> &CodeRef {
+        &*self.code
     }
 }

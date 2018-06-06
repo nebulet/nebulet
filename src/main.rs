@@ -90,7 +90,7 @@ pub fn kmain() -> ! {
         // TODO: Hardcoded path is only rebuilt when we build for release mode.
         let code = CodeRef::compile(code)
             .unwrap();
-        for _ in 0..10 {
+        for _ in 0..1 {
             let process = ProcessRef::create(code.clone())
                 .unwrap();
 

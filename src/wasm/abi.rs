@@ -12,16 +12,6 @@ abi_map! {
         returns: I64,
         abi::test::output_test,
     },
-    write_i64: {
-        params: [I32, I64],
-        returns: I64,
-        abi::test::write_i64,
-    },
-    assert_eq: {
-        params: [I64, I64],
-        returns: I64,
-        abi::test::assert_eq,
-    },
     // actual abis
     wasm_compile: {
         params: [I32, I32],
@@ -57,10 +47,5 @@ abi_map! {
         params: [],
         returns: I32,
         abi::intrinsics::current_memory,
-    },
-    debug_addr: {
-        params: [I64],
-        returns: VOID,
-        abi::intrinsics::debug_addr,
     },
 }
