@@ -30,5 +30,5 @@ $> git submodule update --init
 $> bootimage build
 
 # run qemu
-$> bootimage run
+$> bootimage run --release -- -serial stdio
 ```
