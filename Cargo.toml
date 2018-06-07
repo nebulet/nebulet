@@ -42,7 +42,7 @@ exclude = [
 ]
 
 [features]
-default = ["serial"]
+default = ["vga", "serial"]
 vga = [] # log to vga
 serial = [] # log to serial
 

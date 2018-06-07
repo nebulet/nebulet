@@ -25,6 +25,11 @@ impl Handle {
             .ok_or(Error::WRONG_TYPE)
     }
 
+    pub fn cast_ref<T: KernelRef>(&self) -> Result<&T> {
+        self.refptr.cast_ref()
+            .ok_or(Error::WRONG_TYPE)
+    }
+
     /// Duplicate the handle if it has the `DUPLICATE` right.
     pub fn duplicate(&self, new_rights: HandleRights) -> Option<Handle> {
         if self.rights.contains(new_rights | HandleRights::DUPLICATE) {

@@ -12,4 +12,6 @@ lto = true
 
 [dependencies.wee_alloc]
 version = "0.4.0"
-# features = ["extra_assertions"]
+
+[dependencies.nebulet_abi]
+path = "../nabi"

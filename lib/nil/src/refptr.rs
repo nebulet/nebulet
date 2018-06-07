@@ -68,16 +68,22 @@ impl<T: ?Sized> Ref<T> {
     }
 }
 
-impl<T: KernelRef + ?Sized> Ref<T> {
-    pub fn cast<U: KernelRef>(&self) -> Option<Ref<U>> {
-        if TypeId::of::<T>() == TypeId::of::<U>() {
-            let casted_ptr: NonNull<RefInner<U>> = self.ptr.cast();
-            Some(Ref {
-                ptr: casted_ptr,
-            })
+impl Ref<KernelRef> {
+    pub fn cast<T: KernelRef>(&self) -> Option<Ref<T>> {
+        let self_: &KernelRef = &**self;
+        if self_.get_type_id() == TypeId::of::<T>() {
+            let ptr: NonNull<RefInner<T>> = self.ptr.cast();
+            let refptr = Ref { ptr, };
+            refptr.inc_ref();
+            Some(refptr)
         } else {
             None
         }
+    }
+
+    pub fn cast_ref<T: KernelRef>(&self) -> Option<&T> {
+        self.cast()
+            .map(|refptr: Ref<T>| unsafe { &(&*refptr.ptr.as_ptr()).data })
     }
 }
 

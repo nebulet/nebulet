@@ -1,10 +1,9 @@
 #![no_main]
 
+#[macro_use]
 extern crate userspace;
 
 #[no_mangle]
 pub fn main() {
-    let b = Box::new(42);
-
-    userspace::print(&format!("boxed in wasm: {:?}", b));
+    println!("Checking in from `hello.wasm`");
 }

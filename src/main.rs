@@ -84,7 +84,7 @@ pub fn kmain() -> ! {
 
     use object::{ThreadRef, ProcessRef, CodeRef};
 
-    let code = include_bytes!("../userspace/target/wasm32-unknown-unknown/release/hello.wasm");
+    let code = include_bytes!("../userspace/target/wasm32-unknown-unknown/release/test_run.wasm");
 
     let thread = ThreadRef::new(1024 * 1024, move || {
         // TODO: Hardcoded path is only rebuilt when we build for release mode.
