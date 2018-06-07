@@ -28,6 +28,22 @@ abi_map! {
         returns: I64,
         abi::process::process_start,
     },
+    // ipc
+    channel_create: {
+        params: [I32, I32],
+        returns: I64,
+        abi::ipc::channel_create,
+    },
+    channel_write: {
+        params: [I32, I32, I32],
+        returns: I64,
+        abi::ipc::channel_write,
+    },
+    channel_read: {
+        params: [I32, I32, I32, I32],
+        returns: I64,
+        abi::ipc::channel_read,
+    },
     // I/O
     print: {
         params: [I32, I32],

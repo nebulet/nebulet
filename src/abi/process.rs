@@ -38,16 +38,14 @@ pub fn process_create(code_handle: HandleOffset, process: &ProcessRef) -> Result
 pub fn process_start(proc_handle: HandleOffset, process: &ProcessRef) -> Result<u32> {
     let handle_table = process.handle_table();
 
-    let proc_ref = {
-        let handle_table = handle_table.read();
-        let proc_handle = handle_table.get(proc_handle as _)?;
+    let handle_table = handle_table.read();
+    let proc_handle = handle_table.get(proc_handle as _)?;
 
-        proc_handle.rights().has(HandleRights::WRITE)?;
+    proc_handle.rights().has(HandleRights::WRITE)?;
 
-        // Try casting the handle to the correct type.
-        // If this fails, return `Error::WRONG_TYPE`.
-        proc_handle.cast::<ProcessRef>()?
-    };
+    // Try casting the handle to the correct type.
+    // If this fails, return `Error::WRONG_TYPE`.
+    let proc_ref = proc_handle.cast::<ProcessRef>()?;
 
     proc_ref.start()?;
 

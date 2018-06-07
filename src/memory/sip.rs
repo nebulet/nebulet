@@ -177,8 +177,8 @@ impl WasmMemory {
         if end_offset <= mapped_size {
             // in bounds
             unsafe {
-                let start_ptr = self.start().as_ptr() as *const T;
-                let ptr = start_ptr.add(offset as usize);
+                let start_ptr = self.start().as_ptr::<u8>();
+                let ptr = start_ptr.add(offset as usize) as *const T;
                 Some(&*ptr)
             }
         } else {
@@ -193,8 +193,8 @@ impl WasmMemory {
         if end_offset <= mapped_size {
             // in bounds
             unsafe {
-                let start_ptr = self.start().as_mut_ptr() as *mut T;
-                let ptr = start_ptr.add(offset as usize);
+                let start_ptr = self.start().as_mut_ptr::<u8>();
+                let ptr = start_ptr.add(offset as usize) as *mut T;
                 Some(&mut*ptr)
             }
         } else {
