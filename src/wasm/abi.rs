@@ -19,7 +19,7 @@ abi_map! {
         abi::process::wasm_compile,
     },
     process_create: {
-        params: [I32],
+        params: [I32, I32],
         returns: I64,
         abi::process::process_create,
     },
@@ -49,6 +49,13 @@ abi_map! {
         params: [I32, I32],
         returns: VOID,
         abi::io::print,
+    },
+
+    // driver ABIs
+    physical_map: {
+        params: [I64, I32],
+        returns: I64,
+        abi::driver::physical_map,
     },
 }
 
