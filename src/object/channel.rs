@@ -2,7 +2,7 @@ use nil::{Ref, KernelRef};
 use nabi::{Result, Error};
 use object::Handle;
 use alloc::{Vec, VecDeque};
-use spin::RwLock;
+use arch::lock::IrqLock;
 
 pub struct Message {
     data: Vec<u8>,
@@ -32,19 +32,19 @@ impl Message {
 /// between processes.
 #[derive(KernelRef)]
 pub struct ChannelRef {
-    msg_buffer: RwLock<VecDeque<Message>>,
+    msg_buffer: IrqLock<VecDeque<Message>>,
 }
 
 impl ChannelRef {
     pub fn new() -> Result<Ref<Self>> {
         Ref::new(ChannelRef {
-            msg_buffer: RwLock::new(VecDeque::new()),
+            msg_buffer: IrqLock::new(VecDeque::new()),
         })
     }
 
     pub fn write(&self, msg: Message) -> Result<()> {
         self.msg_buffer
-            .write()
+            .lock()
             .push_back(msg);
 
         Ok(())
@@ -52,7 +52,7 @@ impl ChannelRef {
 
     pub fn read(&self) -> Result<Message> {
         self.msg_buffer
-            .write()
+            .lock()
             .pop_front()
             .ok_or(Error::SHOULD_WAIT)
     }

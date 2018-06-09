@@ -1,6 +1,6 @@
 
-use x86_64::VirtAddr;
-use x86_64::structures::paging::{Page, PageTableFlags, PageRangeInclusive};
+use x86_64::{VirtAddr, PhysAddr};
+use x86_64::structures::paging::{Page, PhysFrame, PageTableFlags, PageRangeInclusive};
 
 use arch::paging::PageMapper;
 
@@ -108,9 +108,11 @@ impl Region {
         let mut mapper = unsafe { PageMapper::new() };
 
         for page in self.pages() {
-            mapper.unmap(page)
-                .map_err(|_| internal_error!())?
-                .flush();
+            if mapper.translate(page).is_some() {
+                mapper.unmap(page)
+                    .map_err(|_| internal_error!())?
+                    .flush();
+            }
         }
         Ok(())
     }
@@ -129,13 +131,36 @@ impl Region {
         Ok(())
     }
 
+    pub fn grow_from_phys_addr(&mut self, by: usize, phys_addr: usize) -> Result<()> {
+        let mut mapper = unsafe { PageMapper::new() };
+
+        let phys_addr = PhysAddr::new(phys_addr as u64);
+
+        let start_page = Page::containing_address(self.start + self.size as u64);
+        let end_page = Page::containing_address(self.start + self.size as u64 + by as u64);
+        let start_frame = PhysFrame::containing_address(phys_addr);
+        let end_frame = PhysFrame::containing_address(phys_addr + by as u64);
+
+        let iter = Page::range(start_page, end_page)
+            .zip(PhysFrame::range(start_frame, end_frame));
+
+        for (page, frame) in iter {
+            assert!(mapper.translate(page).is_none());
+            mapper.map_to(page, frame, self.flags)
+                .map_err(|_| internal_error!())?
+                .flush();
+        }
+
+        Ok(())
+    }
+
     pub fn resize(&mut self, new_size: usize, zero: bool) -> Result<()> {
         let mut mapper = unsafe { PageMapper::new() };
 
         if new_size > self.size {
             let start_page = Page::containing_address(self.start + self.size as u64);
-            let end_page = Page::containing_address(self.start + new_size as u64  - 1 as u64);
-            for page in Page::range_inclusive(start_page, end_page) {
+            let end_page = Page::containing_address(self.start + new_size as u64);
+            for page in Page::range(start_page, end_page) {
                 if mapper.translate(page).is_none() {
                     mapper.map(page, self.flags)
                         .map_err(|_| internal_error!())?

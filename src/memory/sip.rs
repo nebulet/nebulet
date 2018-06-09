@@ -145,6 +145,18 @@ impl WasmMemory {
         }
     }
 
+    /// Map the specified region of physical memory to the next free part
+    /// of the wasm linear memory.
+    /// 
+    /// Returns the offset of the mapped region in the wasm linear memory.
+    pub fn physical_map(&mut self, phys_addr: u64, count: usize) -> Result<usize> {
+        let old_count = self.page_count();
+
+        let expand_by = count * Self::WASM_PAGE_SIZE;
+        self.region.grow_from_phys_addr(expand_by, phys_addr as _)
+            .map(|_| old_count * Self::WASM_PAGE_SIZE)
+    }
+
     pub fn carve_slice(&self, offset: u32, size: u32) -> Option<&[u8]> {
         let start = offset as usize;
         let end = start + size as usize;

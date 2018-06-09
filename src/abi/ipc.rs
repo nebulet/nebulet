@@ -28,16 +28,16 @@ pub fn monocopy_create(buffer_offset: u32, buffer_size: u32, process: &Ref<Proce
 }
 
 #[nebulet_abi]
-pub fn channel_create(handle0_offset: u32, handle1_offset: u32, process: &ProcessRef) -> Result<u32> {
+pub fn channel_create(handle_tx_offset: u32, handle_rx_offset: u32, process: &ProcessRef) -> Result<u32> {
     let channel = ChannelRef::new()?;
     
-    let (handle0, handle1) = {
+    let (handle_tx, handle_rx) = {
         let mut handle_table = process.handle_table().write();
         
         (
-            handle_table.allocate(channel.clone(), HandleRights::all())
+            handle_table.allocate(channel.clone(), HandleRights::all() ^ HandleRights::READ)
                 .map(|handle| handle as u32)?,
-            handle_table.allocate(channel, HandleRights::all())
+            handle_table.allocate(channel, HandleRights::all() ^ HandleRights::WRITE)
                 .map(|handle| handle as u32)?,
         )
     };
@@ -46,11 +46,11 @@ pub fn channel_create(handle0_offset: u32, handle1_offset: u32, process: &Proces
         let mut instance = process.instance().write();
         let memory = &mut instance.memories[0];
 
-        let h0 = memory.carve_mut::<u32>(handle0_offset)?;
-        *h0 = handle0;
+        let h_tx = memory.carve_mut::<u32>(handle_tx_offset)?;
+        *h_tx = handle_tx;
 
-        let h1 = memory.carve_mut::<u32>(handle1_offset)?;
-        *h1 = handle1;
+        let h_rx = memory.carve_mut::<u32>(handle_rx_offset)?;
+        *h_rx = handle_rx;
     }
 
     Ok(0)
@@ -71,6 +71,7 @@ pub fn channel_write(channel_handle: HandleOffset, buffer_offset: u32, buffer_si
 
     handle_table
         .get(channel_handle as _)?
+        .check_rights(HandleRights::WRITE)?
         .cast_ref::<ChannelRef>()?
         .write(msg)?;
 
@@ -85,6 +86,7 @@ pub fn channel_read(channel_handle: HandleOffset, buffer_offset: u32, buffer_siz
 
         handle_table
             .get(channel_handle as _)?
+            .check_rights(HandleRights::READ)?
             .cast::<ChannelRef>()?
     };
 

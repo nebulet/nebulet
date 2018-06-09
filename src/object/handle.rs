@@ -44,6 +44,14 @@ impl Handle {
         }
     }
 
+    pub fn check_rights(&self, rights: HandleRights) -> Result<&Handle> {
+        if self.rights.contains(rights) {
+            Ok(self)
+        } else {
+            Err(Error::ACCESS_DENIED)
+        }
+    }
+
     #[inline]
     pub fn rights(&self) -> HandleRights {
         self.rights

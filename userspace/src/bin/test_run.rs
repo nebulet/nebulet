@@ -3,21 +3,25 @@
 #[macro_use]
 extern crate userspace;
 
-fn run_proc(wasm: &[u8]) {
-    let compile_ret = userspace::compile_wasm(wasm).unwrap();
-    let create_ret = userspace::process_create(compile_ret).unwrap();
-    userspace::process_start(create_ret).unwrap();
+static HELLO: &[u8] = b"Hello from wasm!";
+
+fn clear_screen(buffer: &mut [u16]) {
+    for byte in buffer {
+        *byte = 0;
+    }
 }
 
 #[no_mangle]
 pub fn main() {
-    println!("Executing packaged wasm.");
+    println!("Mapping vga buffer.");
+    let vga_buffer = userspace::physical_map::<[u16; 80 * 25]>(0xb8000).unwrap();
 
-    let wasm0 = include_bytes!("../../target/wasm32-unknown-unknown/release/hello.wasm");
-    let wasm1 = include_bytes!("../../target/wasm32-unknown-unknown/release/chan.wasm");
+    clear_screen(vga_buffer);
 
-    run_proc(wasm1);
-    run_proc(wasm0);
+    for (i, &byte) in HELLO.iter().enumerate() {
+        vga_buffer[i] = 0xe << 8 | byte as u16;
+    }
+
 
     loop {}
 }

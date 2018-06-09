@@ -1,25 +1,37 @@
-use object::{ProcessRef, CodeRef, HandleRights, HandleOffset};
+use object::{ProcessRef, CodeRef, ChannelRef, HandleRights, HandleOffset};
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
 
 /// Create a process with the specified compiled code.
 #[nebulet_abi]
-pub fn process_create(code_handle: HandleOffset, process: &ProcessRef) -> Result<u32> {
+pub fn process_create(code_handle: HandleOffset, channel_handle: HandleOffset, process: &ProcessRef) -> Result<u32> {
     let handle_table = process.handle_table();
 
-    let code_ref = {
+    let (code_ref, chan_ref) = {
         let handle_table = handle_table.read();
 
         let code_handle = handle_table.get(code_handle as _)?;
+        let chan_handle = handle_table.get(channel_handle as _)?;
 
-        code_handle.rights().has(HandleRights::READ)?;
+        code_handle.check_rights(HandleRights::READ)?;
+        chan_handle.check_rights(HandleRights::READ)?;
 
         // Try casting the handle to the correct type.
         // If this fails, return `Error::WRONG_TYPE`.
-        code_handle.cast::<CodeRef>()?
+        (code_handle.cast::<CodeRef>()?, chan_handle.cast::<ChannelRef>()?)
     };
 
     let new_proc = ProcessRef::create(code_ref)?;
+
+    {
+        let mut new_handle_table = new_proc.handle_table().write();
+        let rights = HandleRights::READ;
+        // this should set the 0th place in the handle table
+        // of the new process as the handle to the read-end
+        // of the supplied channel.
+        let chan_index = new_handle_table.allocate(chan_ref, rights)?;
+        assert_eq!(chan_index, 0);
+    }
 
     // Return the index of the new process' handle
     // in the current process' handle table.

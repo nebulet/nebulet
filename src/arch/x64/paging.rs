@@ -35,6 +35,11 @@ impl PageMapper {
         self.table.map_to(page, frame, flags, &mut frame_allocator)
     }
 
+    pub fn map_to(&mut self, page: Page<Size4KB>, frame: PhysFrame<Size4KB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KB>, MapToError> {
+        let mut frame_allocator = || memory::allocate_frame();
+        self.table.map_to(page, frame, flags, &mut frame_allocator)
+    }
+
     pub fn unmap(&mut self, page: Page<Size4KB>) -> Result<MapperFlush<Size4KB>, UnmapError> {
         let mut frame_deallocator = |frame| memory::deallocate_frame(frame);
         self.table.unmap(page, &mut frame_deallocator)
