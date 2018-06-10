@@ -61,9 +61,9 @@ spin = "0.4.6"
 bitflags = "1.0"
 bit_field = "0.9.0"
 raw-cpuid = "3.1.0"
-x86_64 = "0.2.0-alpha-019"
+x86_64 = "0.2.0-beta"
 os_bootinfo = "0.2.0"
-hashmap_core = "0.1.5"
+hashmap_core = "0.1.6"
 
 # lib/
 [dependencies.nil]
@@ -92,29 +92,29 @@ version = "0.0.1"
 default-features = false
 
 [dependencies.cretonne-codegen]
-path = "cretonne/lib/codegen"
+version = "0.9.0"
 default-features = false
 features = ["core"]
 
 [dependencies.cretonne-frontend]
-path = "cretonne/lib/frontend"
+version = "0.9.0"
 default-features = false
 features = ["core"]
 
 [dependencies.cretonne-wasm]
-path = "cretonne/lib/wasm"
+version = "0.9.0"
 default-features = false
 features = ["core"]
 
 [dependencies.cretonne-native]
-path = "cretonne/lib/native"
+version = "0.9.0"
 default-features = false
 features = ["core"]
 
 [dependencies.wasmparser]
-version = "0.16.0"
+version = "0.16.1"
 default_features = false
 features = ["core"]
 
-[replace]
-"hashmap_core:0.1.5" = { git = "https://github.com/lachlansneff/hashmap_core" }
+# [replace]
+# "hashmap_core:0.1.5" = { git = "https://github.com/lachlansneff/hashmap_core" }

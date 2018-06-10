@@ -22,6 +22,5 @@ pub fn main() {
         vga_buffer[i] = 0xe << 8 | byte as u16;
     }
 
-
     loop {}
 }

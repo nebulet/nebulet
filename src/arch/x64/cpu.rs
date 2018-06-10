@@ -1,5 +1,5 @@
 use x86_64::registers::model_specific::Msr;
-use x86_64::registers::flags::Flags;
+use x86_64::registers::rflags::RFlags;
 use core::ptr::NonNull;
 
 use arch::interrupt;
@@ -41,11 +41,11 @@ impl IrqController {
     #[inline]
     #[must_use]
     pub fn enabled() -> bool {
-        let rflags: Flags;
+        let rflags: RFlags;
         unsafe {
             asm!("pushfq; pop $0" : "=r"(rflags) : : "memory" : "intel", "volatile");
         }
-        rflags.contains(Flags::IF)
+        rflags.contains(RFlags::INTERRUPT_FLAG)
     }
 }
 

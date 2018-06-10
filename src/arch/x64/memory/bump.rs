@@ -2,13 +2,13 @@
 //! Much is borrowed from Redox OS and [Phil Opp's Blog](http://os.phil-opp.com/allocating-frames.html)
 
 use x86_64::PhysAddr;
-use x86_64::structures::paging::{PhysFrame, Size4KB, PhysFrameRange};
+use x86_64::structures::paging::{PhysFrame, Size4KiB, PhysFrameRange};
 use os_bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 
 use super::FrameAllocator;
 
 pub struct BumpAllocator {
-    next_free_frame: PhysFrame<Size4KB>,
+    next_free_frame: PhysFrame<Size4KiB>,
     current_region: Option<MemoryRegion>,
     regions: &'static [MemoryRegion],
 }
@@ -40,7 +40,7 @@ impl BumpAllocator {
 
 impl FrameAllocator for BumpAllocator {
     #[inline]
-    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KB>> {
+    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
         if let Some(region) = self.current_region {
             let found_frame = self.next_free_frame;
 

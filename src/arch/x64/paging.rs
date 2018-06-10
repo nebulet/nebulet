@@ -1,5 +1,5 @@
 use x86_64::structures::paging::{PageTable, PageTableFlags, RecursivePageTable,
-    PhysFrame, Page, Mapper, Size4KB, MapperFlush, 
+    PhysFrame, Page, Mapper, Size4KiB, MapperFlush, 
     MapToError, UnmapError, FlagUpdateError};
 use x86_64::ux::u9;
 
@@ -28,29 +28,29 @@ impl PageMapper {
         }
     }
 
-    pub fn map(&mut self, page: Page<Size4KB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KB>, MapToError> {
+    pub fn map(&mut self, page: Page<Size4KiB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KiB>, MapToError> {
         let mut frame_allocator = || memory::allocate_frame();
         let frame = frame_allocator()
             .expect("Couldn't allocate any frames!");
         self.table.map_to(page, frame, flags, &mut frame_allocator)
     }
 
-    pub fn map_to(&mut self, page: Page<Size4KB>, frame: PhysFrame<Size4KB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KB>, MapToError> {
+    pub fn map_to(&mut self, page: Page<Size4KiB>, frame: PhysFrame<Size4KiB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KiB>, MapToError> {
         let mut frame_allocator = || memory::allocate_frame();
         self.table.map_to(page, frame, flags, &mut frame_allocator)
     }
 
-    pub fn unmap(&mut self, page: Page<Size4KB>) -> Result<MapperFlush<Size4KB>, UnmapError> {
+    pub fn unmap(&mut self, page: Page<Size4KiB>) -> Result<MapperFlush<Size4KiB>, UnmapError> {
         let mut frame_deallocator = |frame| memory::deallocate_frame(frame);
         self.table.unmap(page, &mut frame_deallocator)
     }
 
-    pub fn remap(&mut self, page: Page<Size4KB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KB>, FlagUpdateError> {
+    pub fn remap(&mut self, page: Page<Size4KiB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KiB>, FlagUpdateError> {
         self.table.update_flags(page, flags)
     }
 
-    pub fn translate(&mut self, page: Page<Size4KB>) -> Option<PhysFrame> {
-        self.table.translate(page)
+    pub fn translate(&mut self, page: Page<Size4KiB>) -> Option<PhysFrame> {
+        self.table.translate_page(page)
     }
     
     /// For faster mapping of a group of frames
@@ -77,7 +77,7 @@ impl<'table, 'allocator, FA: memory::FrameAllocator> LockedPageMapper<'table, 'a
         unsafe { &mut *self.allocator_guard.get() }
     }
 
-    pub fn map(&mut self, page: Page<Size4KB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KB>, MapToError> {
+    pub fn map(&mut self, page: Page<Size4KiB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KiB>, MapToError> {
         let allocator = self.allocator();
         let mut frame_allocator = || allocator.allocate_frame();
 
@@ -87,22 +87,22 @@ impl<'table, 'allocator, FA: memory::FrameAllocator> LockedPageMapper<'table, 'a
         self.table().map_to(page, frame, flags, &mut frame_allocator)
     }
 
-    pub fn unmap(&mut self, page: Page<Size4KB>) -> Result<MapperFlush<Size4KB>, UnmapError> {
+    pub fn unmap(&mut self, page: Page<Size4KiB>) -> Result<MapperFlush<Size4KiB>, UnmapError> {
         let allocator = self.allocator();
         let mut frame_deallocator = |frame| allocator.deallocate_frame(frame);
 
         self.table().unmap(page, &mut frame_deallocator)
     }
 
-    pub fn remap(&mut self, page: Page<Size4KB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KB>, FlagUpdateError> {
+    pub fn remap(&mut self, page: Page<Size4KiB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KiB>, FlagUpdateError> {
         self.table().update_flags(page, flags)
     }
 
-    // pub fn swap(&mut self, x: Page<Size4KB>, y: Page<Size4KB>) -> Result<DoubleMapperFlush<Size4KB>, SwapPageError> {
+    // pub fn swap(&mut self, x: Page<Size4KiB>, y: Page<Size4KiB>) -> Result<DoubleMapperFlush<Size4KiB>, SwapPageError> {
     //     self.table().swap(x, y)
     // }
 
-    pub fn translate(&self, page: Page<Size4KB>) -> Option<PhysFrame> {
-        self.table().translate(page)
+    pub fn translate(&self, page: Page<Size4KiB>) -> Option<PhysFrame> {
+        self.table().translate_page(page)
     }
 }
