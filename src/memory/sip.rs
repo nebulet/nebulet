@@ -1,4 +1,4 @@
-use x86_64::structures::paging::{Size4KB, PageSize};
+use x86_64::structures::paging::{Size4KiB, PageSize};
 use x86_64::VirtAddr;
 
 use core::ops::{Deref, DerefMut};
@@ -31,8 +31,8 @@ impl SipAllocator {
     /// `size` will be rounded up to a multiple of 4KiB.
     pub(super) fn allocate_region(&mut self, size: usize) -> Option<Region> {
         let allocated_size = {
-            let rem = size % Size4KB::SIZE as usize;
-            size + Size4KB::SIZE as usize - rem
+            let rem = size % Size4KiB::SIZE as usize;
+            size + Size4KiB::SIZE as usize - rem
         };
 
         if self.bump + allocated_size > self.end {
@@ -63,16 +63,16 @@ impl SipAllocator {
     /// Allocate a `WasmStack` surrounded by two guard pages.
     fn allocate_stack(&mut self, size: usize) -> Option<WasmStack> {
         let requested_size = {
-            let rem = size % Size4KB::SIZE as usize;
-            size + Size4KB::SIZE as usize - rem
+            let rem = size % Size4KiB::SIZE as usize;
+            size + Size4KiB::SIZE as usize - rem
         };
 
-        let allocated_size = requested_size + (Size4KB::SIZE as usize * 2);
+        let allocated_size = requested_size + (Size4KiB::SIZE as usize * 2);
 
         if self.bump + allocated_size > self.end {
             None
         } else {
-            let start = VirtAddr::new((self.bump as u64) + Size4KB::SIZE);
+            let start = VirtAddr::new((self.bump as u64) + Size4KiB::SIZE);
 
             self.bump += allocated_size;
 
@@ -269,7 +269,7 @@ impl WasmStack {
     }
 
     pub fn unmapped_start(&self) -> VirtAddr {
-        self.mapped_start() - Size4KB::SIZE as u64
+        self.mapped_start() - Size4KiB::SIZE as u64
     }
 
     pub fn mapped_size(&self) -> usize {
