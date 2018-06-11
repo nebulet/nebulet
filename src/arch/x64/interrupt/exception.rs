@@ -1,4 +1,5 @@
 use arch::macros::{interrupt_stack, interrupt_stack_err, interrupt_stack_page};
+use arch::cpu::Local;
 
 interrupt_stack!(divide_by_zero, _stack, {
     println!("Divide by zero fault");
@@ -24,8 +25,17 @@ interrupt_stack!(bound_range_exceeded, _stack, {
     println!("Bound Range Exceeded fault");
 });
 
-interrupt_stack!(invalid_opcode, _stack, {
-    println!("Inavlid Opcode fault");
+interrupt_stack!(invalid_opcode, stack, {
+    // TODO: this is called when a trap occurs in wasm.
+    let current_thread = Local::current_thread();
+    let process = current_thread.parent();
+    let code = process.code();
+
+    let address = stack.instruction_pointer.as_ptr();
+
+    if let Some(trap_code) = code.lookup_trap_code(address) {
+        process.handle_trap(trap_code);
+    }
 
     loop {}
 });

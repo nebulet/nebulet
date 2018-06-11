@@ -5,10 +5,11 @@ use core::ptr::NonNull;
 use arch::interrupt;
 use arch::asm::read_gs_offset64;
 
-use task::{Thread, State, scheduler::Scheduler};
+use task::{State, scheduler::Scheduler};
 
 use alloc::boxed::Box;
-use nil::mem::Bin;
+use nil::Ref;
+use object::ThreadRef;
 
 // static GLOBAL: Once<Global> = Once::new();
 
@@ -84,35 +85,29 @@ pub struct Local {
     /// The scheduler associated with this cpu.
     pub scheduler: Scheduler,
     /// Pointer to current thread.
-    current_thread: NonNull<Thread>,
+    current_thread: Ref<ThreadRef>,
 }
 
 impl Local {
     fn new(cpu: &'static mut Cpu) -> Local {
-        let mut idle_thread = Box::new(Thread::new(4096, Bin::new(|| {
+        let idle_thread = ThreadRef::new(unsafe { Ref::dangling() }, 4096, || {
             loop {
                 unsafe { ::arch::interrupt::halt(); }
             }
-        }).unwrap()).unwrap());
+        }).unwrap();
 
-        let mut kernel_thread = Box::new(Thread::new(0, Bin::new(|| {}).unwrap())
-            .unwrap());
-            
-        idle_thread.state = State::Ready;
-        kernel_thread.state = State::Ready;
+        let kernel_thread = ThreadRef::new(unsafe { Ref::dangling() }, 0, || {}).unwrap();
 
-        let kernel_thread_nonnull = Box::into_raw_non_null(kernel_thread);
+        idle_thread.set_state(State::Ready);
+        kernel_thread.set_state(State::Ready);
 
-        let scheduler = Scheduler::new(
-            kernel_thread_nonnull.as_ptr(),
-            Box::into_raw(idle_thread)
-        );
+        let scheduler = Scheduler::new(idle_thread);
 
         Local {
             direct: NonNull::dangling(),
             cpu,
             scheduler,
-            current_thread: kernel_thread_nonnull,
+            current_thread: kernel_thread,
         }
     }
 
@@ -122,11 +117,11 @@ impl Local {
         }
     }
 
-    pub fn current_thread() -> NonNull<Thread> {
-        Self::current().current_thread
+    pub fn current_thread() -> Ref<ThreadRef> {
+        Self::current().current_thread.clone()
     }
 
-    pub fn set_current_thread(ptr: NonNull<Thread>) {
-        Self::current().current_thread = ptr;
+    pub fn set_current_thread(thread: Ref<ThreadRef>) {
+        Self::current().current_thread = thread;
     }
 }

@@ -2,79 +2,70 @@ use alloc::VecDeque;
 use super::thread::{Thread, State};
 use arch::cpu::Local;
 use arch::lock::IrqSpinlock;
-
-struct SchedulerInner {
-    ready_queue: VecDeque<*mut Thread>,
-    current_thread: *mut Thread,
-}
+use object::ThreadRef;
+use nil::Ref;
 
 /// The Scheduler schedules threads to be run.
 /// Currently, it's a simple, round-robin.
 pub struct Scheduler {
-    inner: IrqSpinlock<SchedulerInner>,
-    idle_thread: *mut Thread,
+    ready_queue: IrqSpinlock<VecDeque<Ref<ThreadRef>>>,
+    idle_thread: Ref<ThreadRef>,
 }
 
 impl Scheduler {
-    pub fn new(kernel_thread: *mut Thread, idle_thread: *mut Thread) -> Scheduler {
+    pub fn new(idle_thread: Ref<ThreadRef>) -> Scheduler {
         Scheduler {
-            inner: IrqSpinlock::new(SchedulerInner {
-                ready_queue: VecDeque::new(),
-                current_thread: kernel_thread,
-            }),
+            ready_queue: IrqSpinlock::new(VecDeque::new()),
             idle_thread,
         }
     }
     
     /// Adds a thread index to the end of the queue.
-    pub fn push(&self, thread_ref: *mut Thread) {
-        self.inner
+    pub fn push(&self, thread: Ref<ThreadRef>) {
+        self.ready_queue
             .lock()
-            .ready_queue
-            .push_back(thread_ref);
+            .push_back(thread);
     }
 
     pub unsafe fn switch(&self) {
-        // These will either get dropped
-        // or voluntarily released before
-        // switching contexts.
-        let mut inner = self.inner.lock();
+        let mut ready_queue = self.ready_queue.lock();
+        let current_thread = Local::current_thread();
 
-        let current_thread = &mut *inner.current_thread;
-
-        // Either switch to the next thread in the queue or the idle thread.
-        let next_thread = if let Some(next_thread) = inner.ready_queue.pop_front() {
-            &mut *next_thread
+        let next_thread = if let Some(next_thread) = ready_queue.pop_front() {
+            next_thread
         } else {
-            if current_thread.state == State::Running {
-                &mut *inner.current_thread
+            if current_thread.state() == State::Running {
+                current_thread.clone()
             } else {
-                &mut *self.idle_thread
+                self.idle_thread.clone()
             }
         };
 
-        if next_thread as *const _ as usize == current_thread as *const _ as usize {
+        if next_thread.ptr_eq(&current_thread) {
             return;
         }
 
-        inner.current_thread = next_thread;
+        debug_assert!(next_thread.state() == State::Ready);
 
-        debug_assert!(next_thread.state == State::Ready);
-
-        if current_thread.state == State::Running
-            && current_thread as *const _ as usize != self.idle_thread as *const _ as usize
-        {
-            current_thread.state = State::Ready;
-            inner.ready_queue.push_back(current_thread as *mut _);
+        if current_thread.state() == State::Running && !current_thread.ptr_eq(&self.idle_thread) {
+            current_thread.set_state(State::Ready);
+            ready_queue.push_back(current_thread.clone());
         }
 
-        next_thread.state = State::Running;
+        next_thread.set_state(State::Running);
 
-        Local::set_current_thread(next_thread.into());
+        Local::set_current_thread(next_thread.clone());
+
+        let (current_thread_inner, next_thread_inner) = {
+            (
+                &mut *(&mut *current_thread.inner().lock() as *mut Thread),
+                &*(&*next_thread.inner().lock() as *const Thread),
+            )
+        };
 
         // Release the lock so we don't deadlock
-        inner.release();
+        ready_queue.release();
 
-        current_thread.swap(&next_thread);
+        current_thread_inner.swap(next_thread_inner);
     }
 }

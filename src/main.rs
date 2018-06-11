@@ -82,23 +82,17 @@ pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 pub fn kmain() -> ! {
     println!("Nebulet v{}", VERSION);
 
-    use object::{ThreadRef, ProcessRef, CodeRef};
+    use object::{ProcessRef, CodeRef};
 
     let code = include_bytes!("../userspace/target/wasm32-unknown-unknown/release/test_run.wasm");
 
-    let thread = ThreadRef::new(1024 * 1024, move || {
-        // TODO: Hardcoded path is only rebuilt when we build for release mode.
-        let code = CodeRef::compile(code)
-            .unwrap();
-        for _ in 0..1 {
-            let process = ProcessRef::create(code.clone())
-                .unwrap();
+    let code = CodeRef::compile(code)
+        .unwrap();
 
-            process.start().unwrap();
-        }
-    }).unwrap();
+    let process = ProcessRef::create(code.clone())
+        .unwrap();
 
-    thread.resume().unwrap();
+    process.start().unwrap();
 
     unsafe {
         arch::cpu::Local::current()

@@ -1,11 +1,13 @@
 use wasm::instance::{Instance, VmCtx, get_function_addr};
 use wasm::{Module, ModuleEnvironment, DataInitializer};
+use wasm::compilation::TrapData;
 use memory::{Region, MemFlags};
 use nabi::{Result, Error};
 use core::mem;
 use alloc::Vec;
 use nil::{Ref, KernelRef};
 use cretonne_codegen::settings::{self, Configurable};
+use cretonne_codegen::ir::TrapCode;
 use cretonne_wasm::translate_module;
 use cretonne_native;
 
@@ -19,6 +21,7 @@ use cretonne_native;
 pub struct CodeRef {
     data_initializers: Vec<DataInitializer>,
     functions: Vec<usize>,
+    traps: Vec<TrapData>,
     module: Module,
     region: Region,
     start_func: extern fn(&VmCtx),
@@ -30,7 +33,7 @@ impl CodeRef {
         let (mut flag_builder, isa_builder) = cretonne_native::builders()
             .map_err(|_| internal_error!())?;
 
-        flag_builder.set("opt_level", "default")
+        flag_builder.set("opt_level", "best")
             .map_err(|_| internal_error!())?;
 
         let isa = isa_builder.finish(settings::Flags::new(flag_builder));
@@ -54,6 +57,7 @@ impl CodeRef {
         mut region: Region,
         start_func: *const (),
         functions: Vec<usize>,
+        traps: Vec<TrapData>,
     )
         -> Result<Ref<CodeRef>>
     {
@@ -72,6 +76,7 @@ impl CodeRef {
             functions,
             region,
             start_func,
+            traps,
         })
     }
 
@@ -91,5 +96,12 @@ impl CodeRef {
         } else {
             Err(Error::OUT_OF_BOUNDS)
         }
+    }
+
+    pub fn lookup_trap_code(&self, inst: *const ()) -> Option<TrapCode> {
+        let offset = (inst as *const u8) as usize - self.region.start().as_ptr::<u8>() as usize;
+        self.traps.iter()
+            .find(|trap_data| trap_data.offset == offset)
+            .map(|trap_data| trap_data.code)
     }
 }

@@ -1,7 +1,10 @@
 #![no_main]
 
 #[macro_use]
-extern crate userspace;
+extern crate sip;
+
+use sip::Channel;
+use std::str;
 
 static HELLO: &[u8] = b"Hello from wasm!";
 
@@ -14,13 +17,21 @@ fn clear_screen(buffer: &mut [u16]) {
 #[no_mangle]
 pub fn main() {
     println!("Mapping vga buffer.");
-    let vga_buffer = userspace::physical_map::<[u16; 80 * 25]>(0xb8000).unwrap();
+    let vga_buffer = sip::physical_map::<[u16; 80 * 25]>(0xb8000).unwrap();
 
     clear_screen(vga_buffer);
 
     for (i, &byte) in HELLO.iter().enumerate() {
         vga_buffer[i] = 0xe << 8 | byte as u16;
     }
+
+    let (mut tx, rx) = Channel::create().unwrap();
+
+    tx.write(HELLO).unwrap();
+
+    let buffer = rx.read().unwrap();
+
+    println!("{:?}", str::from_utf8(&buffer).unwrap());
 
     loop {}
 }

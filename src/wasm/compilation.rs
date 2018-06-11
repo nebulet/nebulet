@@ -3,7 +3,7 @@
 
 use super::module::{Module, Export};
 use super::{Relocation, Relocations, RelocationType, DataInitializer};
-use cretonne_codegen::{self, isa::TargetIsa, binemit::Reloc, ir::Signature};
+use cretonne_codegen::{self, isa::TargetIsa, binemit::{self, Reloc}, ir::{Signature, TrapCode, SourceLoc}};
 use cretonne_wasm::FunctionIndex;
 use super::RelocSink;
 use super::abi::{ABI_MAP, INTRINSIC_MAP};
@@ -43,7 +43,6 @@ pub enum FunctionType {
     }
 }
 
-#[derive(Debug)]
 pub struct Compilation {
     region: Region,
 
@@ -55,11 +54,14 @@ pub struct Compilation {
 
     /// The computed relocations
     relocations: Relocations,
+
+    /// List of traps and their offsets in the generated code
+    traps: Vec<TrapData>,
 }
 
 impl Compilation {
     /// Allocates the runtime data structures with the given flags
-    fn new(region: Region, functions: Vec<FunctionType>, relocations: Relocations) -> Self {
+    fn new(region: Region, functions: Vec<FunctionType>, relocations: Relocations, traps: Vec<TrapData>) -> Self {
         let first_local_function = functions
             .iter()
             .position(|f| match f {
@@ -72,6 +74,7 @@ impl Compilation {
             functions,
             first_local_function,
             relocations,
+            traps,
         }
     }
 
@@ -172,7 +175,7 @@ impl Compilation {
             })
             .collect();
 
-        CodeRef::new(module, data_initializers, self.region, start_ptr, local_func_list)
+        CodeRef::new(module, data_initializers, self.region, start_ptr, local_func_list, self.traps)
     }
 }
 
@@ -226,6 +229,7 @@ impl<'isa> Compiler<'isa> {
 
         let mut functions = Vec::with_capacity(module.functions.len());
         let mut relocs = Vec::with_capacity(self.contexts.len());
+        let mut traps = Vec::new();
 
         let mut offset = 0;
         let region_start = region.start().as_u64() as usize;
@@ -239,22 +243,52 @@ impl<'isa> Compiler<'isa> {
 
         // emit functions to memory
         for (ref ctx, size) in self.contexts.iter() {
-            // TODO(gmorenz): We probably want traps?
-            use cretonne_codegen::binemit::NullTrapSink;
-
+            let mut trap_sink = TrapSink::new(offset);
             let mut reloc_sink = RelocSink::new();
+
             unsafe {
-                ctx.emit_to_memory(self.isa, (region_start + offset) as *mut u8, &mut reloc_sink, &mut NullTrapSink {});
+                ctx.emit_to_memory(self.isa, (region_start + offset) as *mut u8, &mut reloc_sink, &mut trap_sink);
             }
             functions.push(FunctionType::Local {
                 offset,
                 size: *size,
             });
             relocs.push(reloc_sink.func_relocs);
+            traps.append(&mut trap_sink.trap_datas);
 
             offset += size;
         }
 
-        Ok(Compilation::new(region, functions, relocs))
+        Ok(Compilation::new(region, functions, relocs, traps))
+    }
+}
+
+pub struct TrapData {
+    pub offset: usize,
+    pub code: TrapCode,
+}
+
+/// Simple implementation of a TrapSink
+/// that saves the info for later.
+pub struct TrapSink {
+    current_func_offset: usize,
+    trap_datas: Vec<TrapData>,
+}
+
+impl TrapSink {
+    pub fn new(current_func_offset: usize) -> TrapSink {
+        TrapSink {
+            current_func_offset,
+            trap_datas: Vec::new(),
+        }
+    }
+}
+
+impl binemit::TrapSink for TrapSink {
+    fn trap(&mut self, offset: u32, _: SourceLoc, code: TrapCode) {
+        self.trap_datas.push(TrapData {
+            offset: self.current_func_offset + offset as usize,
+            code,
+        });
     }
 }

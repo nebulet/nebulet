@@ -38,6 +38,12 @@ impl<T> Ref<T> {
             ptr: bin.into_nonnull(),
         })
     }
+
+    pub unsafe fn dangling() -> Ref<T> {
+        Ref {
+            ptr: NonNull::dangling(),
+        }
+    }
 }
 
 impl<T: ?Sized> Ref<T> {
@@ -59,11 +65,11 @@ impl<T: ?Sized> Ref<T> {
         }
     }
 
-    pub fn inc_ref(&self) -> usize {
+    fn inc_ref(&self) -> usize {
         self.inner().count.fetch_add(1, Ordering::Relaxed)
     }
 
-    pub fn dec_ref(&self) -> usize {
+    fn dec_ref(&self) -> usize {
         self.inner().count.fetch_sub(1, Ordering::Release)
     }
 }
