@@ -1,7 +1,7 @@
 #![no_main]
 
 #[macro_use]
-extern crate userspace;
+extern crate sip;
 
 #[no_mangle]
 pub fn main() {

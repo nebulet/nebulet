@@ -54,12 +54,16 @@ impl Thread {
 extern fn common_thread_entry<F>()
     where F: FnOnce() + Send + Sync
 {
-    let thread = unsafe { &mut *Local::current_thread().as_ptr() };
+    let current_thread_ref = Local::current_thread();
 
-    let f = unsafe { (thread.entry as *const F).read() };
-    f();
+    {
+        let mut thread = current_thread_ref.inner().lock();
 
-    thread.state = State::Dead;
+        let f = unsafe { (thread.entry as *const F).read() };
+        f();
+
+        thread.state = State::Dead;
+    }
 
     unsafe {
         Local::current()
