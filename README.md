@@ -27,8 +27,8 @@ $> cd nebulet/ && rustup override set nightly
 $> git submodule update --init
 
 # compile the kernel
-$> bootimage build
+$> bootimage build --release
 
-# run qemu
+# compile and run the kernel in qemu
 $> bootimage run --release -- -serial stdio
 ```
