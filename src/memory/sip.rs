@@ -4,7 +4,7 @@ use x86_64::VirtAddr;
 use core::ops::{Deref, DerefMut};
 use core::mem;
 
-use memory::{Region, MemFlags};
+use memory::{LazyRegion, Region, MemFlags};
 
 use nabi::Result;
 
@@ -77,7 +77,15 @@ impl SipAllocator {
             self.bump += allocated_size;
 
             let flags = MemFlags::READ | MemFlags::WRITE;
-            let region = Region::new(start, requested_size, flags, true).ok()?;
+            let mut region = LazyRegion::new(start, requested_size, flags).ok()?;
+
+            // Map in the last page of the stack.
+            // This is a bit hacky, but it should prevent
+            // page faults before the thread starts running.
+            if region.size() >= Size4KiB::SIZE as _ {
+                let addr = region.start() + region.size() as u64 - Size4KiB::SIZE;
+                region.map_page(addr.as_ptr()).ok()?;
+            }
 
             Some(WasmStack {
                 region,
@@ -93,7 +101,7 @@ impl SipAllocator {
 /// will be unmapped.
 #[derive(Debug)]
 pub struct WasmMemory {
-    region: Region,
+    pub region: LazyRegion,
     total_size: usize,
 }
 
@@ -111,7 +119,7 @@ impl WasmMemory {
     /// The mapped size to start is `0`.
     pub fn with_capacity(start: VirtAddr, unmapped_size: usize, mapped_size: usize) -> Result<Self> {
         let flags = MemFlags::READ | MemFlags::WRITE;
-        let region = Region::new(start, mapped_size, flags, true)?;
+        let region = LazyRegion::new(start, mapped_size, flags)?;
 
         Ok(WasmMemory {
             region,
@@ -140,7 +148,7 @@ impl WasmMemory {
         if new_size > self.total_size {
             Err(internal_error!())
         } else {
-            self.region.resize(new_size, true)?;
+            self.region.resize(new_size)?;
             Ok(old_count)
         }
     }
@@ -231,6 +239,29 @@ impl WasmMemory {
     pub fn page_count(&self) -> usize {
         self.mapped_size() / Self::WASM_PAGE_SIZE
     }
+
+    pub fn in_mapped_bounds(&self, addr: *const ()) -> bool {
+        let start_mapped = self.start().as_ptr::<u8>() as usize;
+        let end_mapped = start_mapped + self.mapped_size();
+
+        (start_mapped..end_mapped).contains(&(addr as _))
+    }
+
+    pub fn in_unmapped_bounds(&self, addr: *const ()) -> bool {
+        let start_unmapped = self.start().as_ptr::<u8>() as usize + self.mapped_size();
+        let end_unmapped = start_unmapped + self.unmapped_size();
+
+        (start_unmapped..end_unmapped).contains(&(addr as _))
+    }
+
+    /// Map all the memory in the range [start_offset, end_offset).
+    pub fn map_range(&mut self, start_offset: usize, end_offset: usize) -> Result<()> {
+        let start = self.start().as_ptr::<u8>() as usize;
+        let start_addr = start + start_offset;
+        let end_addr = start + end_offset;
+
+        self.region.map_range(start_addr as _, end_addr as _)
+    }
 }
 
 impl Deref for WasmMemory {
@@ -248,7 +279,7 @@ impl DerefMut for WasmMemory {
 
 #[derive(Debug)]
 pub struct WasmStack {
-    region: Region,
+    pub region: LazyRegion,
     /// Should be region.size + 8192 (two guard pages)
     total_size: usize,
 }
@@ -278,6 +309,13 @@ impl WasmStack {
 
     pub fn total_size(&self) -> usize {
         self.total_size
+    }
+
+    pub fn addr_committed(&self, addr: *const ()) -> bool {
+        let start = self.region.start().as_ptr::<u8>() as usize;
+        let end = start + self.mapped_size();
+
+        (start..end).contains(&(addr as _))
     }
 }
 

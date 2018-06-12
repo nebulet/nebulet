@@ -18,6 +18,7 @@ struct RefInner<T: ?Sized> {
 /// Reference counted ptr for
 /// ensuring `KernelObject` lifetimes.
 #[repr(transparent)]
+#[derive(Debug)]
 pub struct Ref<T: ?Sized> {
     ptr: NonNull<RefInner<T>>,
 }

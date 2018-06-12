@@ -26,7 +26,6 @@ interrupt_stack!(bound_range_exceeded, _stack, {
 });
 
 interrupt_stack!(invalid_opcode, stack, {
-    // TODO: this is called when a trap occurs in wasm.
     let current_thread = Local::current_thread();
     let process = current_thread.parent();
     let code = process.code();
@@ -66,13 +65,42 @@ interrupt_stack_err!(general_protection_fault, _stack, _error, {
     loop {}
 });
 
-interrupt_stack_page!(page_fault, stack, error, {
-    println!("Page fault");
-    println!("{:?}|{:?}", error, stack);
-    let cr2: u64;
-    asm!("mov %cr2, $0" : "=r"(cr2));
-    println!("Faulting Address: {:#x}", cr2);
-    loop {}
+/// This is used to catch "out of bounds" wasm heap
+/// accesses, as well as to implement lazy paging.
+interrupt_stack_page!(page_fault, stack, _error, {
+    use cretonne_codegen::ir::TrapCode;
+
+    let faulting_addr: *const ();
+    asm!("mov %cr2, $0" : "=r"(faulting_addr));
+
+    let current_thread = Local::current_thread();
+
+    {
+        let mut thread = current_thread.inner().lock();
+        let stack = &mut thread.stack;
+
+        if stack.addr_committed(faulting_addr) {
+            let _ = stack.region.map_page(faulting_addr);
+            return;
+        }
+    }
+
+    let process = current_thread.parent();
+    let mut instance = process.instance().write();
+    let memory = &mut instance.memories[0];
+    
+    if likely!(memory.in_mapped_bounds(faulting_addr)) {
+        // this path should be as low-latency as possible.
+        // just map in the offending page
+        let _ = memory.region.map_page(faulting_addr);
+    } else if memory.in_unmapped_bounds(faulting_addr) {
+        process.handle_trap(TrapCode::HeapOutOfBounds);
+
+        loop {}
+    } else {
+        // Something serious has gone wrong here.
+        panic!("page fault: {:#?}", stack);
+    }
 });
 
 interrupt_stack!(x87_floating_point, _stack, {

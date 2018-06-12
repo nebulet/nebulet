@@ -21,6 +21,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "nebulet_abi"
 version = "0.1.0"
+source = "git+https://github.com/nebulet/abi#b815f90633fe9d8abc466a00a0ab75ad36fa010e"
 dependencies = [
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -28,8 +29,9 @@ dependencies = [
 [[package]]
 name = "sip"
 version = "0.1.0"
+source = "git+https://github.com/nebulet/libsip#961770f911e833b6b9d22d4dd9beab9e06477ce2"
 dependencies = [
- "nebulet_abi 0.1.0",
+ "nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)",
  "wee_alloc 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -45,7 +47,7 @@ dependencies = [
 name = "userspace"
 version = "0.1.0"
 dependencies = [
- "sip 0.1.0",
+ "sip 0.1.0 (git+https://github.com/nebulet/libsip)",
 ]
 
 [[package]]
@@ -89,6 +91,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum cfg-if 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "405216fd8fe65f718daa7102ea808a946b6ce40c742998fbfd3463645552de18"
 "checksum libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)" = "b685088df2b950fccadf07a7187c8ef846a959c142338a48f9dc0b94517eb5f1"
 "checksum memory_units 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8452105ba047068f40ff7093dd1d9da90898e63dd61736462e9cdda6a90ad3c3"
+"checksum nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)" = "<none>"
+"checksum sip 0.1.0 (git+https://github.com/nebulet/libsip)" = "<none>"
 "checksum unreachable 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "382810877fe448991dfc7f0dd6e3ae5d58088fd0ea5e35189655f84e6814fa56"
 "checksum void 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 "checksum wee_alloc 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dbcd062fbcffa61a4ff80da1acc790e45450f73636e31db6c5f133df34ef218b"

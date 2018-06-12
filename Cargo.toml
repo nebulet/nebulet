@@ -84,7 +84,7 @@ version = "0.5"
 default-features = false
 
 [dependencies.nebulet_abi]
-path = "nabi"
+git = "https://github.com/nebulet/abi"
 
 # Cretonne compiler
 [dependencies.target-lexicon]
@@ -115,6 +115,3 @@ features = ["core"]
 version = "0.16.1"
 default_features = false
 features = ["core"]
-
-# [replace]
-# "hashmap_core:0.1.5" = { git = "https://github.com/lachlansneff/hashmap_core" }

@@ -3,8 +3,8 @@
 #[macro_use]
 extern crate sip;
 
-use sip::Channel;
-use std::str;
+// use sip::Channel;
+// use std::str;
 
 static HELLO: &[u8] = b"Hello from wasm!";
 
@@ -24,14 +24,6 @@ pub fn main() {
     for (i, &byte) in HELLO.iter().enumerate() {
         vga_buffer[i] = 0xe << 8 | byte as u16;
     }
-
-    let (mut tx, rx) = Channel::create().unwrap();
-
-    tx.write(HELLO).unwrap();
-
-    let buffer = rx.read().unwrap();
-
-    println!("{:?}", str::from_utf8(&buffer).unwrap());
 
     loop {}
 }

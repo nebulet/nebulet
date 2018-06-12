@@ -49,7 +49,7 @@ impl PageMapper {
         self.table.update_flags(page, flags)
     }
 
-    pub fn translate(&mut self, page: Page<Size4KiB>) -> Option<PhysFrame> {
+    pub fn translate(&self, page: Page<Size4KiB>) -> Option<PhysFrame> {
         self.table.translate_page(page)
     }
     

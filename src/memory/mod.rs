@@ -4,7 +4,7 @@ mod region;
 pub mod sip;
 // pub mod mapped_array;
 
-pub use self::region::{Region, MemFlags};
+pub use self::region::{Region, LazyRegion, MemFlags};
 pub use self::sip::{WasmMemory, WasmStack};
 // pub use self::mapped_array::MappedArray;
 

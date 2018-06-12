@@ -29,6 +29,8 @@
     integer_atomics,
     platform_intrinsics,
     panic_implementation,
+    range_contains,
+    iterator_step_by,
 )]
 
 #![no_main]

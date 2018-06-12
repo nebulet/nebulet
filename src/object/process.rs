@@ -5,6 +5,7 @@ use nabi::Result;
 use nil::{Ref, KernelRef};
 use nil::mem::{Bin, Array};
 use spin::RwLock;
+use arch::cpu::Local;
 
 type ThreadList = Array<Ref<ThreadRef>>;
 
@@ -41,11 +42,10 @@ impl ProcessRef {
     }
 
     /// Start the process by spawning a thread at the entry point.
-    /// The handle of `0` will always be the initial thread.
     pub fn start(self: &Ref<Self>) -> Result<()> {
         let process = self.clone();
 
-        let thread = ThreadRef::new(self.clone(), 1024 * 1024, move || {
+        let thread = ThreadRef::new(self.clone(), 10 * 1024 * 1024, move || {
             let entry_point = process.code.start_func();
             let mut vmctx_backing = process.instance.write().generate_vmctx_backing();
             let vmctx = vmctx_backing.vmctx(process);
@@ -61,8 +61,29 @@ impl ProcessRef {
     }
 
     /// You just activated my trap card!
+    /// 
+    /// Being serious, almost all types of traps
+    /// entail a process shutdown. Cretonne does
+    /// support resumable traps, but they're not
+    /// currently used.
     pub fn handle_trap(&self, trap_code: TrapCode) {
         println!("Trap: \"{}\"", trap_code);
+
+        let current_thread = Local::current_thread();
+
+        // here, we need to kill all the threads in the process
+        // except the current thread. Since wasm currently
+        // only supports a single thread, this will always do nothing
+        // for now.
+        self.thread_list
+            .read()
+            .iter()
+            .filter(|thread| !thread.ptr_eq(&current_thread))
+            .for_each(|thread| {
+                thread.exit().expect("unable to kill thread");
+            });
+
+        current_thread.exit().unwrap();
     }
 
     pub fn name(&self) -> &RwLock<Option<Bin<str>>> {

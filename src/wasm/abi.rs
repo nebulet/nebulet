@@ -71,4 +71,9 @@ abi_map! {
         returns: I32,
         abi::intrinsics::current_memory,
     },
+    // debug_addr: {
+    //     params: [I64],
+    //     returns: VOID,
+    //     abi::intrinsics::debug_addr,
+    // },
 }

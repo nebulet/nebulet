@@ -140,10 +140,19 @@ impl Instance {
             self.memories.push(heap);
         }
 
+        // the wasm memories are lazily mapped,
+        // so we need to be careful to map
+        // in the pages that get initialized here.
         for init in data_initializers {
             debug_assert!(init.base.is_none(), "globalvar base not supported yet.");
+            let memory = &mut self.memories[init.memory_index];
 
-            let to_init = &mut self.memories[init.memory_index][init.offset..init.offset + init.data.len()];
+            let start_offset = init.offset;
+            let end_offset = init.offset + init.data.len();
+
+            memory.map_range(start_offset, end_offset).unwrap();
+
+            let to_init = &mut memory[start_offset..end_offset];
             to_init.copy_from_slice(&init.data);
         }
     }

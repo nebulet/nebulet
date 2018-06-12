@@ -55,7 +55,7 @@ impl ThreadRef {
         Ok(())
     }
 
-    pub fn exit(self: Ref<Self>) -> Result<()> {
+    pub fn exit(self: &Ref<Self>) -> Result<()> {
         
         Ok(())
     }
