@@ -22,7 +22,7 @@ memcpy = true
 
 [profile.release]
 lto = true
-# panic = "abort"
+panic = "abort"
 # for debugging in release mode
 # debug-assertions = true
 # debug = true

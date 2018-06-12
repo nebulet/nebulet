@@ -82,6 +82,7 @@ pub use consts::*;
 pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 
 pub fn kmain() -> ! {
+    println!("------------");
     println!("Nebulet v{}", VERSION);
 
     use object::{ProcessRef, CodeRef};
