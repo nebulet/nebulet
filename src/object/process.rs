@@ -45,7 +45,7 @@ impl ProcessRef {
     pub fn start(self: &Ref<Self>) -> Result<()> {
         let process = self.clone();
 
-        let thread = ThreadRef::new(self.clone(), 10 * 1024 * 1024, move || {
+        let thread = ThreadRef::new(self.clone(), 1024 * 1024, move || {
             let entry_point = process.code.start_func();
             let mut vmctx_backing = process.instance.write().generate_vmctx_backing();
             let vmctx = vmctx_backing.vmctx(process);

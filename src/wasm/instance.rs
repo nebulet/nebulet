@@ -149,7 +149,6 @@ impl Instance {
 
             let start_offset = init.offset;
             let end_offset = init.offset + init.data.len();
-
             memory.map_range(start_offset, end_offset).unwrap();
 
             let to_init = &mut memory[start_offset..end_offset];

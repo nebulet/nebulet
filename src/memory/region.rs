@@ -1,6 +1,7 @@
 
 use x86_64::{VirtAddr, PhysAddr};
-use x86_64::structures::paging::{Page, PhysFrame, PageSize, Size4KiB, PageTableFlags, PageRangeInclusive};
+use x86_64::structures::paging::{Page, PhysFrame, PageSize, Size4KiB,
+    PageTableFlags, PageRangeInclusive, MapToError, UnmapError};
 
 use arch::paging::PageMapper;
 
@@ -108,10 +109,10 @@ impl Region {
         let mut mapper = unsafe { PageMapper::new() };
 
         for page in self.pages() {
-            if mapper.translate(page).is_some() {
-                mapper.unmap(page)
-                    .map_err(|_| internal_error!())?
-                    .flush();
+            match mapper.unmap(page) {
+                Ok(mf) => mf.flush(),
+                Err(UnmapError::PageNotMapped) => {},
+                Err(_) => return Err(internal_error!()),
             }
         }
         Ok(())
@@ -145,7 +146,6 @@ impl Region {
             .zip(PhysFrame::range(start_frame, end_frame));
 
         for (page, frame) in iter {
-            assert!(mapper.translate(page).is_none());
             mapper.map_to(page, frame, self.flags)
                 .map_err(|_| internal_error!())?
                 .flush();
@@ -161,10 +161,10 @@ impl Region {
             let start_page = Page::containing_address(self.start + self.size as u64);
             let end_page = Page::containing_address(self.start + new_size as u64);
             for page in Page::range(start_page, end_page) {
-                if mapper.translate(page).is_none() {
-                    mapper.map(page, self.flags)
-                        .map_err(|_| internal_error!())?
-                        .flush();
+                match mapper.map(page, self.flags) {
+                    Ok(mf) => mf.flush(),
+                    Err(MapToError::PageAlreadyMapped) => {},
+                    Err(_) => return Err(internal_error!()),
                 }
             }
 
@@ -179,10 +179,10 @@ impl Region {
             let start_page = Page::containing_address(self.start + new_size as u64);
             let end_page = Page::containing_address(self.start + self.size as u64 - 1 as u64);
             for page in Page::range_inclusive(start_page, end_page) {
-                if mapper.translate(page.clone()).is_some() {
-                    mapper.unmap(page)
-                        .map_err(|_| internal_error!())?
-                        .flush();
+                match mapper.unmap(page) {
+                    Ok(mf) => mf.flush(),
+                    Err(UnmapError::PageNotMapped) => {},
+                    Err(_) => return Err(internal_error!()),
                 }
             }
         }
@@ -250,12 +250,9 @@ impl LazyRegion {
         let mut mapper = unsafe { PageMapper::new() };
         
         let page = Page::containing_address(VirtAddr::new(addr as _));
-        
+
         mapper.map(page, self.flags)
-            .map_err(|err| {
-                println!("{:?}", err);
-                internal_error!()
-            })?
+            .map_err(|_| internal_error!())?
             .flush();
         
         let page_ptr = page.start_address().as_mut_ptr();
@@ -275,17 +272,18 @@ impl LazyRegion {
         let mut mapper = unsafe { PageMapper::new() };
 
         for page in Page::range_inclusive(start_page, end_page) {
-            if mapper.translate(page).is_none() {
-                mapper.map(page, self.flags)
-                    .map_err(|_| internal_error!())?
-                    .flush();
+            match mapper.map(page, self.flags) {
+                Ok(mf) => {
+                    mf.flush();
+                    let page_ptr = page.start_address().as_mut_ptr();
 
-                let page_ptr = page.start_address().as_mut_ptr();
-
-                debug_assert!(self.flags.contains(PageTableFlags::WRITABLE));
-                unsafe {
-                    erms_memset(page_ptr, 0, Size4KiB::SIZE as _);
-                }
+                    debug_assert!(self.flags.contains(PageTableFlags::WRITABLE));
+                    unsafe {
+                        erms_memset(page_ptr, 0, Size4KiB::SIZE as _);
+                    }
+                },
+                Err(MapToError::PageAlreadyMapped) => {},
+                Err(_) => return Err(internal_error!()),
             }
         }
 
@@ -312,7 +310,6 @@ impl LazyRegion {
             .zip(PhysFrame::range(start_frame, end_frame));
 
         for (page, frame) in iter {
-            assert!(mapper.translate(page).is_none());
             mapper.map_to(page, frame, self.flags)
                 .map_err(|_| internal_error!())?
                 .flush();
@@ -331,10 +328,10 @@ impl LazyRegion {
         let mut mapper = unsafe { PageMapper::new() };
 
         for page in self.pages() {
-            if mapper.translate(page).is_some() {
-                mapper.unmap(page)
-                    .map_err(|_| internal_error!())?
-                    .flush();
+            match mapper.unmap(page) {
+                Ok(mf) => mf.flush(),
+                Err(UnmapError::PageNotMapped) => {},
+                Err(_) => return Err(internal_error!()),
             }
         }
         Ok(())
