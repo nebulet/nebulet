@@ -64,8 +64,6 @@ impl CodeRef {
         let flags = MemFlags::READ | MemFlags::EXEC;
         region.remap(flags)?;
 
-        assert!(region.contains(start_func as usize));
-
         let start_func = unsafe {
             mem::transmute(start_func)
         };

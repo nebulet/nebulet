@@ -96,7 +96,7 @@ impl Local {
             }
         }).unwrap();
 
-        let kernel_thread = ThreadRef::new(unsafe { Ref::dangling() }, 0, || {}).unwrap();
+        let kernel_thread = ThreadRef::new(unsafe { Ref::dangling() }, 4096, || {}).unwrap();
 
         idle_thread.set_state(State::Ready);
         kernel_thread.set_state(State::Ready);

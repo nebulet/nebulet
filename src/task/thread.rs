@@ -25,7 +25,7 @@ pub enum State {
 pub struct Thread {
     pub state: State,
     ctx: ThreadContext,
-    stack: WasmStack,
+    pub stack: WasmStack,
     entry: usize,
 }
 
@@ -56,11 +56,16 @@ extern fn common_thread_entry<F>()
 {
     let current_thread_ref = Local::current_thread();
 
+    let f = {
+        let thread = current_thread_ref.inner().lock();
+
+        unsafe { (thread.entry as *const F).read() }  
+    };
+
+    f();
+
     {
         let mut thread = current_thread_ref.inner().lock();
-
-        let f = unsafe { (thread.entry as *const F).read() };
-        f();
 
         thread.state = State::Dead;
     }

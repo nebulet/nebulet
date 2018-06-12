@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["Lachlan Sneff <lachlan.sneff@gmail.com>"]
 
 [dependencies.nebulet_abi]
-path = "../../nabi"
+git = "https://github.com/nebulet/abi"

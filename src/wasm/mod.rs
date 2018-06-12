@@ -288,6 +288,27 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
             offset,
         })
     }
+
+    // fn debug_addr(&mut self, pos: &mut FuncCursor, addr: ir::Value) {
+    //     let debug_addr_func = self.debug_addr_extfunc.unwrap_or_else(|| {
+    //         let sig_ref = pos.func.import_signature(Signature {
+    //             call_conv: CallConv::SystemV,
+    //             argument_bytes: None,
+    //             params: vec![AbiParam::new(I64), AbiParam::special(I64, ArgumentPurpose::VMContext)],
+    //             returns: vec![],
+    //         });
+    //         // FIXME: Use a real ExternalName system.
+    //         // TODO(gmorenz): Can colocated be true?
+    //         pos.func.import_function(ExtFuncData {
+    //             name: ExternalName::testcase("debug_addr"),
+    //             signature: sig_ref,
+    //             colocated: false,
+    //         })
+    //     });
+    //     self.debug_addr_extfunc = Some(debug_addr_func);
+    //     let vmctx = pos.func.special_param(ArgumentPurpose::VMContext).unwrap();
+    //     pos.ins().call(debug_addr_func, &[addr, vmctx]);
+    // }
 }
 
 impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'module_environment> {
@@ -713,7 +734,10 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
             let mut trans = FuncTranslator::new();
             let reader = wasmparser::BinaryReader::new(input);
             trans.translate_from_reader(reader, &mut context.func, &mut self.func_env())
-                .map_err(|_| nabi::internal_error!())?;
+                .map_err(|err| {
+                    println!("{:#?}", err);
+                    nabi::internal_error!()
+                })?;
 
             compiler.define_function(context)?;
         }
