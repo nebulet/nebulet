@@ -10,7 +10,6 @@
     thread_local,
     alloc,
     allocator_api,
-    global_allocator,
     global_asm,
     core_intrinsics,
     naked_functions,

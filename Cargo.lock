@@ -93,7 +93,13 @@ dependencies = [
 [[package]]
 name = "hashmap_core"
 version = "0.1.6"
+source = "git+https://github.com/lachlansneff/hashmap_core?branch=update-nightly#defd24c3483ae8ecd735be88818641738eed5751"
+
+[[package]]
+name = "hashmap_core"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "hashmap_core 0.1.6 (git+https://github.com/lachlansneff/hashmap_core?branch=update-nightly)"
 
 [[package]]
 name = "itoa"
@@ -329,6 +335,7 @@ dependencies = [
 "checksum dtoa 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "09c3753c3db574d215cba4ea76018483895d7bff25a31b49ba45db21c48e50ab"
 "checksum failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "934799b6c1de475a012a02dab0ace1ace43789ee4b99bcfbf1a2e3e8ced5de82"
 "checksum failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c7cdda555bb90c9bb67a3b670a0f42de8e73f5981524123ad8578aafec8ddb8b"
+"checksum hashmap_core 0.1.6 (git+https://github.com/lachlansneff/hashmap_core?branch=update-nightly)" = "<none>"
 "checksum hashmap_core 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "ecc8a00fa10ea061884d6b254c0aba4f5cd90c2bf719885629c57b876f8546ad"
 "checksum itoa 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c069bbec61e1ca5a596166e55dfe4773ff745c3d16b700013bcaff9a6df2c682"
 "checksum lazy_static 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e6412c5e2ad9584b0b8e979393122026cdd6d2a80b933f890dcd694ddbe73739"

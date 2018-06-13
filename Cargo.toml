@@ -115,3 +115,6 @@ features = ["core"]
 version = "0.16.1"
 default_features = false
 features = ["core"]
+
+[replace]
+"hashmap_core:0.1.6" = { git = "https://github.com/lachlansneff/hashmap_core", branch = "update-nightly" }
