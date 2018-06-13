@@ -1,7 +1,7 @@
-use alloc::heap::{Alloc, GlobalAlloc, Layout, AllocErr};
+use alloc::alloc::{GlobalAlloc, Layout, AllocErr};
+use core::alloc::Alloc;
 use core::cmp;
 use core::ptr::{self, NonNull};
-use core::alloc::Opaque;
 
 use arch::lock::IrqLock;
 
@@ -70,7 +70,7 @@ pub struct Allocator;
 
 unsafe impl<'a> Alloc for &'a Allocator {
     #[inline]
-    unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<Opaque>, AllocErr> {
+    unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
         let mut heap = HEAP.lock();
         let ptr = <Dlmalloc>::malloc(&mut heap, layout.size(), layout.align());
         if ptr.is_null() {
@@ -82,7 +82,7 @@ unsafe impl<'a> Alloc for &'a Allocator {
 
     #[inline]
     unsafe fn alloc_zeroed(&mut self, layout: Layout)
-        -> Result<NonNull<Opaque>, AllocErr>
+        -> Result<NonNull<u8>, AllocErr>
     {
         let mut heap = HEAP.lock();
         let ptr = <Dlmalloc>::calloc(&mut heap, layout.size(), layout.align());
@@ -94,16 +94,16 @@ unsafe impl<'a> Alloc for &'a Allocator {
     }
 
     #[inline]
-    unsafe fn dealloc(&mut self, ptr: NonNull<Opaque>, layout: Layout) {
+    unsafe fn dealloc(&mut self, ptr: NonNull<u8>, layout: Layout) {
         let mut heap = HEAP.lock();
         <Dlmalloc>::free(&mut heap, ptr.as_ptr() as _, layout.size(), layout.align())
     }
 
     #[inline]
     unsafe fn realloc(&mut self,
-                      ptr: NonNull<Opaque>,
+                      ptr: NonNull<u8>,
                       old_layout: Layout,
-                      new_size: usize) -> Result<NonNull<Opaque>, AllocErr> {
+                      new_size: usize) -> Result<NonNull<u8>, AllocErr> {
         let mut heap = HEAP.lock();
         let ptr = <Dlmalloc>::realloc(
             &mut heap,
@@ -123,17 +123,17 @@ unsafe impl<'a> Alloc for &'a Allocator {
 }
 
 unsafe impl GlobalAlloc for Allocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut Opaque {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let mut heap = HEAP.lock();
         <Dlmalloc>::calloc(&mut heap, layout.size(), layout.align()) as _
     }
 
-    unsafe fn dealloc(&self, ptr: *mut Opaque, layout: Layout) {
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let mut heap = HEAP.lock();
         <Dlmalloc>::free(&mut heap, ptr as _, layout.size(), layout.align())
     }
 
-    unsafe fn realloc(&self, ptr: *mut Opaque, layout: Layout, new_size: usize) -> *mut Opaque {
+    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         let mut heap = HEAP.lock();
         <Dlmalloc>::realloc(
             &mut heap,

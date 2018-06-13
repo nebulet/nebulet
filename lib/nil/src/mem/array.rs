@@ -1,6 +1,6 @@
 use nabi::{Result, Error};
-use alloc::heap::{Global, Layout};
-use core::alloc::GlobalAlloc;
+use alloc::alloc::{Global, Layout};
+use core::alloc::Alloc;
 use core::ptr::{self, NonNull};
 use core::mem;
 use core::ops::{Deref, DerefMut};
@@ -36,14 +36,10 @@ impl<T> Array<T> {
 
             let ptr = unsafe {
                 Global.alloc(layout)
-            };
-
-            let nonnull = NonNull::new(ptr)
-                .ok_or(Error::NO_MEMORY)?
-                .cast::<T>();
+            }.map_err(|_| Error::NO_MEMORY)?;
             
             Ok(Array {
-                backing: nonnull,
+                backing: ptr.cast(),
                 len: 0,
                 capacity,
             })
@@ -99,17 +95,13 @@ impl<T> Array<T> {
 
         let ptr = unsafe {
             Global.realloc(
-                self.backing.as_opaque().as_ptr(),
+                self.backing.cast(),
                 layout,
                 new_size
             )
-        };
-
-        let nonnull = NonNull::new(ptr)
-            .ok_or(Error::NO_MEMORY)?
-            .cast::<T>();
+        }.map_err(|_| Error::NO_MEMORY)?;
         
-        self.backing = nonnull;
+        self.backing = ptr.cast();
         self.capacity = new_size;
 
         Ok(())

@@ -3,8 +3,8 @@ use core::mem;
 use core::ops::{Deref, DerefMut, CoerceUnsized};
 use core::marker::Unsize;
 use nabi::{Result, Error};
-use alloc::heap::{Global, Layout};
-use core::alloc::GlobalAlloc;
+use alloc::alloc::{Global, Layout};
+use core::alloc::Alloc;
 
 pub struct Bin<T: ?Sized> {
     ptr: NonNull<T>,
@@ -20,20 +20,20 @@ impl<T> Bin<T> {
         let layout = Layout::from_size_align(mem::size_of::<T>(), 16)
             .map_err(|_| Error::INTERNAL)?;
         
-        let ptr = unsafe {
+        let ptr_res = unsafe {
             Global.alloc(layout)
         };
 
-        let nonnull = NonNull::new(ptr)
-            .ok_or(Error::NO_MEMORY)?
+        let ptr = ptr_res
+            .map_err(|_| Error::NO_MEMORY)?
             .cast::<T>();
 
         unsafe {
-            nonnull.as_ptr().write(data);
+            ptr.as_ptr().write(data);
         }
 
         Ok(Bin {
-            ptr: nonnull,
+            ptr,
         })
     }
 }
@@ -76,7 +76,7 @@ impl<T: ?Sized> Drop for Bin<T> {
         unsafe {
             drop_in_place(ptr.as_ptr());
             
-            Global.dealloc(ptr.as_opaque().as_ptr(), Layout::for_value(self));
+            Global.dealloc(ptr.cast(), Layout::for_value(self));
         }
     }
 }
