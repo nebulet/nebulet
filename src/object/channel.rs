@@ -31,13 +31,13 @@ impl Message {
 /// for transferring data
 /// between processes.
 #[derive(KernelRef)]
-pub struct ChannelRef {
+pub struct Channel {
     msg_buffer: IrqLock<VecDeque<Message>>,
 }
 
-impl ChannelRef {
+impl Channel {
     pub fn new() -> Result<Ref<Self>> {
-        Ref::new(ChannelRef {
+        Ref::new(Channel {
             msg_buffer: IrqLock::new(VecDeque::new()),
         })
     }

@@ -1,4 +1,4 @@
-use object::{Process, MonoCopyRef, ChannelRef, Message, HandleRights, HandleOffset};
+use object::{Process, MonoCopyRef, Channel, Message, HandleRights, HandleOffset};
 use nil::Ref;
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
@@ -29,7 +29,7 @@ pub fn monocopy_create(buffer_offset: u32, buffer_size: u32, process: &Ref<Proce
 
 #[nebulet_abi]
 pub fn channel_create(handle_tx_offset: u32, handle_rx_offset: u32, process: &Process) -> Result<u32> {
-    let channel = ChannelRef::new()?;
+    let channel = Channel::new()?;
     
     let (handle_tx, handle_rx) = {
         let mut handle_table = process.handle_table().write();
@@ -72,7 +72,7 @@ pub fn channel_write(channel_handle: HandleOffset, buffer_offset: u32, buffer_si
     handle_table
         .get(channel_handle as _)?
         .check_rights(HandleRights::WRITE)?
-        .cast_ref::<ChannelRef>()?
+        .cast_ref::<Channel>()?
         .write(msg)?;
 
     Ok(0)
@@ -87,7 +87,7 @@ pub fn channel_read(channel_handle: HandleOffset, buffer_offset: u32, buffer_siz
         handle_table
             .get(channel_handle as _)?
             .check_rights(HandleRights::READ)?
-            .cast::<ChannelRef>()?
+            .cast::<Channel>()?
     };
 
     let msg = chan_ref.read()?;
