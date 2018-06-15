@@ -13,7 +13,7 @@ pub use self::handle::{Handle, HandleOffset};
 pub use self::table::HandleTable;
 pub use nabi::HandleRights;
 
-pub use self::thread::ThreadRef;
+pub use self::thread::Thread;
 pub use self::process::ProcessRef;
 pub use self::code::CodeRef;
 pub use self::mono_copy::MonoCopyRef;

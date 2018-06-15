@@ -10,7 +10,7 @@ use common::mpsc::Sender;
 
 use alloc::boxed::Box;
 use nil::Ref;
-use object::ThreadRef;
+use object::Thread;
 
 // static GLOBAL: Once<Global> = Once::new();
 
@@ -86,20 +86,20 @@ pub struct Local {
     /// The scheduler associated with this cpu.
     scheduler: Scheduler,
     /// Pointer to current thread.
-    current_thread: Ref<ThreadRef>,
+    current_thread: Ref<Thread>,
     /// Sender for threads
-    thread_tx: Sender<Ref<ThreadRef>>,
+    thread_tx: Sender<Ref<Thread>>,
 }
 
 impl Local {
     fn new(cpu: &'static mut Cpu) -> Local {
-        let idle_thread = ThreadRef::new(unsafe { Ref::dangling() }, 4096, || {
+        let idle_thread = Thread::new(unsafe { Ref::dangling() }, 4096, || {
             loop {
                 unsafe { ::arch::interrupt::halt(); }
             }
         }).unwrap();
 
-        let kernel_thread = ThreadRef::new(unsafe { Ref::dangling() }, 4096, || {}).unwrap();
+        let kernel_thread = Thread::new(unsafe { Ref::dangling() }, 4096, || {}).unwrap();
 
         idle_thread.set_state(State::Ready);
         kernel_thread.set_state(State::Ready);
@@ -123,15 +123,15 @@ impl Local {
         }
     }
 
-    pub fn current_thread() -> Ref<ThreadRef> {
+    pub fn current_thread() -> Ref<Thread> {
         Self::current().current_thread.clone()
     }
 
-    pub fn set_current_thread(thread: Ref<ThreadRef>) {
+    pub fn set_current_thread(thread: Ref<Thread>) {
         Self::current().current_thread = thread;
     }
 
-    pub fn schedule_thread(thread: Ref<ThreadRef>) {
+    pub fn schedule_thread(thread: Ref<Thread>) {
         Self::current().thread_tx.send(thread);
     }
 

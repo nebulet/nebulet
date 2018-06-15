@@ -3,12 +3,12 @@ use nil::{Ref, KernelRef};
 use core::sync::atomic::{AtomicIsize, Ordering};
 use arch::lock::Spinlock;
 use arch::cpu::Local;
-use object::ThreadRef;
+use object::Thread;
 use task::State;
 
 #[derive(KernelRef)]
 pub struct Mutex {
-    wait_queue: Spinlock<VecDeque<Ref<ThreadRef>>>,
+    wait_queue: Spinlock<VecDeque<Ref<Thread>>>,
     counter: AtomicIsize,
 }
 

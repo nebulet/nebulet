@@ -1,4 +1,4 @@
-use task::{Thread, State};
+use task::{Thread as TaskThread, State};
 use object::ProcessRef;
 use arch::cpu::Local;
 use nabi::Result;
@@ -8,24 +8,24 @@ use arch::lock::IrqSpinlock;
 
 /// Represents a thread.
 #[derive(KernelRef)]
-pub struct ThreadRef {
-    thread: IrqSpinlock<Thread>,
+pub struct Thread {
+    thread: IrqSpinlock<TaskThread>,
     parent: Ref<ProcessRef>,
 }
 
-impl ThreadRef {
-    pub fn new<F>(parent: Ref<ProcessRef>, stack_size: usize, f: F) -> Result<Ref<ThreadRef>>
+impl Thread {
+    pub fn new<F>(parent: Ref<ProcessRef>, stack_size: usize, f: F) -> Result<Ref<Thread>>
         where F: FnOnce() + Send + Sync
     {
-        let thread = IrqSpinlock::new(Thread::new(stack_size, Bin::new(move || f())?)?);
+        let thread = IrqSpinlock::new(TaskThread::new(stack_size, Bin::new(move || f())?)?);
 
-        Ref::new(ThreadRef {
+        Ref::new(Thread {
             thread,
             parent,
         })
     }
 
-    pub fn inner(&self) -> &IrqSpinlock<Thread> {
+    pub fn inner(&self) -> &IrqSpinlock<TaskThread> {
         &self.thread
     }
 
