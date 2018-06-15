@@ -71,9 +71,7 @@ extern fn common_thread_entry<F>()
     }
 
     unsafe {
-        Local::current()
-        .scheduler
-        .switch();
+        Local::context_switch();
     }
 
     unreachable!();

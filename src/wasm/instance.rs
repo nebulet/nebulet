@@ -20,26 +20,49 @@ pub fn get_function_addr(base: *const (), functions: &[usize], func_index: Funct
     (base as usize + offset) as _
 }
 
-pub struct VmCtxBacking {
+pub struct VmCtxGenerator {
     globals: UncheckedSlice<u8>,
     memories: Vec<UncheckedSlice<u8>>,
     tables: Vec<BoundedSlice<usize>>,
 }
 
-impl VmCtxBacking {
-    pub fn vmctx(&mut self, process: Ref<ProcessRef>) -> VmCtx {
-        VmCtx {
+impl VmCtxGenerator {
+    pub fn vmctx(&mut self, process: Ref<ProcessRef>) -> &VmCtx {
+        assert!(self.memories.len() >= 1, "modules must have at least one memory");
+        // the first memory has a space of `mem::size_of::<VmCtxData>()` rounded
+        // up to the 4KiB before it. We write the VmCtxData into that.
+        let data = VmCtxData {
             globals: self.globals,
-            memories: (&*self.memories).into(),
-            tables: (&*self.tables).into(),
+            memories: self.memories[1..].into(),
+            tables: self.tables[..].into(),
             process,
             phantom: PhantomData,
+        };
+
+        let main_heap_ptr = self.memories[0].as_mut_ptr() as *mut VmCtxData;
+        unsafe {
+            main_heap_ptr
+                .sub(1)
+                .write(data);
+            &*(main_heap_ptr as *const VmCtx)
+        }
+    }
+}
+
+/// Zero-sized, non-instantiable type.
+pub enum VmCtx {}
+
+impl VmCtx {
+    pub fn data(&self) -> &VmCtxData {
+        let heap_ptr = self as *const _ as *const VmCtxData;
+        unsafe {
+            &*heap_ptr.sub(1)
         }
     }
 }
 
 #[repr(C)]
-pub struct VmCtx<'a> {
+pub struct VmCtxData<'a> {
     globals: UncheckedSlice<u8>,
     memories: UncheckedSlice<UncheckedSlice<u8>>,
     tables: UncheckedSlice<BoundedSlice<usize>>,
@@ -76,25 +99,19 @@ impl Instance {
         result
     }
 
-    pub fn generate_vmctx_backing(&mut self) -> VmCtxBacking {
+    pub fn generate_vmctx_backing(&mut self) -> VmCtxGenerator {
         let memories = self.memories.iter_mut()
-            .map(|mem| {
-                let slice: &[u8] = &*mem;
-                slice.into()
-            })
+            .map(|mem| mem[..].into())
             .collect();
 
         let tables = self.tables.iter_mut()
-            .map(|table| {
-                let slice: &[usize] = &*table;
-                slice.into()
-            })
+            .map(|table| table[..].into())
             .collect();
         
-        VmCtxBacking {
+        VmCtxGenerator {
+            globals: self.globals[..].into(),
             memories,
             tables,
-            globals: (&*self.globals).into(),
         }
     }
 
@@ -111,7 +128,7 @@ impl Instance {
         }
         // instantiate tables
         for table_element in &module.table_elements {
-            debug_assert!(table_element.base.is_none(), "globalvar base not supported yet.");
+            debug_assert!(table_element.base.is_none(), "globalvalue base not supported yet.");
             let base = 0;
 
             let table = &mut self.tables[table_element.table_index];
@@ -132,8 +149,14 @@ impl Instance {
         // Allocate the underlying memory and initialize it to all zeros
         self.memories.reserve_exact(module.memories.len());
 
-        for memory in &module.memories {
-            let mut heap = WasmMemory::allocate()
+        for (i, memory) in module.memories.iter().enumerate() {
+            let pre_space = if i == 0 { // first memory
+                mem::size_of::<VmCtxData>()
+            } else {
+                0
+            };
+
+            let mut heap = WasmMemory::allocate(pre_space)
                 .expect("Could not allocate wasm memory");
             heap.grow(memory.pages_count)
                 .expect("Could not grow wasm heap to initial size");
@@ -144,7 +167,7 @@ impl Instance {
         // so we need to be careful to map
         // in the pages that get initialized here.
         for init in data_initializers {
-            debug_assert!(init.base.is_none(), "globalvar base not supported yet.");
+            debug_assert!(init.base.is_none(), "globalvalue base not supported yet.");
             let memory = &mut self.memories[init.memory_index];
 
             let start_offset = init.offset;

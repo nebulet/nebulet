@@ -7,4 +7,5 @@ authors = ["The Nebulet OS Authors"]
 lto = true
 
 [dependencies.sip]
-git = "https://github.com/nebulet/libsip"
+# git = "https://github.com/nebulet/libsip"
+path = "../../libsip"

@@ -47,10 +47,9 @@ impl ProcessRef {
 
         let thread = ThreadRef::new(self.clone(), 1024 * 1024, move || {
             let entry_point = process.code.start_func();
-            let mut vmctx_backing = process.instance.write().generate_vmctx_backing();
-            let vmctx = vmctx_backing.vmctx(process);
-            let vmctx_bin = Bin::new(vmctx).unwrap();
-            entry_point(&vmctx_bin);
+            let mut vmctx_gen = process.instance.write().generate_vmctx_backing();
+            let vmctx_ref = vmctx_gen.vmctx(process);
+            entry_point(vmctx_ref);
         })?;
 
         self.thread_list.write().push(thread.clone())?;

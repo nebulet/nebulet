@@ -64,8 +64,9 @@ fn wrap_nebulet_abi(mut fn_item: syn::ItemFn) -> proc_macro2::TokenStream {
 
                 use wasm::instance::VmCtx;
                 let vmctx = unsafe { &*(vmctx as *const VmCtx) };
+                let data = vmctx.data();
 
-                let process = &vmctx.process;
+                let process = &data.process;
                 inner(#inner_inputs)
             }
         }
@@ -77,8 +78,9 @@ fn wrap_nebulet_abi(mut fn_item: syn::ItemFn) -> proc_macro2::TokenStream {
 
                 use wasm::instance::VmCtx;
                 let vmctx = unsafe { &*(vmctx as *const VmCtx) };
+                let data = vmctx.data();
 
-                let process = &vmctx.process;
+                let process = &data.process;
                 let res = inner(#inner_inputs);
                 Error::mux(res)
             }

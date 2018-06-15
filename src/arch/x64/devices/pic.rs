@@ -1,5 +1,8 @@
 use x86_64::instructions::port::Port;
 
+pub const MASTER_OFFSET: u8 = 0x20;
+pub const SLAVE_OFFSET: u8 = 0x28;
+
 pub static mut MASTER: Pic = Pic::new(0x20);
 pub static mut SLAVE: Pic = Pic::new(0xA0);
 
@@ -7,6 +10,9 @@ pub static mut SLAVE: Pic = Pic::new(0xA0);
 pub unsafe fn init() {
     let mut wait_port: Port<u8> = Port::new(0x80);
     let mut wait = || wait_port.write(0);
+    
+    let mut master_mask = MASTER.data.read();
+    let slave_mask = SLAVE.data.read();
 
     // Start initialization
     MASTER.cmd.write(0x11);
@@ -15,9 +21,9 @@ pub unsafe fn init() {
     wait();
 
     // Set offsets
-    MASTER.data.write(0x20);
+    MASTER.data.write(MASTER_OFFSET);
     wait();
-    SLAVE.data.write(0x28);
+    SLAVE.data.write(SLAVE_OFFSET);
     wait();
 
     // Set up cascade
@@ -32,9 +38,11 @@ pub unsafe fn init() {
     SLAVE.data.write(1);
     wait();
 
-    // clear all masks
-    MASTER.data.write(0);
-    SLAVE.data.write(0);
+    master_mask &= !(1 << 0);
+
+    // restore masks
+    MASTER.data.write(master_mask);
+    SLAVE.data.write(slave_mask);
 
     MASTER.ack();
     SLAVE.ack();

@@ -16,3 +16,5 @@ pub mod intrinsics;
 pub mod io;
 /// ABIs for drivers
 pub mod driver;
+/// ABIs for irqs
+pub mod irq;

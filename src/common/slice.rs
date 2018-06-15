@@ -19,6 +19,20 @@ impl<T> UncheckedSlice<T> {
         let ptr = self.ptr.as_ptr();
         &mut*(ptr.add(index) as *mut _)
     }
+
+    pub unsafe fn dangling() -> UncheckedSlice<T> {
+        UncheckedSlice {
+            ptr: NonNull::dangling(),
+        }
+    }
+
+    pub fn as_ptr(&self) -> *const T {
+        self.ptr.as_ptr()
+    }
+
+    pub fn as_mut_ptr(&mut self) -> *mut T {
+        self.ptr.as_ptr()
+    }
 }
 
 impl<'a, T> From<&'a [T]> for UncheckedSlice<T> {

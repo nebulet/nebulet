@@ -1,37 +1,35 @@
-use alloc::VecDeque;
 use super::thread::{Thread, State};
 use arch::cpu::Local;
-use arch::lock::IrqSpinlock;
+use common::mpsc::{Mpsc, Reciever, Sender};
 use object::ThreadRef;
 use nil::Ref;
 
 /// The Scheduler schedules threads to be run.
 /// Currently, it's a simple, round-robin.
 pub struct Scheduler {
-    ready_queue: IrqSpinlock<VecDeque<Ref<ThreadRef>>>,
+    thread_tx: Sender<Ref<ThreadRef>>,
+    thread_rx: Reciever<Ref<ThreadRef>>,
     idle_thread: Ref<ThreadRef>,
 }
 
 impl Scheduler {
     pub fn new(idle_thread: Ref<ThreadRef>) -> Scheduler {
+        let (thread_tx, thread_rx) = Mpsc::new();
         Scheduler {
-            ready_queue: IrqSpinlock::new(VecDeque::new()),
+            thread_tx,
+            thread_rx,
             idle_thread,
         }
     }
-    
-    /// Adds a thread index to the end of the queue.
-    pub fn push(&self, thread: Ref<ThreadRef>) {
-        self.ready_queue
-            .lock()
-            .push_back(thread);
+
+    pub fn thread_sender(&self) -> Sender<Ref<ThreadRef>> {
+        self.thread_tx.clone()
     }
 
     pub unsafe fn switch(&self) {
-        let mut ready_queue = self.ready_queue.lock();
         let current_thread = Local::current_thread();
 
-        let next_thread = if let Some(next_thread) = ready_queue.pop_front() {
+        let next_thread = if let Some(next_thread) = self.thread_rx.recv() {
             next_thread
         } else {
             if current_thread.state() == State::Running {
@@ -49,7 +47,7 @@ impl Scheduler {
 
         if current_thread.state() == State::Running && !current_thread.ptr_eq(&self.idle_thread) {
             current_thread.set_state(State::Ready);
-            ready_queue.push_back(current_thread.clone());
+            self.thread_tx.send(current_thread.clone());
         }
 
         next_thread.set_state(State::Running);
@@ -62,9 +60,6 @@ impl Scheduler {
                 &*(&*next_thread.inner().lock() as *const Thread),
             )
         };
-
-        // Release the lock so we don't deadlock
-        ready_queue.release();
 
         current_thread_inner.swap(next_thread_inner);
     }
