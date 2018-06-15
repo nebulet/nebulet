@@ -48,9 +48,7 @@ impl ThreadRef {
         });
         self.set_state(State::Ready);
 
-        Local::current()
-            .scheduler
-            .push(self.clone());
+        Local::schedule_thread(self.clone());
         
         Ok(())
     }

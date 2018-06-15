@@ -57,6 +57,21 @@ abi_map! {
         returns: I64,
         abi::driver::physical_map,
     },
+    read_port_u8: {
+        params: [I32],
+        returns: I32,
+        abi::io::read_port_u8,
+    },
+    write_port_u8: {
+        params: [I32, I32],
+        returns: VOID,
+        abi::io::write_port_u8,
+    },
+    set_irq_handler: {
+        params: [I32, I32],
+        returns: VOID,
+        abi::irq::set_irq_handler,
+    },
 }
 
 abi_map! {

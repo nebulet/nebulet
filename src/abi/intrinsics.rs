@@ -3,7 +3,8 @@ use wasm::instance::VmCtx;
 
 /// `count` is the number of wasm pages to grow the memory by.
 pub extern fn grow_memory(count: u32, vmctx: &VmCtx) -> i32 {
-    let process: &ProcessRef = &*vmctx.process;
+    let data = vmctx.data();
+    let process: &ProcessRef = &*data.process;
     let mut instance = process.instance().write();
     let memory = &mut instance.memories[0];
 
@@ -15,7 +16,8 @@ pub extern fn grow_memory(count: u32, vmctx: &VmCtx) -> i32 {
 }
 
 pub extern fn current_memory(vmctx: &VmCtx) -> u32 {
-    let process: &ProcessRef = &*vmctx.process;
+    let data = vmctx.data();
+    let process: &ProcessRef = &*data.process;
     let instance = process.instance().read();
     let memory = &instance.memories[0];
 

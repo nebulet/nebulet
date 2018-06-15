@@ -46,17 +46,38 @@ impl SipAllocator {
     }
 
     /// Allocate a `Memory`.
-    fn allocate_wasm_memory(&mut self) -> Option<WasmMemory> {
-        let allocated_size = WasmMemory::DEFAULT_SIZE; // 8 GiB
+    fn allocate_wasm_memory(&mut self, pre_space: usize) -> Option<WasmMemory> {
+        let pre_space = if pre_space != 0 {
+            let rem = pre_space % Size4KiB::SIZE as usize;
+            pre_space + Size4KiB::SIZE as usize - rem
+        } else {
+            0
+        };
+
+        let allocated_size = WasmMemory::DEFAULT_SIZE + pre_space; // 8 GiB
 
         if self.bump + allocated_size > self.end {
             None
         } else {
-            let virt_addr = VirtAddr::new(self.bump as u64);
+            let virt_addr = VirtAddr::new((self.bump + pre_space) as u64);
+
+            let flags = MemFlags::READ | MemFlags::WRITE;
+
+            let region = LazyRegion::new(virt_addr, 0, flags).ok()?;
+
+            let pre_region = if pre_space != 0 {
+                Some(Region::new(VirtAddr::new(self.bump as _), pre_space, flags, true).ok()?)
+            } else {
+                None
+            };
 
             self.bump += allocated_size;
 
-            WasmMemory::new(virt_addr).ok()
+            Some(WasmMemory {
+                region,
+                total_size: WasmMemory::DEFAULT_SIZE,
+                pre_region,
+            })
         }
     }
 
@@ -103,33 +124,17 @@ impl SipAllocator {
 pub struct WasmMemory {
     pub region: LazyRegion,
     total_size: usize,
+    pub pre_region: Option<Region>,
 }
 
 impl WasmMemory {
     pub const WASM_PAGE_SIZE: usize = 1 << 16; // 64 KiB
     pub const DEFAULT_HEAP_SIZE: usize = 1 << 32; // 4 GiB
-    pub const DEFAULT_GUARD_SIZE: usize = 1 << 32; // 4 GiB
+    pub const DEFAULT_GUARD_SIZE: usize = 1 << 31; // 2 GiB
     pub const DEFAULT_SIZE: usize = Self::DEFAULT_HEAP_SIZE + Self::DEFAULT_GUARD_SIZE; // 8GiB
 
-    pub fn allocate() -> Option<WasmMemory> {
-        super::SIP_ALLOCATOR.lock().allocate_wasm_memory()
-    }
-
-    /// Create a completely unmapped `Memory` with unmapped size of `size`.
-    /// The mapped size to start is `0`.
-    pub fn with_capacity(start: VirtAddr, unmapped_size: usize, mapped_size: usize) -> Result<Self> {
-        let flags = MemFlags::READ | MemFlags::WRITE;
-        let region = LazyRegion::new(start, mapped_size, flags)?;
-
-        Ok(WasmMemory {
-            region,
-            total_size: unmapped_size + mapped_size,
-        })
-    }
-
-    /// Create a new `Memory` with an unmapped size of 4 + 2 GiB and a mapped size of `0`.
-    pub fn new(start: VirtAddr) -> Result<Self> {
-        Self::with_capacity(start, Self::DEFAULT_SIZE, 0)
+    pub fn allocate(pre_space: usize) -> Option<WasmMemory> {
+        super::SIP_ALLOCATOR.lock().allocate_wasm_memory(pre_space)
     }
 
     /// Map virtual memory to physical memory by 

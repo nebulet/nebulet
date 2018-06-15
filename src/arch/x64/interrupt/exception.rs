@@ -51,10 +51,7 @@ interrupt_stack_err!(invalid_tss, _stack, _error, {
     println!("Invalid TSS fault");
 });
 
-interrupt_stack_err!(segment_not_present, stack, error, {
-    println!("Segment not present fault");
-    println!("{}|{:?}", error, stack);
-});
+interrupt_stack_err!(segment_not_present, _stack, _error, {});
 
 interrupt_stack_err!(stack_segment_fault, _stack, _error, {
     println!("Stack-Segment fault");
@@ -67,7 +64,7 @@ interrupt_stack_err!(general_protection_fault, _stack, _error, {
 
 /// This is used to catch "out of bounds" wasm heap
 /// accesses, as well as to implement lazy paging.
-interrupt_stack_page!(page_fault, stack, _error, {
+interrupt_stack_page!(page_fault, stack, error, {
     use cretonne_codegen::ir::TrapCode;
 
     let faulting_addr: *const ();
@@ -99,7 +96,7 @@ interrupt_stack_page!(page_fault, stack, _error, {
         loop {}
     } else {
         // Something serious has gone wrong here.
-        panic!("page fault: {:#?}", stack);
+        panic!("page fault at {:p} with {:?}: {:#?}", faulting_addr, error, stack);
     }
 });
 

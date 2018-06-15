@@ -1,12 +1,10 @@
-
+use core::ops::{Deref, DerefMut};
 use x86_64::structures::idt::Idt;
 use x86_64::structures::tss::TaskStateSegment;
-use arch::interrupt::*;
+use arch::interrupt::{*, self};
 use spin::Once;
 
-lazy_static! {
-    pub static ref IDT: Idt = default_idt();
-}
+pub static mut IDT: Idt = Idt::new();
 
 static TSS: Once<TaskStateSegment> = Once::new();
 static GDT: Once<gdt::Gdt> = Once::new();
@@ -35,7 +33,7 @@ pub fn default_idt() -> Idt {
     idt.security_exception.set_handler_fn(exception::security);
 
     idt[32].set_handler_fn(irq::pit);
-    idt[33].set_handler_fn(irq::keyboard);
+    // idt[33].set_handler_fn(irq::keyboard);
 
     // idt[40].set_handler_fn(irq::rtc);
 
@@ -70,7 +68,44 @@ pub fn init() {
         set_cs(code_selector);
         // load TSS
         load_tss(tss_selector);
+        // load IDT
+        IDT = default_idt();
+        IDT.load();
     }
+}
 
-    IDT.load();
+pub struct IdtGuard {
+    inner: &'static mut Idt
+}
+
+impl <'a> Deref for IdtGuard {
+    type Target=Idt;
+    fn deref(&self) -> &Idt {
+        self.inner
+    }
+}
+
+impl <'a> DerefMut for IdtGuard {
+    fn deref_mut(&mut self) -> &mut Idt {
+        self.inner
+    }
+}
+
+impl IdtGuard {
+    /// It is only safe to call this function if interrupts can be enabled when
+    /// you drop the result of the call... ugh.
+    pub unsafe fn new() -> IdtGuard {
+        interrupt::disable();
+        IdtGuard {
+            inner: &mut IDT
+        }
+    }
+}
+
+impl Drop for IdtGuard {
+    fn drop(&mut self) {
+        unsafe {
+            interrupt::enable();
+        }
+    }
 }

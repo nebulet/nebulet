@@ -2,7 +2,7 @@ use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use arch::devices::pic;
 use arch::macros::interrupt;
 use arch;
-use x86_64::instructions::port::Port;
+// use x86_64::instructions::port::Port;
 use arch::cpu::Local;
 
 pub static PIT_TICKS: AtomicUsize = ATOMIC_USIZE_INIT;
@@ -33,19 +33,17 @@ interrupt!(pit, {
         PIT_TICKS.store(0, Ordering::SeqCst);
 
         arch::interrupt::disable();
-        Local::current()
-            .scheduler
-            .switch();
+        Local::context_switch();
         arch::interrupt::enable();
     }
 });
 
-interrupt!(keyboard, {
-    let scancode = unsafe { Port::<u8>::new(0x60).read() };
-    println!("keyboard interrupt: {}", scancode);
+// interrupt!(keyboard, {
+//     let scancode = unsafe { Port::<u8>::new(0x60).read() };
+//     println!("keyboard interrupt: {}", scancode);
 
-    trigger(1);
-});
+//     trigger(1);
+// });
 
 interrupt!(rtc, {
     println!("RTC interrupt");

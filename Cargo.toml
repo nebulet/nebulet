@@ -88,31 +88,35 @@ git = "https://github.com/nebulet/abi"
 
 # Cretonne compiler
 [dependencies.target-lexicon]
-version = "0.0.1"
+version = "0.0.2"
 default-features = false
 
 [dependencies.cretonne-codegen]
-version = "0.9.0"
+# version = "0.9.0"
+path = "../cretonne/lib/codegen"
 default-features = false
 features = ["core"]
 
 [dependencies.cretonne-frontend]
-version = "0.9.0"
+# version = "0.9.0"
+path = "../cretonne/lib/frontend"
 default-features = false
 features = ["core"]
 
 [dependencies.cretonne-wasm]
-version = "0.9.0"
+# version = "0.9.0"
+path = "../cretonne/lib/wasm"
 default-features = false
 features = ["core"]
 
 [dependencies.cretonne-native]
-version = "0.9.0"
+# version = "0.9.0"
+path = "../cretonne/lib/native"
 default-features = false
 features = ["core"]
 
 [dependencies.wasmparser]
-version = "0.16.1"
+version = "0.17.0"
 default_features = false
 features = ["core"]
 

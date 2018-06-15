@@ -137,7 +137,7 @@ impl RelocSink {
 pub struct DataInitializer {
     /// The index of the memory to initialize.
     pub memory_index: MemoryIndex,
-    /// Optionally a globalvar base to initialize at.
+    /// Optionally a globalvalue base to initialize at.
     pub base: Option<GlobalIndex>,
     /// A constant offset to initialize at.
     pub offset: usize,
@@ -217,14 +217,16 @@ pub struct FuncEnvironment<'module_environment> {
     /// The module-level environment which this function-level environment belongs to.
     pub module: &'module_environment Module,
 
+    pub main_memory_base: Option<ir::GlobalValue>,
+
     /// The Cretonne global holding the base address of the memories vector.
-    pub memories_base: Option<ir::GlobalVar>,
+    pub memory_base: Option<ir::GlobalValue>,
 
     /// The Cretonne global holding the base address of the globals vector.
-    pub globals_base: Option<ir::GlobalVar>,
+    pub globals_base: Option<ir::GlobalValue>,
 
     /// The list of globals that hold table bases.
-    pub tables_base: Option<ir::GlobalVar>,
+    pub tables_base: Option<ir::GlobalValue>,
 
     /// The external function declaration for implementing wasm's `current_memory`.
     pub current_memory_extfunc: Option<FuncRef>,
@@ -243,7 +245,8 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
         Self {
             settings_flags: flags,
             module,
-            memories_base: None,
+            main_memory_base: None,
+            memory_base: None,
             globals_base: None,
             tables_base: None,
             current_memory_extfunc: None,
@@ -270,20 +273,20 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
         }
     }
 
-    fn get_table(&mut self, func: &mut ir::Function, table_index: TableIndex) -> ir::GlobalVar {
+    fn get_table(&mut self, func: &mut ir::Function, table_index: TableIndex) -> ir::GlobalValue {
         let ptr_size = self.ptr_size();
         let base = self.tables_base.unwrap_or_else(|| {
-            let offset = ((ptr_size as i32) * 2).into();
-            let new_base = func.create_global_var(
-                ir::GlobalVarData::VMContext { offset }
-            );
+            let tables_offset = self.ptr_size() as i32 * -2;
+            let new_base = func.create_global_value(ir::GlobalValueData::VMContext {
+                offset: tables_offset.into(),
+            });
             self.globals_base = Some(new_base);
             new_base
         });
 
         let offset = table_index as usize * ptr_size;
         let offset = (offset as i32).into();
-        func.create_global_var(ir::GlobalVarData::Deref {
+        func.create_global_value(ir::GlobalValueData::Deref {
             base,
             offset,
         })
@@ -327,16 +330,16 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
     }
 
     fn make_global(&mut self, func: &mut ir::Function, index: GlobalIndex) -> GlobalValue {
-        // let ptr_size = self.ptr_size();
         let globals_base = self.globals_base.unwrap_or_else(|| {
-            let new_base = func.create_global_var(
-                ir::GlobalVarData::VMContext { offset: 0.into() },
-            );
+            let globals_offset = self.ptr_size() as i32 * -4;
+            let new_base = func.create_global_value(ir::GlobalValueData::VMContext {
+                offset: globals_offset.into(),
+            });
             self.globals_base = Some(new_base);
             new_base
         });
         let offset = index as usize * self.ptr_size();
-        let gv = func.create_global_var(ir::GlobalVarData::Deref {
+        let gv = func.create_global_value(ir::GlobalValueData::Deref {
             base: globals_base,
             offset: (offset as i32).into(),
         });
@@ -348,26 +351,48 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
 
     fn make_heap(&mut self, func: &mut ir::Function, index: MemoryIndex) -> ir::Heap {
         use memory::WasmMemory;
-        let ptr_size = self.ptr_size();
-        let memories_base = self.memories_base.unwrap_or_else(|| {
-            let new_base = func.create_global_var(ir::GlobalVarData::VMContext {
-                offset: (ptr_size as i32).into(),
+        if index == 0 {
+            let heap_base = self.main_memory_base.unwrap_or_else(|| {
+                let new_base = func.create_global_value(ir::GlobalValueData::VMContext {
+                    offset: 0.into(),
+                });
+                self.main_memory_base = Some(new_base);
+                new_base
             });
-            self.globals_base = Some(new_base);
-            new_base
-        });
-        let offset = index as usize * ptr_size;
-        let heap_base = func.create_global_var(ir::GlobalVarData::Deref {
-            base: memories_base,
-            offset: (offset as i32).into(),
-        });
-        let h = func.create_heap(ir::HeapData {
-            base: ir::HeapBase::GlobalVar(heap_base),
-            min_size: 0.into(),
-            guard_size: (WasmMemory::DEFAULT_GUARD_SIZE as i64).into(),
-            style: ir::HeapStyle::Static { bound: (WasmMemory::DEFAULT_HEAP_SIZE as i64).into() },
-        });
-        h
+
+            func.create_heap(ir::HeapData {
+                base: ir::HeapBase::GlobalValue(heap_base),
+                min_size: 0.into(),
+                guard_size: (WasmMemory::DEFAULT_GUARD_SIZE as i64).into(),
+                style: ir::HeapStyle::Static {
+                    bound: (WasmMemory::DEFAULT_HEAP_SIZE as i64).into(),
+                },
+            })
+        } else {
+            let memory_base = self.memory_base.unwrap_or_else(|| {
+                let memories_offset = self.ptr_size() as i32 * -3;
+                let new_base = func.create_global_value(ir::GlobalValueData::VMContext {
+                    offset: memories_offset.into(),
+                });
+                self.memory_base = Some(new_base);
+                new_base
+            });
+
+            let memory_offset = (index - 1) * self.ptr_size();
+            let heap_base = func.create_global_value(ir::GlobalValueData::Deref {
+                base: memory_base,
+                offset: (memory_offset as i32).into(),
+            });
+
+            func.create_heap(ir::HeapData {
+                base: ir::HeapBase::GlobalValue(heap_base),
+                min_size: 0.into(),
+                guard_size: (WasmMemory::DEFAULT_GUARD_SIZE as i64).into(),
+                style: ir::HeapStyle::Static {
+                    bound: (WasmMemory::DEFAULT_HEAP_SIZE as i64).into(),
+                },
+            })
+        }
     }
 
     fn make_indirect_sig(&mut self, func: &mut ir::Function, index: SignatureIndex) -> ir::SigRef {
@@ -395,7 +420,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         // or signature checking, so we need to implement it ourselves.
         assert_eq!(table_index, 0, "non-default tables not supported yet");
         let table_gv = self.get_table(pos.func, table_index);
-        let gv_addr = pos.ins().global_addr(self.native_pointer(), table_gv);
+        let gv_addr = pos.ins().global_value(self.native_pointer(), table_gv);
 
         let table_base = pos.ins().load(
             self.native_pointer(),
@@ -472,7 +497,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         }
     }
 
-    fn translate_grow_memory(
+    fn translate_memory_grow(
         &mut self,
         mut pos: FuncCursor,
         index: MemoryIndex,
@@ -504,7 +529,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         Ok(*pos.func.dfg.inst_results(call_inst).first().unwrap())
     }
 
-    fn translate_current_memory(
+    fn translate_memory_size(
         &mut self,
         mut pos: FuncCursor,
         index: MemoryIndex,

@@ -14,7 +14,6 @@ dependencies = [
 [[package]]
 name = "sip"
 version = "0.1.0"
-source = "git+https://github.com/nebulet/libsip#25912ace82ace1f543be8639b7b5546132c5adbd"
 dependencies = [
  "nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)",
 ]
@@ -23,10 +22,9 @@ dependencies = [
 name = "userspace"
 version = "0.1.0"
 dependencies = [
- "sip 0.1.0 (git+https://github.com/nebulet/libsip)",
+ "sip 0.1.0",
 ]
 
 [metadata]
 "checksum bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "d0c54bb8f454c567f21197eefcdbf5679d0bd99f2ddbe52e84c77061952e6789"
 "checksum nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)" = "<none>"
-"checksum sip 0.1.0 (git+https://github.com/nebulet/libsip)" = "<none>"

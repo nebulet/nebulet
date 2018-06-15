@@ -86,7 +86,7 @@ pub fn kmain() -> ! {
 
     use object::{ProcessRef, CodeRef};
 
-    let code = include_bytes!("../userspace/target/wasm32-unknown-unknown/release/test_run.wasm");
+    let code = include_bytes!("../userspace/target/wasm32-unknown-unknown/release/userspace.wasm");
 
     let code = CodeRef::compile(code)
         .unwrap();
@@ -97,9 +97,7 @@ pub fn kmain() -> ! {
     process.start().unwrap();
 
     unsafe {
-        arch::cpu::Local::current()
-            .scheduler
-            .switch();
+        arch::cpu::Local::context_switch();
     }
 
     unreachable!();
