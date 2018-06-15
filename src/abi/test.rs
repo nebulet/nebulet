@@ -1,4 +1,4 @@
-use object::ProcessRef;
+use object::Process;
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
 
@@ -10,14 +10,14 @@ use nebulet_derive::nebulet_abi;
 // }
 
 #[nebulet_abi]
-pub fn output_test(arg: usize, _: &ProcessRef) -> Result<u32> {
+pub fn output_test(arg: usize, _: &Process) -> Result<u32> {
     println!("wasm supplied arg = {}", arg);
 
     Ok(0)
 }
 
 #[nebulet_abi]
-pub fn assert_eq(left: u64, right: u64, _: &ProcessRef) -> Result<u32> {
+pub fn assert_eq(left: u64, right: u64, _: &Process) -> Result<u32> {
     assert_eq!(left, right);
     Ok(0)
 }

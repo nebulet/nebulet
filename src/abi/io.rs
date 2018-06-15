@@ -1,11 +1,11 @@
-use object::ProcessRef;
+use object::Process;
 use nebulet_derive::nebulet_abi;
 use wasm::instance::VmCtx;
 use alloc::String;
 use x86_64::instructions::port::Port;
 
 #[nebulet_abi]
-pub fn print(buffer_offset: u32, buffer_size: u32, process: &ProcessRef) {
+pub fn print(buffer_offset: u32, buffer_size: u32, process: &Process) {
     let instance = process.instance().read();
     let memory = &instance.memories[0];
     if let Some(buf) = memory.carve_slice(buffer_offset, buffer_size) {

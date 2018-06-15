@@ -12,7 +12,7 @@ type ThreadList = Array<Ref<Thread>>;
 /// Represents a process.
 #[derive(KernelRef)]
 #[allow(dead_code)]
-pub struct ProcessRef {
+pub struct Process {
     /// The process name
     name: RwLock<Option<Bin<str>>>,
     /// Compiled code can be shared between processes.
@@ -26,13 +26,13 @@ pub struct ProcessRef {
     instance: RwLock<Instance>,
 }
 
-impl ProcessRef {
+impl Process {
     /// Create a process from already existing code.
     /// This is the only way to create a process.
-    pub fn create(code: Ref<CodeRef>) -> Result<Ref<ProcessRef>> {
+    pub fn create(code: Ref<CodeRef>) -> Result<Ref<Process>> {
         let instance = code.generate_instance();
 
-        Ref::new(ProcessRef {
+        Ref::new(Process {
             name: RwLock::new(None),
             code,
             handle_table: RwLock::new(HandleTable::new()),

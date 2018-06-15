@@ -84,14 +84,14 @@ pub fn kmain() -> ! {
     println!("------------");
     println!("Nebulet v{}", VERSION);
 
-    use object::{ProcessRef, CodeRef};
+    use object::{Process, CodeRef};
 
     let code = include_bytes!("../userspace/target/wasm32-unknown-unknown/release/userspace.wasm");
 
     let code = CodeRef::compile(code)
         .unwrap();
 
-    let process = ProcessRef::create(code.clone())
+    let process = Process::create(code.clone())
         .unwrap();
 
     process.start().unwrap();

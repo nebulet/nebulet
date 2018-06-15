@@ -1,10 +1,10 @@
-use object::{ProcessRef, CodeRef, ChannelRef, HandleRights, HandleOffset};
+use object::{Process, CodeRef, ChannelRef, HandleRights, HandleOffset};
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
 
 /// Create a process with the specified compiled code.
 #[nebulet_abi]
-pub fn process_create(code_handle: HandleOffset, channel_handle: HandleOffset, process: &ProcessRef) -> Result<u32> {
+pub fn process_create(code_handle: HandleOffset, channel_handle: HandleOffset, process: &Process) -> Result<u32> {
     let handle_table = process.handle_table();
 
     let (code_ref, chan_ref) = {
@@ -21,7 +21,7 @@ pub fn process_create(code_handle: HandleOffset, channel_handle: HandleOffset, p
         (code_handle.cast::<CodeRef>()?, chan_handle.cast::<ChannelRef>()?)
     };
 
-    let new_proc = ProcessRef::create(code_ref)?;
+    let new_proc = Process::create(code_ref)?;
 
     {
         let mut new_handle_table = new_proc.handle_table().write();
@@ -47,7 +47,7 @@ pub fn process_create(code_handle: HandleOffset, channel_handle: HandleOffset, p
 
 /// Start the supplied process.
 #[nebulet_abi]
-pub fn process_start(proc_handle: HandleOffset, process: &ProcessRef) -> Result<u32> {
+pub fn process_start(proc_handle: HandleOffset, process: &Process) -> Result<u32> {
     let handle_table = process.handle_table();
 
     let handle_table = handle_table.read();
@@ -57,7 +57,7 @@ pub fn process_start(proc_handle: HandleOffset, process: &ProcessRef) -> Result<
 
     // Try casting the handle to the correct type.
     // If this fails, return `Error::WRONG_TYPE`.
-    let proc_ref = proc_handle.cast::<ProcessRef>()?;
+    let proc_ref = proc_handle.cast::<Process>()?;
 
     proc_ref.start()?;
 
@@ -66,7 +66,7 @@ pub fn process_start(proc_handle: HandleOffset, process: &ProcessRef) -> Result<
 
 /// Compile wasm bytecode into a coderef.
 #[nebulet_abi]
-pub fn wasm_compile(buffer_offset: u32, buffer_size: u32, process: &ProcessRef) -> Result<u32> {
+pub fn wasm_compile(buffer_offset: u32, buffer_size: u32, process: &Process) -> Result<u32> {
     let code_ref = {
         let instance = process.instance().read();
         let wasm_memory = &instance.memories[0];
