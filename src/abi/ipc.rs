@@ -1,4 +1,4 @@
-use object::{ProcessRef, MonoCopyRef, ChannelRef, Message, HandleRights, HandleOffset};
+use object::{Process, MonoCopyRef, ChannelRef, Message, HandleRights, HandleOffset};
 use nil::Ref;
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
@@ -7,7 +7,7 @@ use nebulet_derive::nebulet_abi;
 /// Another process can write to this buffer,
 /// assuming they have the handle.
 #[nebulet_abi]
-pub fn monocopy_create(buffer_offset: u32, buffer_size: u32, process: &Ref<ProcessRef>) -> Result<u32> {
+pub fn monocopy_create(buffer_offset: u32, buffer_size: u32, process: &Ref<Process>) -> Result<u32> {
     {
         let instance = process.instance().read();
         let memory = &instance.memories[0];
@@ -28,7 +28,7 @@ pub fn monocopy_create(buffer_offset: u32, buffer_size: u32, process: &Ref<Proce
 }
 
 #[nebulet_abi]
-pub fn channel_create(handle_tx_offset: u32, handle_rx_offset: u32, process: &ProcessRef) -> Result<u32> {
+pub fn channel_create(handle_tx_offset: u32, handle_rx_offset: u32, process: &Process) -> Result<u32> {
     let channel = ChannelRef::new()?;
     
     let (handle_tx, handle_rx) = {
@@ -58,7 +58,7 @@ pub fn channel_create(handle_tx_offset: u32, handle_rx_offset: u32, process: &Pr
 
 /// Write a message to the specified channel.
 #[nebulet_abi]
-pub fn channel_write(channel_handle: HandleOffset, buffer_offset: u32, buffer_size: u32, process: &ProcessRef) -> Result<u32> {
+pub fn channel_write(channel_handle: HandleOffset, buffer_offset: u32, buffer_size: u32, process: &Process) -> Result<u32> {
     let msg = {
         let instance = process.instance().read();
         let wasm_memory = &instance.memories[0];
@@ -80,7 +80,7 @@ pub fn channel_write(channel_handle: HandleOffset, buffer_offset: u32, buffer_si
 
 /// Read a message from the specified channel.
 #[nebulet_abi]
-pub fn channel_read(channel_handle: HandleOffset, buffer_offset: u32, buffer_size: u32, msg_size_out: u32, process: &ProcessRef) -> Result<u32> {
+pub fn channel_read(channel_handle: HandleOffset, buffer_offset: u32, buffer_size: u32, msg_size_out: u32, process: &Process) -> Result<u32> {
     let chan_ref = {
         let handle_table = process.handle_table().read();
 

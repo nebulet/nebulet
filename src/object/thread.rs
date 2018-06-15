@@ -1,5 +1,5 @@
 use task::{Thread as TaskThread, State};
-use object::ProcessRef;
+use object::Process;
 use arch::cpu::Local;
 use nabi::Result;
 use nil::{Ref, KernelRef};
@@ -10,11 +10,11 @@ use arch::lock::IrqSpinlock;
 #[derive(KernelRef)]
 pub struct Thread {
     thread: IrqSpinlock<TaskThread>,
-    parent: Ref<ProcessRef>,
+    parent: Ref<Process>,
 }
 
 impl Thread {
-    pub fn new<F>(parent: Ref<ProcessRef>, stack_size: usize, f: F) -> Result<Ref<Thread>>
+    pub fn new<F>(parent: Ref<Process>, stack_size: usize, f: F) -> Result<Ref<Thread>>
         where F: FnOnce() + Send + Sync
     {
         let thread = IrqSpinlock::new(TaskThread::new(stack_size, Bin::new(move || f())?)?);
@@ -37,7 +37,7 @@ impl Thread {
         self.thread.lock().state
     }
 
-    pub fn parent(&self) -> &ProcessRef {
+    pub fn parent(&self) -> &Process {
         &self.parent
     }
 

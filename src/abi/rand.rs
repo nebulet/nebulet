@@ -1,4 +1,4 @@
-use object::ProcessRef;
+use object::Process;
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
 use arch::x64::devices::rand::rdrand::RdRand;
@@ -17,7 +17,7 @@ static mut RDRAND : Option<Result<RdRand>> = None;
 /// This currently requires the rdrand instruction, which is fast
 /// but not supported everywhere.
 #[nebulet_abi]
-pub fn random_fill(buffer_offset: u32, buffer_size: u32, process: &ProcessRef) -> Result<u32> {
+pub fn random_fill(buffer_offset: u32, buffer_size: u32, process: &Process) -> Result<u32> {
     let rdrand;
     unsafe {
         rdrand = RDRAND.get_or_insert_with(get_rdrand);
@@ -43,7 +43,7 @@ pub fn random_fill(buffer_offset: u32, buffer_size: u32, process: &ProcessRef) -
 /// local to the WASM process.
 #[nebulet_abi]
 pub fn cprng_fill(
-    buffer_offset: u32, buffer_size: u32, process: &ProcessRef)
+    buffer_offset: u32, buffer_size: u32, process: &Process)
     -> Result<u32>
 {
     let mut instance = process.instance().write();

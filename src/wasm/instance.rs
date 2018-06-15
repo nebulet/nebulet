@@ -8,7 +8,7 @@ use super::module::Module;
 use super::{DataInitializer, FunctionIndex};
 
 use memory::WasmMemory;
-use object::ProcessRef;
+use object::Process;
 use nil::Ref;
 use core::marker::PhantomData;
 use core::{slice, mem};
@@ -27,7 +27,7 @@ pub struct VmCtxGenerator {
 }
 
 impl VmCtxGenerator {
-    pub fn vmctx(&mut self, process: Ref<ProcessRef>) -> &VmCtx {
+    pub fn vmctx(&mut self, process: Ref<Process>) -> &VmCtx {
         assert!(self.memories.len() >= 1, "modules must have at least one memory");
         // the first memory has a space of `mem::size_of::<VmCtxData>()` rounded
         // up to the 4KiB before it. We write the VmCtxData into that.
@@ -66,7 +66,7 @@ pub struct VmCtxData<'a> {
     globals: UncheckedSlice<u8>,
     memories: UncheckedSlice<UncheckedSlice<u8>>,
     tables: UncheckedSlice<BoundedSlice<usize>>,
-    pub process: Ref<ProcessRef>,
+    pub process: Ref<Process>,
     phantom: PhantomData<&'a ()>,
 }
 

@@ -1,16 +1,16 @@
-use object::ProcessRef;
+use object::Process;
 use nil::{Ref, KernelRef};
 use nabi::{Result, Error};
 
 #[derive(KernelRef)]
 pub struct MonoCopyRef {
     /// The process that contains the buffer.
-    process: Ref<ProcessRef>,
+    process: Ref<Process>,
     buffer: (u32, u32),
 }
 
 impl MonoCopyRef {
-    pub fn new(process: Ref<ProcessRef>, buffer: (u32, u32)) -> Result<Ref<MonoCopyRef>> {
+    pub fn new(process: Ref<Process>, buffer: (u32, u32)) -> Result<Ref<MonoCopyRef>> {
         Ref::new(MonoCopyRef {
             process,
             buffer,
