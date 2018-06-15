@@ -1,4 +1,4 @@
-use object::{Process, Wasm, ChannelRef, HandleRights, HandleOffset};
+use object::{Process, Wasm, Channel, HandleRights, HandleOffset};
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
 
@@ -18,7 +18,7 @@ pub fn process_create(code_handle: HandleOffset, channel_handle: HandleOffset, p
 
         // Try casting the handle to the correct type.
         // If this fails, return `Error::WRONG_TYPE`.
-        (code_handle.cast::<Wasm>()?, chan_handle.cast::<ChannelRef>()?)
+        (code_handle.cast::<Wasm>()?, chan_handle.cast::<Channel>()?)
     };
 
     let new_proc = Process::create(code_ref)?;

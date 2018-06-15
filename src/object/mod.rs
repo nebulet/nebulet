@@ -18,5 +18,5 @@ pub use self::process::Process;
 pub use self::wasm::Wasm;
 pub use self::mono_copy::MonoCopyRef;
 pub use self::event::EventRef;
-pub use self::channel::{ChannelRef, Message};
+pub use self::channel::{Channel, Message};
 pub use self::mutex::Mutex;
