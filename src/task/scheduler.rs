@@ -1,19 +1,19 @@
-use super::thread::{Thread, State};
+use super::thread::{Thread as TaskThread, State};
 use arch::cpu::Local;
 use common::mpsc::{Mpsc, Reciever, Sender};
-use object::ThreadRef;
+use object::Thread;
 use nil::Ref;
 
 /// The Scheduler schedules threads to be run.
 /// Currently, it's a simple, round-robin.
 pub struct Scheduler {
-    thread_tx: Sender<Ref<ThreadRef>>,
-    thread_rx: Reciever<Ref<ThreadRef>>,
-    idle_thread: Ref<ThreadRef>,
+    thread_tx: Sender<Ref<Thread>>,
+    thread_rx: Reciever<Ref<Thread>>,
+    idle_thread: Ref<Thread>,
 }
 
 impl Scheduler {
-    pub fn new(idle_thread: Ref<ThreadRef>) -> Scheduler {
+    pub fn new(idle_thread: Ref<Thread>) -> Scheduler {
         let (thread_tx, thread_rx) = Mpsc::new();
         Scheduler {
             thread_tx,
@@ -22,7 +22,7 @@ impl Scheduler {
         }
     }
 
-    pub fn thread_sender(&self) -> Sender<Ref<ThreadRef>> {
+    pub fn thread_sender(&self) -> Sender<Ref<Thread>> {
         self.thread_tx.clone()
     }
 
@@ -56,8 +56,8 @@ impl Scheduler {
 
         let (current_thread_inner, next_thread_inner) = {
             (
-                &mut *(&mut *current_thread.inner().lock() as *mut Thread),
-                &*(&*next_thread.inner().lock() as *const Thread),
+                &mut *(&mut *current_thread.inner().lock() as *mut TaskThread),
+                &*(&*next_thread.inner().lock() as *const TaskThread),
             )
         };
 

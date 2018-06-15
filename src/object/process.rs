@@ -1,4 +1,4 @@
-use object::{HandleTable, CodeRef, ThreadRef};
+use object::{HandleTable, CodeRef, Thread};
 use wasm::Instance;
 use cretonne_codegen::ir::TrapCode;
 use nabi::Result;
@@ -7,7 +7,7 @@ use nil::mem::{Bin, Array};
 use spin::RwLock;
 use arch::cpu::Local;
 
-type ThreadList = Array<Ref<ThreadRef>>;
+type ThreadList = Array<Ref<Thread>>;
 
 /// Represents a process.
 #[derive(KernelRef)]
@@ -45,7 +45,7 @@ impl ProcessRef {
     pub fn start(self: &Ref<Self>) -> Result<()> {
         let process = self.clone();
 
-        let thread = ThreadRef::new(self.clone(), 1024 * 1024, move || {
+        let thread = Thread::new(self.clone(), 1024 * 1024, move || {
             let entry_point = process.code.start_func();
             let mut vmctx_gen = process.instance.write().generate_vmctx_backing();
             let vmctx_ref = vmctx_gen.vmctx(process);
