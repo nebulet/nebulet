@@ -1,4 +1,4 @@
-use object::{Process, CodeRef, ChannelRef, HandleRights, HandleOffset};
+use object::{Process, Wasm, ChannelRef, HandleRights, HandleOffset};
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
 
@@ -18,7 +18,7 @@ pub fn process_create(code_handle: HandleOffset, channel_handle: HandleOffset, p
 
         // Try casting the handle to the correct type.
         // If this fails, return `Error::WRONG_TYPE`.
-        (code_handle.cast::<CodeRef>()?, chan_handle.cast::<ChannelRef>()?)
+        (code_handle.cast::<Wasm>()?, chan_handle.cast::<ChannelRef>()?)
     };
 
     let new_proc = Process::create(code_ref)?;
@@ -64,7 +64,7 @@ pub fn process_start(proc_handle: HandleOffset, process: &Process) -> Result<u32
     Ok(0)
 }
 
-/// Compile wasm bytecode into a coderef.
+/// Compile wasm bytecode into a Wasm.
 #[nebulet_abi]
 pub fn wasm_compile(buffer_offset: u32, buffer_size: u32, process: &Process) -> Result<u32> {
     let code_ref = {
@@ -73,7 +73,7 @@ pub fn wasm_compile(buffer_offset: u32, buffer_size: u32, process: &Process) -> 
         let wasm_bytecode = wasm_memory.carve_slice(buffer_offset, buffer_size)
             .ok_or(Error::INVALID_ARG)?;
 
-        CodeRef::compile(wasm_bytecode)?
+        Wasm::compile(wasm_bytecode)?
     };
 
     {

@@ -3,7 +3,7 @@ mod table;
 // objects
 mod thread;
 mod process;
-mod code;
+mod wasm;
 mod mono_copy;
 mod event;
 mod channel;
@@ -15,7 +15,7 @@ pub use nabi::HandleRights;
 
 pub use self::thread::Thread;
 pub use self::process::Process;
-pub use self::code::CodeRef;
+pub use self::wasm::Wasm;
 pub use self::mono_copy::MonoCopyRef;
 pub use self::event::EventRef;
 pub use self::channel::{ChannelRef, Message};

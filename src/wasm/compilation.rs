@@ -9,7 +9,7 @@ use super::RelocSink;
 use super::abi::{ABI_MAP, INTRINSIC_MAP};
 
 use memory::Region;
-use object::CodeRef;
+use object::Wasm;
 use nil::Ref;
 
 use nabi::{Result, Error};
@@ -144,7 +144,7 @@ impl Compilation {
     }
 
     /// Emit a `Code` instance
-    pub fn emit(mut self, module: Module, data_initializers: Vec<DataInitializer>) -> Result<Ref<CodeRef>> {
+    pub fn emit(mut self, module: Module, data_initializers: Vec<DataInitializer>) -> Result<Ref<Wasm>> {
         self.relocate(&module)?;
 
         let start_index;
@@ -175,7 +175,7 @@ impl Compilation {
             })
             .collect();
 
-        CodeRef::new(module, data_initializers, self.region, start_ptr, local_func_list, self.traps)
+        Wasm::new(module, data_initializers, self.region, start_ptr, local_func_list, self.traps)
     }
 }
 

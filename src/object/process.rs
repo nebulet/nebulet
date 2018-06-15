@@ -1,4 +1,4 @@
-use object::{HandleTable, CodeRef, Thread};
+use object::{HandleTable, Wasm, Thread};
 use wasm::Instance;
 use cretonne_codegen::ir::TrapCode;
 use nabi::Result;
@@ -16,7 +16,7 @@ pub struct Process {
     /// The process name
     name: RwLock<Option<Bin<str>>>,
     /// Compiled code can be shared between processes.
-    code: Ref<CodeRef>,
+    code: Ref<Wasm>,
     /// Process specific handle table.
     handle_table: RwLock<HandleTable>,
     /// List of threads operating in this
@@ -29,7 +29,7 @@ pub struct Process {
 impl Process {
     /// Create a process from already existing code.
     /// This is the only way to create a process.
-    pub fn create(code: Ref<CodeRef>) -> Result<Ref<Process>> {
+    pub fn create(code: Ref<Wasm>) -> Result<Ref<Process>> {
         let instance = code.generate_instance();
 
         Ref::new(Process {
@@ -101,7 +101,7 @@ impl Process {
         &self.thread_list
     }
 
-    pub fn code(&self) -> &CodeRef {
+    pub fn code(&self) -> &Wasm {
         &*self.code
     }
 }

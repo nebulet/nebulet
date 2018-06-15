@@ -11,14 +11,14 @@ use cretonne_codegen::ir::TrapCode;
 use cretonne_wasm::translate_module;
 use cretonne_native;
 
-/// A `CodeRef` represents
+/// A `Wasm` represents
 /// webassembly code compiled
 /// into machine code. You must
 /// have one of these to create
 /// a process.
 #[allow(dead_code)]
 #[derive(KernelRef)]
-pub struct CodeRef {
+pub struct Wasm {
     data_initializers: Vec<DataInitializer>,
     functions: Vec<usize>,
     traps: Vec<TrapData>,
@@ -27,9 +27,9 @@ pub struct CodeRef {
     start_func: extern fn(&VmCtx),
 }
 
-impl CodeRef {
-    /// Compile webassembly bytecode into a CodeRef.
-    pub fn compile(wasm: &[u8]) -> Result<Ref<CodeRef>> {
+impl Wasm {
+    /// Compile webassembly bytecode into a Wasm.
+    pub fn compile(wasm: &[u8]) -> Result<Ref<Wasm>> {
         let (mut flag_builder, isa_builder) = cretonne_native::builders()
             .map_err(|_| internal_error!())?;
 
@@ -59,7 +59,7 @@ impl CodeRef {
         functions: Vec<usize>,
         traps: Vec<TrapData>,
     )
-        -> Result<Ref<CodeRef>>
+        -> Result<Ref<Wasm>>
     {
         let flags = MemFlags::READ | MemFlags::EXEC;
         region.remap(flags)?;
@@ -68,7 +68,7 @@ impl CodeRef {
             mem::transmute(start_func)
         };
 
-        Ref::new(CodeRef {
+        Ref::new(Wasm {
             data_initializers,
             module,
             functions,
