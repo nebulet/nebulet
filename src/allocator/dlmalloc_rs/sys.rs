@@ -1,10 +1,9 @@
 use core::ptr;
 use super::super::map_heap;
 use arch::paging::PageMapper;
+use sync::atomic::*;
 
-use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
-
-static OFFSET: AtomicUsize = ATOMIC_USIZE_INIT;
+static OFFSET: Atomic<usize> = Atomic::new(0);
 
 pub unsafe fn alloc(size: usize) -> (*mut u8, usize, u32) {
     let offset = OFFSET.load(Ordering::Relaxed);

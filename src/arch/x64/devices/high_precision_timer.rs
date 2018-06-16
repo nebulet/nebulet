@@ -2,7 +2,8 @@ use arch::x64::interrupt;
 use arch::x64::idt;
 use arch::macros::interrupt;
 use arch::devices::{pic, pit};
-use core::sync::atomic::{AtomicU8, Ordering};
+// use core::sync::atomic::{AtomicU8, Ordering};
+use sync::atomic::*;
 use x86_64::structures::idt::Idt;
 use core::mem::transmute;
 
@@ -10,7 +11,7 @@ use core::mem::transmute;
 /// cpu frequency).
 static mut TSC_RATE: u64 = 0;
 
-static PIT_TICKS: AtomicU8 = AtomicU8::new(0);
+static PIT_TICKS: Atomic<u8> = Atomic::new(0);
 
 fn custom_idt() -> Idt {
     interrupt!(pit, {

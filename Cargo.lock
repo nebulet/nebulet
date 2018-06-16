@@ -20,44 +20,49 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "cretonne-codegen"
-version = "0.10.0"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cretonne-entity 0.10.0",
+ "cretonne-entity 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "hashmap_core 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hashmap_core 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "target-lexicon 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "cretonne-entity"
-version = "0.10.0"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "cretonne-frontend"
-version = "0.10.0"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cretonne-codegen 0.10.0",
+ "cretonne-codegen 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "cretonne-native"
-version = "0.10.0"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cretonne-codegen 0.10.0",
+ "cretonne-codegen 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "raw-cpuid 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "target-lexicon 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "cretonne-wasm"
-version = "0.10.0"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cretonne-codegen 0.10.0",
- "cretonne-frontend 0.10.0",
+ "cretonne-codegen 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cretonne-frontend 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "hashmap_core 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hashmap_core 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "target-lexicon 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasmparser 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -87,14 +92,8 @@ dependencies = [
 
 [[package]]
 name = "hashmap_core"
-version = "0.1.6"
-source = "git+https://github.com/lachlansneff/hashmap_core?branch=update-nightly#defd24c3483ae8ecd735be88818641738eed5751"
-
-[[package]]
-name = "hashmap_core"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "hashmap_core 0.1.6 (git+https://github.com/lachlansneff/hashmap_core?branch=update-nightly)"
 
 [[package]]
 name = "itoa"
@@ -115,11 +114,11 @@ version = "0.1.0"
 dependencies = [
  "bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "cretonne-codegen 0.10.0",
- "cretonne-frontend 0.10.0",
- "cretonne-native 0.10.0",
- "cretonne-wasm 0.10.0",
- "hashmap_core 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cretonne-codegen 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cretonne-frontend 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cretonne-native 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cretonne-wasm 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hashmap_core 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "nebulet-derive 0.1.0",
  "nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)",
@@ -302,7 +301,7 @@ name = "wasmparser"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "hashmap_core 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hashmap_core 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -322,11 +321,15 @@ dependencies = [
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "d0c54bb8f454c567f21197eefcdbf5679d0bd99f2ddbe52e84c77061952e6789"
 "checksum cc 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)" = "49ec142f5768efb5b7622aebc3fdbdbb8950a4b9ba996393cb76ef7466e8747d"
+"checksum cretonne-codegen 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8e7e43ab7952e998ea8da4bcda3b53d398396b9b691df44a040be5486a4935ef"
+"checksum cretonne-entity 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4109dcfc0c7b8e11ad92a702d3f5df435d2782012118aa75566d2d0db586da3a"
+"checksum cretonne-frontend 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e0238865d537393f73598542a906dadfe85fcf070c293cdf882ece170d197455"
+"checksum cretonne-native 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "66d768de850f29bbb2cda9eeed168369c66263bee9068ca1b9af28000216116c"
+"checksum cretonne-wasm 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5b16f4ade5f287823403a0ab31e77c142a20cb270a87dbc6fc7c736a102de9df"
 "checksum dtoa 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "09c3753c3db574d215cba4ea76018483895d7bff25a31b49ba45db21c48e50ab"
 "checksum failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "934799b6c1de475a012a02dab0ace1ace43789ee4b99bcfbf1a2e3e8ced5de82"
 "checksum failure_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c7cdda555bb90c9bb67a3b670a0f42de8e73f5981524123ad8578aafec8ddb8b"
-"checksum hashmap_core 0.1.6 (git+https://github.com/lachlansneff/hashmap_core?branch=update-nightly)" = "<none>"
-"checksum hashmap_core 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "ecc8a00fa10ea061884d6b254c0aba4f5cd90c2bf719885629c57b876f8546ad"
+"checksum hashmap_core 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "af1eb51c09861f9aee39a763286aa8f3ea006c718d0ad6d337619d9662e3c5cc"
 "checksum itoa 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c069bbec61e1ca5a596166e55dfe4773ff745c3d16b700013bcaff9a6df2c682"
 "checksum lazy_static 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e6412c5e2ad9584b0b8e979393122026cdd6d2a80b933f890dcd694ddbe73739"
 "checksum nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)" = "<none>"

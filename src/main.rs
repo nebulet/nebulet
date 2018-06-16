@@ -30,6 +30,7 @@
     panic_implementation,
     range_contains,
     iterator_step_by,
+    future_atomic_orderings,
 )]
 
 #![no_main]
@@ -74,6 +75,7 @@ pub mod object;
 pub mod task;
 pub mod wasm;
 pub mod externs;
+pub mod sync;
 
 pub use consts::*;
 

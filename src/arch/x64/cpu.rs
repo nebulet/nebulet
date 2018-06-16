@@ -6,7 +6,6 @@ use arch::interrupt;
 use arch::asm::read_gs_offset64;
 
 use task::{State, scheduler::Scheduler};
-use common::mpsc::Sender;
 
 use alloc::boxed::Box;
 use nil::Ref;
@@ -82,13 +81,11 @@ pub unsafe fn init(cpu_id: u32) {
 pub struct Local {
     direct: NonNull<Local>,
     /// Reference to the current `Cpu`.
-    pub cpu: &'static mut Cpu,
+    _cpu: &'static mut Cpu,
     /// The scheduler associated with this cpu.
     scheduler: Scheduler,
     /// Pointer to current thread.
     current_thread: Ref<Thread>,
-    /// Sender for threads
-    thread_tx: Sender<Ref<Thread>>,
 }
 
 impl Local {
@@ -106,14 +103,11 @@ impl Local {
 
         let scheduler = Scheduler::new(idle_thread);
 
-        let thread_tx = scheduler.thread_sender();
-
         Local {
             direct: NonNull::dangling(),
-            cpu,
+            _cpu: cpu,
             scheduler,
             current_thread: kernel_thread,
-            thread_tx,
         }
     }
 
@@ -132,7 +126,7 @@ impl Local {
     }
 
     pub fn schedule_thread(thread: Ref<Thread>) {
-        Self::current().thread_tx.send(thread);
+        Self::current().scheduler.schedule_thread(thread);
     }
 
     pub unsafe fn context_switch() {

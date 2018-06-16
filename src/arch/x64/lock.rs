@@ -1,4 +1,4 @@
-use core::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
+use sync::atomic::*;
 use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut, Drop};
 
@@ -7,12 +7,12 @@ use arch::interrupt;
 
 #[derive(Debug)]
 pub struct Spinlock<T: ?Sized> {
-    lock: AtomicBool,
+    lock: Atomic<bool>,
     data: UnsafeCell<T>,
 }
 
 pub struct SpinGuard<'a, T: ?Sized + 'a> {
-    lock: &'a AtomicBool,
+    lock: &'a Atomic<bool>,
     data: &'a mut T,
 }
 
@@ -22,7 +22,7 @@ unsafe impl<T: ?Sized + Send> Send for Spinlock<T> {}
 impl<T> Spinlock<T> {
     pub const fn new(data: T) -> Spinlock<T> {
         Spinlock {
-            lock: ATOMIC_BOOL_INIT,
+            lock: Atomic::new(false),
             data: UnsafeCell::new(data),
         }
     }
@@ -168,12 +168,12 @@ impl<'a, T: ?Sized> Drop for IrqGuard<'a, T> {
 
 #[derive(Debug)]
 pub struct IrqSpinlock<T: ?Sized> {
-    lock: AtomicBool,
+    lock: Atomic<bool>,
     data: UnsafeCell<T>,
 }
 
 pub struct IrqSpinGuard<'a, T: ?Sized + 'a> {
-    lock: &'a AtomicBool,
+    lock: &'a Atomic<bool>,
     was_enabled: bool,
     data: &'a mut T,
 }
@@ -184,7 +184,7 @@ unsafe impl<T: ?Sized + Send> Send for IrqSpinlock<T> {}
 impl<T> IrqSpinlock<T> {
     pub const fn new(data: T) -> IrqSpinlock<T> {
         IrqSpinlock {
-            lock: ATOMIC_BOOL_INIT,
+            lock: Atomic::new(false),
             data: UnsafeCell::new(data),
         }
     }
