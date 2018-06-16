@@ -1,35 +1,34 @@
 use super::thread::{Thread as TaskThread, State};
 use arch::cpu::Local;
-use common::mpsc::{Mpsc, Reciever, Sender};
+use sync::mpsc::Mpsc;
 use object::Thread;
 use nil::Ref;
 
 /// The Scheduler schedules threads to be run.
 /// Currently, it's a simple, round-robin.
 pub struct Scheduler {
-    thread_tx: Sender<Ref<Thread>>,
-    thread_rx: Reciever<Ref<Thread>>,
+    thread_queue: Mpsc<Ref<Thread>>,
     idle_thread: Ref<Thread>,
 }
 
 impl Scheduler {
     pub fn new(idle_thread: Ref<Thread>) -> Scheduler {
-        let (thread_tx, thread_rx) = Mpsc::new();
+        let thread_queue = Mpsc::new();
         Scheduler {
-            thread_tx,
-            thread_rx,
+            thread_queue,
             idle_thread,
         }
     }
 
-    pub fn thread_sender(&self) -> Sender<Ref<Thread>> {
-        self.thread_tx.clone()
+    #[inline]
+    pub fn schedule_thread(&self, thread: Ref<Thread>) {
+        self.thread_queue.push(thread);
     }
 
     pub unsafe fn switch(&self) {
         let current_thread = Local::current_thread();
 
-        let next_thread = if let Some(next_thread) = self.thread_rx.recv() {
+        let next_thread = if let Some(next_thread) = self.thread_queue.pop() {
             next_thread
         } else {
             if current_thread.state() == State::Running {
@@ -47,7 +46,7 @@ impl Scheduler {
 
         if current_thread.state() == State::Running && !current_thread.ptr_eq(&self.idle_thread) {
             current_thread.set_state(State::Ready);
-            self.thread_tx.send(current_thread.clone());
+            self.thread_queue.push(current_thread.clone());
         }
 
         next_thread.set_state(State::Running);

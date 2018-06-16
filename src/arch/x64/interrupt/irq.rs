@@ -1,11 +1,11 @@
-use core::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use arch::devices::pic;
 use arch::macros::interrupt;
 use arch;
 // use x86_64::instructions::port::Port;
 use arch::cpu::Local;
+use sync::atomic::*;
 
-pub static PIT_TICKS: AtomicUsize = ATOMIC_USIZE_INIT;
+pub static PIT_TICKS: Atomic<usize> = Atomic::new(0);
 static CONTEXT_SWITCH_TICKS: usize = 10;
 
 #[inline]

@@ -7,7 +7,6 @@ mod wasm;
 mod mono_copy;
 mod event;
 mod channel;
-mod mutex;
 
 pub use self::handle::{Handle, HandleOffset};
 pub use self::table::HandleTable;
@@ -19,4 +18,3 @@ pub use self::wasm::Wasm;
 pub use self::mono_copy::MonoCopyRef;
 pub use self::event::EventRef;
 pub use self::channel::{Channel, Message};
-pub use self::mutex::Mutex;
