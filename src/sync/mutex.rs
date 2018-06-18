@@ -3,9 +3,9 @@ use core::cell::Cell;
 use core::ptr;
 use arch::cpu::Local;
 use sync::mpsc::Mpsc;
-use sync::atomic::*;
+use sync::atomic::{Atomic, Ordering};
 use object::Thread;
-// use task::State;
+use task::State;
 
 pub struct WaitRecord {
     thread: Option<Ref<Thread>>,
@@ -19,15 +19,12 @@ impl WaitRecord {
     }
 
     pub fn wait(&mut self) {
-        use task::State;
         if let Some(ref thread) = self.thread {
             thread.set_state(State::Blocked);
         }
     }
 
     pub fn wake(&mut self) {
-        use task::State;
-        use arch::cpu::Local;
         if let Some(thread) = self.thread.take() {
             thread.set_state(State::Ready);
             Local::schedule_thread(thread);

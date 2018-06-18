@@ -1,38 +1,45 @@
 pub use core::sync::atomic::Ordering;
 use core::cell::UnsafeCell;
+use core::mem::size_of;
 
-pub trait AtomicOps
-    where Self: Copy
-{
-    fn load(self: *mut Self, order: Ordering) -> Self;
-    fn store(self: *mut Self, val: Self, order: Ordering);
-    fn swap(self: *mut Self, val: Self, order: Ordering) -> Self;
-    fn compare_and_swap(self: *mut Self, current: Self, new: Self, order: Ordering) -> Self;
-    fn compare_exchange(self: *mut Self, current: Self, new: Self, success: Ordering, failure: Ordering) -> Result<Self, Self>;
-    fn compare_exchange_weak(self: *mut Self, current: Self, new: Self, success: Ordering, failure: Ordering) -> Result<Self, Self>;
+union Transmute<T: Copy, U: Copy> {
+    from: T,
+    to: U,
 }
 
-pub trait AtomicIntOps: AtomicOps {
-    fn fetch_add(self: *mut Self, val: Self, order: Ordering) -> Self;
-    fn fetch_sub(self: *mut Self, val: Self, order: Ordering) -> Self;
+const unsafe fn transmute_const<T: Copy, U: Copy>(from: T) -> U {
+    Transmute::<T, U> { from }.to
 }
 
-pub trait AtomicLogicalOps: AtomicOps {
-    fn fetch_and(self: *mut Self, val: Self, order: Ordering) -> Self;
-    fn fetch_nand(self: *mut Self, val: Self, order: Ordering) -> Self;
-    fn fetch_or(self: *mut Self, val: Self, order: Ordering) -> Self;
-    fn fetch_xor(self: *mut Self, val: Self, order: Ordering) -> Self;
+macro_rules! call_atomic {
+    ($func:ident, $($param:expr),*) => {
+        if size_of::<T>() == size_of::<u8>() {
+            $func::<T, u8>($($param,)*)
+        } else if size_of::<T>() == size_of::<u16>() {
+            $func::<T, u16>($($param,)*)
+        } else if size_of::<T>() == size_of::<u32>() {
+            $func::<T, u32>($($param,)*)
+        } else if size_of::<T>() == size_of::<u64>() {
+            $func::<T, u64>($($param,)*)
+        } else {
+            unimplemented!()
+        }
+    };
 }
 
-unsafe impl<T: AtomicOps> Send for Atomic<T> {}
-unsafe impl<T: AtomicOps> Sync for Atomic<T> {}
+unsafe impl<T> Send for Atomic<T> {}
+unsafe impl<T> Sync for Atomic<T> {}
 
 #[derive(Debug)]
-pub struct Atomic<T: AtomicOps> {
+pub struct Atomic<T> {
     data: UnsafeCell<T>,
 }
 
-impl<T> Atomic<T> where T: AtomicOps {
+impl<T> Atomic<T>
+where
+    T: Copy
+{
+    #[inline]
     pub const fn new(val: T) -> Atomic<T> {
         Atomic {
             data: UnsafeCell::new(val),
@@ -53,312 +60,201 @@ impl<T> Atomic<T> where T: AtomicOps {
 
     #[inline]
     pub fn load(&self, order: Ordering) -> T {
-        T::load(self.data.get(), order)
+        call_atomic!(atomic_load, self.data.get(), order)
     }
 
     #[inline]
     pub fn store(&self, val: T, order: Ordering) {
-        T::store(self.data.get(), val, order);
+        call_atomic!(atomic_store, self.data.get(), val, order)
     }
 
     #[inline]
     pub fn swap(&self, val: T, order: Ordering) -> T {
-        T::swap(self.data.get(), val, order)
+        call_atomic!(atomic_swap, self.data.get(), val, order)
     }
 
     #[inline]
     pub fn compare_and_swap(&self, current: T, new: T, order: Ordering) -> T {
-        T::compare_and_swap(self.data.get(), current, new, order)
+        call_atomic!(atomic_compare_and_swap, self.data.get(), current, new, order)   
     }
 
     #[inline]
     pub fn compare_exchange(&self, current: T, new: T, success: Ordering, failure: Ordering) -> Result<T, T> {
-        T::compare_exchange(self.data.get(), current, new, success, failure)
+        call_atomic!(atomic_compare_exchange, self.data.get(), current, new, success, failure)
     }
 
     #[inline]
     pub fn compare_exchange_weak(&self, current: T, new: T, success: Ordering, failure: Ordering) -> Result<T, T> {
-        T::compare_exchange_weak(self.data.get(), current, new, success, failure)
+        call_atomic!(atomic_compare_exchange_weak, self.data.get(), current, new, success, failure)
     }
 }
 
-impl<T> Atomic<T> where T: AtomicIntOps {
+impl Atomic<bool> {
     #[inline]
-    pub fn fetch_add(&self, val: T, order: Ordering) -> T {
-        T::fetch_add(self.data.get(), val, order)
+    pub fn fetch_and(&self, val: bool, order: Ordering) -> bool {
+        atomic_and::<bool, u8>(self.data.get(), val, order)
     }
 
     #[inline]
-    pub fn fetch_sub(&self, val: T, order: Ordering) -> T {
-        T::fetch_sub(self.data.get(), val, order)
+    pub fn fetch_nand(&self, val: bool, order: Ordering) -> bool {
+        atomic_nand::<bool, u8>(self.data.get(), val, order)
+    }
+
+    #[inline]
+    pub fn fetch_or(&self, val: bool, order: Ordering) -> bool {
+        atomic_or::<bool, u8>(self.data.get(), val, order)
+    }
+
+    #[inline]
+    pub fn fetch_xor(&self, val: bool, order: Ordering) -> bool {
+        atomic_or::<bool, u8>(self.data.get(), val, order)
     }
 }
 
-impl<T> From<T> for Atomic<T> where T: AtomicOps {
+macro_rules! atomic_integer_ops {
+    ($($t:ty),*) => ($(
+        impl Atomic<$t> {
+            #[inline]
+            pub fn fetch_add(&self, val: $t, order: Ordering) -> $t {
+                atomic_fetch_add::<$t, $t>(self.data.get(), val, order)
+            }
+
+            #[inline]
+            pub fn fetch_sub(&self, val: $t, order: Ordering) -> $t {
+                atomic_fetch_sub::<$t, $t>(self.data.get(), val, order)
+            }
+
+            #[inline]
+            pub fn fetch_and(&self, val: $t, order: Ordering) -> $t {
+                atomic_and::<$t, $t>(self.data.get(), val, order)
+            }
+
+            #[inline]
+            pub fn fetch_nand(&self, val: $t, order: Ordering) -> $t {
+                atomic_nand::<$t, $t>(self.data.get(), val, order)
+            }
+
+            #[inline]
+            pub fn fetch_or(&self, val: $t, order: Ordering) -> $t {
+                atomic_or::<$t, $t>(self.data.get(), val, order)
+            }
+
+            #[inline]
+            pub fn fetch_xor(&self, val: $t, order: Ordering) -> $t {
+                atomic_xor::<$t, $t>(self.data.get(), val, order)
+            }
+        }
+    )*);
+}
+    
+atomic_integer_ops! { u8, i8, u16, i16, u32, i32, u64, i64, usize, isize }
+
+impl<T> From<T> for Atomic<T>
+where
+    T: Copy
+{
     fn from(val: T) -> Self {
         Self::new(val)
     }
 }
 
-impl<T> Default for Atomic<T> where T: AtomicOps + Default {
+impl<T> Default for Atomic<T>
+where
+    T: Default + Copy
+{
     fn default() -> Self {
         Self::new(T::default())
     }
 }
 
-macro_rules! impl_atomic_ops {
-    ($impl_type:ty) => {
-        impl AtomicOps for $impl_type {
-            #[inline]
-            fn load(self: *mut Self, order: Ordering) -> Self {
-                unsafe {
-                    sys::atomic_load(self, order)
-                }
-            }
-
-            #[inline]
-            fn store(self: *mut Self, val: Self, order: Ordering) {
-                unsafe {
-                    sys::atomic_store(self, val, order);
-                }
-            }
-
-            #[inline]
-            fn swap(self: *mut Self, val: Self, order: Ordering) -> Self {
-                unsafe {
-                    sys::atomic_swap(self, val, order)
-                }
-            }
-
-            #[inline]
-            fn compare_and_swap(self: *mut Self, current: Self, new: Self, order: Ordering) -> Self {
-                match self.compare_exchange(current, new, order, sys::strongest_failure_ordering(order)) {
-                    Ok(x) => x,
-                    Err(x) => x,
-                }
-            }
-
-            #[inline]
-            fn compare_exchange(self: *mut Self, current: Self, new: Self, success: Ordering, failure: Ordering) -> Result<Self, Self> {
-                unsafe {
-                    sys::atomic_compare_exchange(self, current, new, success, failure)
-                }
-            }
-
-            #[inline]
-            fn compare_exchange_weak(self: *mut Self, current: Self, new: Self, success: Ordering, failure: Ordering) -> Result<Self, Self> {
-                unsafe {
-                    sys::atomic_compare_exchange_weak(self, current, new, success, failure)
-                }
-            }
-        }
-    };
+#[inline]
+fn atomic_load<T: Copy, U: Copy>(dst: *mut T, order: Ordering) -> T {
+    unsafe {
+        transmute_const(sys::atomic_load(dst as *mut U, order))
+    }
 }
 
-macro_rules! impl_atomic_ops_for_ptr {
-    ($impl_type:ty) => {
-        impl<T> AtomicOps for $impl_type {
-            #[inline]
-            fn load(self: *mut Self, order: Ordering) -> Self {
-                unsafe {
-                    sys::atomic_load(self as *mut usize, order) as Self
-                }
-            }
-
-            #[inline]
-            fn store(self: *mut Self, val: Self, order: Ordering) {
-                unsafe {
-                    sys::atomic_store(self as *mut usize, val as usize, order);
-                }
-            }
-
-            #[inline]
-            fn swap(self: *mut Self, val: Self, order: Ordering) -> Self {
-                unsafe {
-                    sys::atomic_swap(self as *mut usize, val as usize, order) as Self
-                }
-            }
-
-            #[inline]
-            fn compare_and_swap(self: *mut Self, current: Self, new: Self, order: Ordering) -> Self {
-                match self.compare_exchange(current, new, order, sys::strongest_failure_ordering(order)) {
-                    Ok(x) => x,
-                    Err(x) => x,
-                }
-            }
-
-            #[inline]
-            fn compare_exchange(self: *mut Self, current: Self, new: Self, success: Ordering, failure: Ordering) -> Result<Self, Self> {
-                unsafe {
-                    match sys::atomic_compare_exchange(self as *mut usize, current as usize, new as usize, success, failure) {
-                        Ok(x) => Ok(x as Self),
-                        Err(x) => Err(x as Self),
-                    }
-                }
-            }
-
-            #[inline]
-            fn compare_exchange_weak(self: *mut Self, current: Self, new: Self, success: Ordering, failure: Ordering) -> Result<Self, Self> {
-                unsafe {
-                    match sys::atomic_compare_exchange_weak(self as *mut usize, current as usize, new as usize, success, failure) {
-                        Ok(x) => Ok(x as Self),
-                        Err(x) => Err(x as Self),
-                    }
-                }
-            }
-        }
-    };
+#[inline]
+fn atomic_store<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) {
+    unsafe {
+        transmute_const(sys::atomic_store(dst as *mut U, transmute_const(val), order))
+    }
 }
 
-macro_rules! impl_atomic_int_like {
-    ($impl_type:ty) => {
-        impl_atomic_logical!($impl_type);
-
-        impl AtomicIntOps for $impl_type {
-            #[inline]
-            fn fetch_add(self: *mut Self, val: Self, order: Ordering) -> Self {
-                unsafe {
-                    sys::atomic_add(self, val, order)
-                }
-            }
-
-            #[inline]
-            fn fetch_sub(self: *mut Self, val: Self, order: Ordering) -> Self {
-                unsafe {
-                    sys::atomic_sub(self, val, order)
-                }
-            }
-        }
-    };
+#[inline]
+fn atomic_swap<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
+    unsafe {
+        transmute_const(sys::atomic_swap(dst as *mut U, transmute_const(val), order))
+    }
 }
 
-macro_rules! impl_atomic_logical {
-    ($impl_type:ty) => {
-        impl_atomic_ops!($impl_type);
-        impl AtomicLogicalOps for $impl_type {
-            #[inline]
-            fn fetch_and(self: *mut Self, val: Self, order: Ordering) -> Self {
-                unsafe {
-                    sys::atomic_and(self, val, order)
-                }
-            }
-
-            #[inline]
-            fn fetch_nand(self: *mut Self, val: Self, order: Ordering) -> Self {
-                unsafe {
-                    sys::atomic_nand(self, val, order)
-                }
-            }
-
-            #[inline]
-            fn fetch_or(self: *mut Self, val: Self, order: Ordering) -> Self {
-                unsafe {
-                    sys::atomic_or(self, val, order)
-                }
-            }
-
-            #[inline]
-            fn fetch_xor(self: *mut Self, val: Self, order: Ordering) -> Self {
-                unsafe {
-                    sys::atomic_xor(self, val, order)
-                }
-            }
-        }
-    };
+#[inline]
+fn atomic_compare_and_swap<T: Copy, U: Copy>(dst: *mut T, current: T, new: T, order: Ordering) -> T {
+    match atomic_compare_exchange::<T, U>(dst, current, new, order, sys::strongest_failure_ordering(order)) {
+        Ok(x) => x,
+        Err(x) => x,
+    }
 }
 
-impl_atomic_int_like!(usize);
-impl_atomic_int_like!(isize);
-impl_atomic_int_like!(u32);
-impl_atomic_int_like!(i32);
-impl_atomic_int_like!(u16);
-impl_atomic_int_like!(i16);
-impl_atomic_int_like!(u8);
-impl_atomic_int_like!(i8);
-
-impl_atomic_ops_for_ptr!(*const T);
-impl_atomic_ops_for_ptr!(*mut T);
-
-impl AtomicOps for bool {
-    #[inline]
-    fn load(self: *mut Self, order: Ordering) -> Self {
-        unsafe {
-            sys::atomic_load(self as *mut u8, order) != 0
-        }
-    }
-
-    #[inline]
-    fn store(self: *mut Self, val: Self, order: Ordering) {
-        unsafe {
-            sys::atomic_store(self as *mut u8, val as u8, order);
-        }
-    }
-
-    #[inline]
-    fn swap(self: *mut Self, val: Self, order: Ordering) -> Self {
-        unsafe {
-            sys::atomic_swap(self as *mut u8, val as u8, order) != 0
-        }
-    }
-
-    #[inline]
-    fn compare_and_swap(self: *mut Self, current: Self, new: Self, order: Ordering) -> Self {
-        match self.compare_exchange(current, new, order, sys::strongest_failure_ordering(order)) {
-            Ok(x) => x,
-            Err(x) => x,
-        }
-    }
-
-    #[inline]
-    fn compare_exchange(self: *mut Self, current: Self, new: Self, success: Ordering, failure: Ordering) -> Result<Self, Self> {
-        unsafe {
-            match sys::atomic_compare_exchange(self as *mut u8, current as u8, new as u8, success, failure) {
-                Ok(x) => Ok(x != 0),
-                Err(x) => Err(x != 0)
-            }
-        }
-    }
-    
-    #[inline]
-    fn compare_exchange_weak(self: *mut Self, current: Self, new: Self, success: Ordering, failure: Ordering) -> Result<Self, Self> {
-        unsafe {
-            match sys::atomic_compare_exchange_weak(self as *mut u8, current as u8, new as u8, success, failure) {
-                Ok(x) => Ok(x != 0),
-                Err(x) => Err(x != 0)
-            }
+#[inline]
+fn atomic_compare_exchange<T: Copy, U: Copy>(dst: *mut T, current: T, new: T, success: Ordering, failure: Ordering) -> Result<T, T> {
+    unsafe {
+        match sys::atomic_compare_exchange(dst as *mut U, transmute_const(current), transmute_const(new), success, failure) {
+            Ok(x) => Ok(transmute_const(x)),
+            Err(x) => Err(transmute_const(x))
         }
     }
 }
 
-impl AtomicLogicalOps for bool {
-    #[inline]
-    fn fetch_and(self: *mut Self, val: Self, order: Ordering) -> Self {
-        unsafe {
-            sys::atomic_and(self as *mut u8, val as u8, order) != 0
+#[inline]
+fn atomic_compare_exchange_weak<T: Copy, U: Copy>(dst: *mut T, current: T, new: T, success: Ordering, failure: Ordering) -> Result<T, T> {
+    unsafe {
+        match sys::atomic_compare_exchange_weak(dst as *mut U, transmute_const(current), transmute_const(new), success, failure) {
+            Ok(x) => Ok(transmute_const(x)),
+            Err(x) => Err(transmute_const(x)),
         }
     }
+}
 
-    #[inline]
-    fn fetch_nand(self: *mut Self, val: Self, order: Ordering) -> Self {
-        if val {
-            self.fetch_xor(true, order)
-        } else {
-            bool::swap(self, true, order)
-        }
+#[inline]
+fn atomic_fetch_add<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
+    unsafe {
+        transmute_const(sys::atomic_add(dst as *mut U, transmute_const(val), order))
     }
+}
 
-    #[inline]
-    fn fetch_or(self: *mut Self, val: Self, order: Ordering) -> Self {
-        unsafe {
-            sys::atomic_or(self as *mut u8, val as u8, order) != 0
-        }
+#[inline]
+fn atomic_fetch_sub<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
+    unsafe {
+        transmute_const(sys::atomic_sub(dst as *mut U, transmute_const(val), order))
     }
+}
 
-    #[inline]
-    fn fetch_xor(self: *mut Self, val: Self, order: Ordering) -> Self {
-        unsafe {
-            sys::atomic_xor(self as *mut u8, val as u8, order) != 0
-        }
+#[inline]
+fn atomic_and<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
+    unsafe {
+        transmute_const(sys::atomic_and(dst as *mut U, transmute_const(val), order))
+    }
+}
+
+#[inline]
+fn atomic_nand<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
+    unsafe {
+        transmute_const(sys::atomic_nand(dst as *mut U, transmute_const(val), order))
+    }
+}
+
+#[inline]
+fn atomic_or<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
+    unsafe {
+        transmute_const(sys::atomic_or(dst as *mut U, transmute_const(val), order))
+    }
+}
+
+#[inline]
+fn atomic_xor<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
+    unsafe {
+        transmute_const(sys::atomic_xor(dst as *mut U, transmute_const(val), order))
     }
 }
 

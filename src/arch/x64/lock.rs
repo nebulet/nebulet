@@ -1,4 +1,4 @@
-use sync::atomic::*;
+use sync::atomic::{Atomic, Ordering};
 use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut, Drop};
 

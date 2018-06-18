@@ -1,7 +1,7 @@
 use core::ptr;
 use super::super::map_heap;
 use arch::paging::PageMapper;
-use sync::atomic::*;
+use sync::atomic::{Atomic, Ordering};
 
 static OFFSET: Atomic<usize> = Atomic::new(0);
 
