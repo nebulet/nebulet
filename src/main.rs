@@ -15,7 +15,6 @@
     naked_functions,
     compiler_builtins_lib,
     nonnull_cast,
-    repr_transparent,
     box_into_raw_non_null,
     box_syntax,
     unsize,

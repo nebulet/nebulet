@@ -5,7 +5,6 @@
 #![no_std]
 
 #![feature(
-    repr_transparent,
     box_syntax,
     dropck_eyepatch,
     allocator_api,
