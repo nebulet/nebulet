@@ -28,13 +28,17 @@ impl Scheduler {
     pub unsafe fn switch(&self) {
         let current_thread = Local::current_thread();
 
-        let next_thread = if let Some(next_thread) = self.thread_queue.pop() {
-            next_thread
-        } else {
-            if current_thread.state() == State::Running {
-                current_thread.clone()
+        let next_thread = loop {
+            if let Some(next_thread) = self.thread_queue.pop() {
+                if next_thread.state() == State::Ready {
+                    break next_thread;
+                }
             } else {
-                self.idle_thread.clone()
+                if current_thread.state() == State::Running {
+                    break current_thread.clone();
+                } else {
+                    break self.idle_thread.clone();
+                }
             }
         };
 
