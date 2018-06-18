@@ -3,7 +3,7 @@ use arch::macros::interrupt;
 use arch;
 // use x86_64::instructions::port::Port;
 use arch::cpu::Local;
-use sync::atomic::*;
+use sync::atomic::{Atomic, Ordering};
 
 pub static PIT_TICKS: Atomic<usize> = Atomic::new(0);
 static CONTEXT_SWITCH_TICKS: usize = 10;

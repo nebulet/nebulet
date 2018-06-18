@@ -2,8 +2,7 @@ use arch::x64::interrupt;
 use arch::x64::idt;
 use arch::macros::interrupt;
 use arch::devices::{pic, pit};
-// use core::sync::atomic::{AtomicU8, Ordering};
-use sync::atomic::*;
+use sync::atomic::{Atomic, Ordering};
 use x86_64::structures::idt::Idt;
 use core::mem::transmute;
 
