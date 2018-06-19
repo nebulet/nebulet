@@ -1,27 +1,27 @@
-use object::{Process, Wasm, Channel, HandleRights, HandleOffset};
+use object::{Process, Wasm, Channel, HandleRights, UserHandle};
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
 
 /// Create a process with the specified compiled code.
 #[nebulet_abi]
-pub fn process_create(code_handle: HandleOffset, channel_handle: HandleOffset, process: &Process) -> Result<u32> {
+pub fn process_create(code_handle: UserHandle<Wasm>, channel_handle: UserHandle<Channel>, process: &Process) -> Result<u32> {
     let handle_table = process.handle_table();
 
-    let (code_ref, chan_ref) = {
+    let (code, chan) = {
         let handle_table = handle_table.read();
 
-        let code_handle = handle_table.get(code_handle as _)?;
-        let chan_handle = handle_table.get(channel_handle as _)?;
+        let code_handle = handle_table.get(code_handle)?;
+        let chan_handle = handle_table.get(channel_handle)?;
 
         code_handle.check_rights(HandleRights::READ)?;
         chan_handle.check_rights(HandleRights::READ)?;
 
         // Try casting the handle to the correct type.
         // If this fails, return `Error::WRONG_TYPE`.
-        (code_handle.cast::<Wasm>()?, chan_handle.cast::<Channel>()?)
+        (code_handle, chan_handle)
     };
 
-    let new_proc = Process::create(code_ref)?;
+    let new_proc = Process::create(code.refptr())?;
 
     {
         let mut new_handle_table = new_proc.handle_table().write();
@@ -29,8 +29,8 @@ pub fn process_create(code_handle: HandleOffset, channel_handle: HandleOffset, p
         // this should set the 0th place in the handle table
         // of the new process as the handle to the read-end
         // of the supplied channel.
-        let chan_index = new_handle_table.allocate(chan_ref, rights)?;
-        assert_eq!(chan_index, 0);
+        let chan_handle = new_handle_table.allocate(chan.refptr(), rights)?;
+        assert_eq!(chan_handle.inner(), 0);
     }
 
     // Return the index of the new process' handle
@@ -41,25 +41,21 @@ pub fn process_create(code_handle: HandleOffset, channel_handle: HandleOffset, p
         let rights = HandleRights::READ | HandleRights::WRITE | HandleRights::TRANSFER;
 
         handle_table.allocate(new_proc, rights)
-            .map(|handle| handle as u32)
+            .map(|handle| handle.inner())
     }
 }
 
 /// Start the supplied process.
 #[nebulet_abi]
-pub fn process_start(proc_handle: HandleOffset, process: &Process) -> Result<u32> {
+pub fn process_start(proc_handle: UserHandle<Process>, process: &Process) -> Result<u32> {
     let handle_table = process.handle_table();
 
     let handle_table = handle_table.read();
-    let proc_handle = handle_table.get(proc_handle as _)?;
+    let proc_ref = handle_table.get(proc_handle)?;
 
-    proc_handle.rights().has(HandleRights::WRITE)?;
-
-    // Try casting the handle to the correct type.
-    // If this fails, return `Error::WRONG_TYPE`.
-    let proc_ref = proc_handle.cast::<Process>()?;
-
-    proc_ref.start()?;
+    proc_ref
+        .check_rights(HandleRights::WRITE)?
+        .start()?;
 
     Ok(0)
 }
@@ -81,6 +77,6 @@ pub fn wasm_compile(buffer_offset: u32, buffer_size: u32, process: &Process) -> 
         let rights = HandleRights::READ | HandleRights::TRANSFER;
 
         handle_table.allocate(code_ref, rights)
-            .map(|handle| handle as u32)
+            .map(|handle| handle.inner())
     }
 }

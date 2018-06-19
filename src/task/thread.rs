@@ -3,6 +3,8 @@ use arch::context::ThreadContext;
 use arch::cpu::Local;
 use nabi::{Result, Error};
 use nil::mem::Bin;
+use sync::atomic::{Atomic, Ordering};
+use core::cell::UnsafeCell;
 
 /// The current state of a process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -20,12 +22,14 @@ pub enum State {
     Dead,
 }
 
+unsafe impl Sync for Thread {}
+
 /// A single thread of execution.
 #[allow(dead_code)]
 pub struct Thread {
-    pub state: State,
-    ctx: ThreadContext,
-    pub stack: WasmStack,
+    pub state: Atomic<State>,
+    ctx: UnsafeCell<ThreadContext>,
+    pub stack: UnsafeCell<WasmStack>,
     entry: usize,
 }
 
@@ -37,17 +41,19 @@ impl Thread {
             .ok_or(Error::NO_MEMORY)?;
 
         let thread = Thread {
-            state: State::Suspended,
-            ctx: ThreadContext::new(stack.top(), common_thread_entry::<F>),
-            stack,
+            state: Atomic::new(State::Suspended),
+            ctx: UnsafeCell::new(ThreadContext::new(stack.top(), common_thread_entry::<F>)),
+            stack: UnsafeCell::new(stack),
             entry: entry.into_nonnull().as_ptr() as *const () as usize,
         };
 
         Ok(thread)
     }
 
-    pub unsafe fn swap(&mut self, other: &Thread) {
-        self.ctx.swap(&other.ctx);
+    pub unsafe fn swap(&self, other: &Thread) {
+        let ctx = &mut*self.ctx.get();
+        let other = &*other.ctx.get();
+        ctx.swap(other);
     }
 }
 
@@ -57,7 +63,7 @@ extern fn common_thread_entry<F>()
     let current_thread_ref = Local::current_thread();
 
     let f = {
-        let thread = current_thread_ref.inner().lock();
+        let thread = current_thread_ref.inner();
 
         unsafe { (thread.entry as *const F).read() }  
     };
@@ -65,9 +71,9 @@ extern fn common_thread_entry<F>()
     f();
 
     {
-        let mut thread = current_thread_ref.inner().lock();
+        let thread = current_thread_ref.inner();
 
-        thread.state = State::Dead;
+        thread.state.store(State::Dead, Ordering::SeqCst);
     }
 
     unsafe {

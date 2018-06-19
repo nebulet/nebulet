@@ -1,4 +1,4 @@
-use nil::{Ref, KernelRef};
+use nil::{Ref, HandleRef};
 use nabi::{Result, Error};
 use object::Handle;
 use alloc::{Vec, VecDeque};
@@ -6,11 +6,11 @@ use arch::lock::IrqLock;
 
 pub struct Message {
     data: Vec<u8>,
-    handles: Vec<Handle>,
+    handles: Vec<Handle<HandleRef>>,
 }
 
 impl Message {
-    pub fn new(data: &[u8], handles: Vec<Handle>) -> Message {
+    pub fn new(data: &[u8], handles: Vec<Handle<HandleRef>>) -> Message {
         Message {
             data: data.to_vec(),
             handles,
@@ -21,7 +21,7 @@ impl Message {
         &self.data
     }
 
-    pub fn handles(&self) -> &[Handle] {
+    pub fn handles(&self) -> &[Handle<HandleRef>] {
         &self.handles
     }
 }
@@ -30,7 +30,7 @@ impl Message {
 /// and readable channel
 /// for transferring data
 /// between processes.
-#[derive(KernelRef)]
+#[derive(HandleRef)]
 pub struct Channel {
     msg_buffer: IrqLock<VecDeque<Message>>,
 }

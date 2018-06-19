@@ -6,9 +6,9 @@ use core::ptr::NonNull;
 use mem::Bin;
 use nabi::Result;
 
-/// All kernel objects must implement this trait.
-/// Kernel objects are intrusively refcounted.
-pub trait KernelRef: Any + Send + Sync {}
+/// All handle objects must implement this trait.
+/// Handle objects are refcounted.
+pub trait HandleRef: Any + Send + Sync {}
 
 struct RefInner<T: ?Sized> {
     count: AtomicUsize,
@@ -75,9 +75,9 @@ impl<T: ?Sized> Ref<T> {
     }
 }
 
-impl Ref<KernelRef> {
-    pub fn cast<T: KernelRef>(&self) -> Option<Ref<T>> {
-        let self_: &KernelRef = &**self;
+impl Ref<HandleRef> {
+    pub fn cast<T: HandleRef>(&self) -> Option<Ref<T>> {
+        let self_: &HandleRef = &**self;
         if self_.get_type_id() == TypeId::of::<T>() {
             let ptr: NonNull<RefInner<T>> = self.ptr.cast();
             let refptr = Ref { ptr, };
@@ -88,7 +88,7 @@ impl Ref<KernelRef> {
         }
     }
 
-    pub fn cast_ref<T: KernelRef>(&self) -> Option<&T> {
+    pub fn cast_ref<T: HandleRef>(&self) -> Option<&T> {
         self.cast()
             .map(|refptr: Ref<T>| unsafe { &(&*refptr.ptr.as_ptr()).data })
     }
