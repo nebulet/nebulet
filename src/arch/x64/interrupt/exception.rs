@@ -73,8 +73,8 @@ interrupt_stack_page!(page_fault, stack, error, {
     let current_thread = Local::current_thread();
 
     {
-        let mut thread = current_thread.inner().lock();
-        let stack = &mut thread.stack;
+        let thread = current_thread.inner();
+        let stack = unsafe { &mut*thread.stack.get() };
 
         if stack.addr_committed(faulting_addr) {
             let _ = stack.region.map_page(faulting_addr);

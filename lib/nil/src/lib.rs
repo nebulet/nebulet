@@ -24,4 +24,4 @@ extern crate nabi;
 mod refptr;
 pub mod mem;
 
-pub use refptr::{Ref, KernelRef};
+pub use refptr::{Ref, HandleRef};

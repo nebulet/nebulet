@@ -1,28 +1,52 @@
-use nil::{Ref, KernelRef};
+use nil::{Ref, HandleRef};
 use object::Thread;
 use task::State;
-use nabi::{Result};
+use sync::mpsc::Mpsc;
+use nabi::{Result, Error};
 
-#[derive(KernelRef)]
+#[derive(HandleRef)]
 pub struct Event {
-    thread: Ref<Thread>,
+    queue: Mpsc<Ref<Thread>>,
+    owner: Ref<Thread>,
 }
 
 impl Event {
     /// Create a new event.
-    /// Sets the thread state
-    /// to blocked.
-    pub fn new(thread: Ref<Thread>) -> Event {
-        thread.set_state(State::Blocked);
-
+    /// The returned event can only
+    /// be triggered by the thread
+    /// that created it.
+    pub fn new() -> Event {
         Event {
-            thread,
+            queue: Mpsc::new(),
+            owner: Thread::current(),
         }
+    }
+
+    /// Wait on the event. This blocks the current thread.
+    pub fn wait(&self) {
+        let current_thread = Thread::current();
+        current_thread.set_state(State::Blocked);
+        self.queue.push(current_thread);
+        Thread::yield_now();
     }
     
     /// Trigger the event.
-    pub fn trigger(self) -> Result<()> {
-        self.thread.set_state(State::Ready);
-        self.thread.resume()
+    /// This assures that only this thread is
+    /// accessing this instance. Returns the
+    /// number of threads that have been resumed.
+    /// If a thread other than the owning thread
+    /// tries to trigger the event, this will return `Error::ACCESS_DENIED`.
+    pub fn trigger(&self) -> Result<usize> {
+        let current_thread = Thread::current();
+        if !current_thread.ptr_eq(&self.owner) {
+            return Err(Error::ACCESS_DENIED);
+        }
+
+        let mut count = 0;
+        while let Some(thread) = self.queue.pop() {
+            count += 1;
+            thread.resume();
+        }
+        Ok(count)
     }
 }

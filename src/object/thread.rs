@@ -2,14 +2,14 @@ use task::{Thread as TaskThread, State};
 use object::Process;
 use arch::cpu::Local;
 use nabi::Result;
-use nil::{Ref, KernelRef};
+use nil::{Ref, HandleRef};
 use nil::mem::Bin;
-use arch::lock::IrqSpinlock;
+use sync::atomic::Ordering;
 
 /// Represents a thread.
-#[derive(KernelRef)]
+#[derive(HandleRef)]
 pub struct Thread {
-    thread: IrqSpinlock<TaskThread>,
+    thread: TaskThread,
     parent: Ref<Process>,
 }
 
@@ -17,7 +17,7 @@ impl Thread {
     pub fn new<F>(parent: Ref<Process>, stack_size: usize, f: F) -> Result<Ref<Thread>>
         where F: FnOnce() + Send + Sync
     {
-        let thread = IrqSpinlock::new(TaskThread::new(stack_size, Bin::new(move || f())?)?);
+        let thread = TaskThread::new(stack_size, Bin::new(move || f())?)?;
 
         Ref::new(Thread {
             thread,
@@ -25,32 +25,42 @@ impl Thread {
         })
     }
 
-    pub fn inner(&self) -> &IrqSpinlock<TaskThread> {
+    pub fn current() -> Ref<Thread> {
+        Local::current_thread()
+    }
+
+    /// Yield the current thread.
+    pub fn yield_now() {
+        unsafe {
+            Local::context_switch();
+        }
+    }
+
+    pub fn inner(&self) -> &TaskThread {
         &self.thread
     }
 
     pub fn set_state(&self, state: State) {
-        self.thread.lock().state = state;
+        self.thread.state.store(state, Ordering::Release)
     }
 
     pub fn state(&self) -> State {
-        self.thread.lock().state
+        self.thread.state.load(Ordering::Acquire)
     }
 
     pub fn parent(&self) -> &Process {
         &self.parent
     }
 
-    pub fn resume(self: &Ref<Self>) -> Result<()> {
-        debug_assert!({
+    pub fn resume(self: &Ref<Self>) {
+        assert!({
            let state = self.state();
            state == State::Blocked || state == State::Suspended 
         });
+        
         self.set_state(State::Ready);
 
         Local::schedule_thread(self.clone());
-        
-        Ok(())
     }
 
     pub fn exit(self: &Ref<Self>) -> Result<()> {

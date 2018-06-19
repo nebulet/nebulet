@@ -59,8 +59,8 @@ impl Scheduler {
 
         let (current_thread_inner, next_thread_inner) = {
             (
-                &mut *(&mut *current_thread.inner().lock() as *mut TaskThread),
-                &*(&*next_thread.inner().lock() as *const TaskThread),
+                &*(&*current_thread.inner() as *const TaskThread),
+                &*(&*next_thread.inner() as *const TaskThread),
             )
         };
 

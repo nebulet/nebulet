@@ -8,11 +8,22 @@ extern crate quote;
 
 use proc_macro::TokenStream;
 
-#[proc_macro_derive(KernelRef)]
-pub fn kernel_ref(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(HandleRef)]
+pub fn handle_ref(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
 
-    impl_kernel_ref(&ast).into()
+    impl_handle_ref(&ast).into()
+}
+
+fn impl_handle_ref(ast: &syn::DeriveInput) -> proc_macro2::TokenStream {
+    let name = &ast.ident;
+    if let syn::Data::Struct(_) = ast.data {
+        quote! {
+            impl HandleRef for #name {}
+        }
+    } else {
+        panic!("#[derive(HandleRef)] is only defined for structs.");
+    }
 }
 
 #[proc_macro_attribute]
@@ -20,17 +31,6 @@ pub fn nebulet_abi(_args: TokenStream, input: TokenStream) -> TokenStream {
     let fn_item = syn::parse(input).unwrap();
 
     wrap_nebulet_abi(fn_item).into()
-}
-
-fn impl_kernel_ref(ast: &syn::DeriveInput) -> proc_macro2::TokenStream {
-    let name = &ast.ident;
-    if let syn::Data::Struct(_) = ast.data {
-        quote! {
-            impl KernelRef for #name {}
-        }
-    } else {
-        panic!("#[derive(KernelRef)] is only defined for structs.");
-    }
 }
 
 fn wrap_nebulet_abi(mut fn_item: syn::ItemFn) -> proc_macro2::TokenStream {

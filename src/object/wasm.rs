@@ -5,7 +5,7 @@ use memory::{Region, MemFlags};
 use nabi::{Result, Error};
 use core::mem;
 use alloc::Vec;
-use nil::{Ref, KernelRef};
+use nil::{Ref, HandleRef};
 use cretonne_codegen::settings::{self, Configurable};
 use cretonne_codegen::ir::TrapCode;
 use cretonne_wasm::translate_module;
@@ -17,7 +17,7 @@ use cretonne_native;
 /// have one of these to create
 /// a process.
 #[allow(dead_code)]
-#[derive(KernelRef)]
+#[derive(HandleRef)]
 pub struct Wasm {
     data_initializers: Vec<DataInitializer>,
     functions: Vec<usize>,

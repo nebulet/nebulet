@@ -8,7 +8,7 @@ mod mono_copy;
 mod event;
 mod channel;
 
-pub use self::handle::{Handle, HandleOffset};
+pub use self::handle::{Handle, UserHandle};
 pub use self::table::HandleTable;
 pub use nabi::HandleRights;
 

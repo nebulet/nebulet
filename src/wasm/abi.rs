@@ -72,6 +72,23 @@ abi_map! {
         returns: VOID,
         abi::irq::set_irq_handler,
     },
+
+    // events
+    event_create: {
+        params: [],
+        returns: I64,
+        abi::event::event_create,
+    },
+    event_wait: {
+        params: [I32],
+        returns: I64,
+        abi::event::event_wait,
+    },
+    event_trigger: {
+        params: [I32],
+        returns: I64,
+        abi::event::event_trigger,
+    },
 }
 
 abi_map! {

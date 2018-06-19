@@ -2,7 +2,7 @@ use object::{HandleTable, Wasm, Thread};
 use wasm::Instance;
 use cretonne_codegen::ir::TrapCode;
 use nabi::Result;
-use nil::{Ref, KernelRef};
+use nil::{Ref, HandleRef};
 use nil::mem::{Bin, Array};
 use spin::RwLock;
 use arch::cpu::Local;
@@ -10,7 +10,7 @@ use arch::cpu::Local;
 type ThreadList = Array<Ref<Thread>>;
 
 /// Represents a process.
-#[derive(KernelRef)]
+#[derive(HandleRef)]
 #[allow(dead_code)]
 pub struct Process {
     /// The process name
@@ -54,7 +54,7 @@ impl Process {
 
         self.thread_list.write().push(thread.clone())?;
 
-        thread.resume()?;
+        thread.resume();
         
         Ok(())
     }

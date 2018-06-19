@@ -1,8 +1,8 @@
 use object::Process;
-use nil::{Ref, KernelRef};
+use nil::{Ref, HandleRef};
 use nabi::{Result, Error};
 
-#[derive(KernelRef)]
+#[derive(HandleRef)]
 pub struct MonoCopyRef {
     /// The process that contains the buffer.
     process: Ref<Process>,

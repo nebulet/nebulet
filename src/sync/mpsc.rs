@@ -3,6 +3,9 @@ use core::cell::Cell;
 use core::ptr;
 use alloc::boxed::Box;
 
+unsafe impl<T: Sized> Sync for Mpsc<T> {}
+unsafe impl<T: Sized> Send for Mpsc<T> {}
+
 struct MpscNode<T: Sized> {
     item: T,
     next: *mut MpscNode<T>,
