@@ -48,7 +48,7 @@ impl Thread {
         self.thread.state.load(Ordering::Acquire)
     }
 
-    pub fn parent(&self) -> &Process {
+    pub fn parent(&self) -> &Ref<Process> {
         &self.parent
     }
 

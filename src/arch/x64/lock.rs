@@ -56,6 +56,18 @@ impl<T> Spinlock<T> {
     }
 }
 
+impl Spinlock<()> {
+    /// If the caller forgets to unlock, this will deadlock.
+    /// However, that's not inherently unsafe.
+    pub fn lock_unguarded(&self) {
+        self.obtain_lock();
+    }
+
+    pub fn unlock_unguarded(&self) {
+        self.lock.store(false, Ordering::Release);
+    }
+}
+
 impl<T: ?Sized + Default> Default for Spinlock<T> {
     fn default() -> Spinlock<T> {
         Spinlock::new(Default::default())

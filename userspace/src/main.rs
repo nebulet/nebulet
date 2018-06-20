@@ -1,31 +1,67 @@
 #![no_main]
-#![feature(const_fn)]
 
 #[macro_use]
 extern crate sip;
 
-mod keyboard;
-mod driver;
+use sip::thread;
+use sip::Mutex;
 
-use driver::KeyboardDriver;
+struct Philosopher {
+    name: String,
+    left: usize,
+    right: usize,
+}
+
+impl Philosopher {
+    fn new(name: &str, left: usize, right: usize) -> Philosopher {
+        Philosopher {
+            name: name.to_string(),
+            left,
+            right,
+        }
+    }
+
+    fn eat(&self, table: &Table) {
+        let _left = table.forks[self.left].lock();
+        let _right = table.forks[self.right].lock();
+
+        println!("{} is eating.", self.name);
+
+        thread::yield_now();
+
+        println!("{} is done eating.", self.name);
+    }
+}
+
+struct Table {
+    forks: [Mutex<()>; 5],
+}
 
 #[no_mangle]
 pub fn main() {
-    // let _driver = KeyboardDriver::new();
-
-    let event = match sip::Event::create() {
-        Ok(event) => event,
-        Err(err) => {
-            println!("`Event::create` error: {:?}", err);
-            unimplemented!()
-        },
+    static TABLE: Table = Table {
+        forks: [
+            Mutex::new(()),
+            Mutex::new(()),
+            Mutex::new(()),
+            Mutex::new(()),
+            Mutex::new(()),
+        ]
     };
 
-    println!("trigger: {:?}", event.trigger());
+    let philosophers = vec![
+        Philosopher::new("Judith Butler", 0, 1),
+        Philosopher::new("Gilles Deleuze", 1, 2),
+        Philosopher::new("Karl Marx", 2, 3),
+        Philosopher::new("Emma Goldman", 3, 4),
+        Philosopher::new("Michel Foucault", 0, 4),
+    ];
 
-    println!("Going to wait.");
-    event.wait();
-    println!("after wait");
+    for p in philosophers {
+        thread::spawn(move || {
+            p.eat(&TABLE);
+        }).unwrap();
+    }
 
     loop {}
 }

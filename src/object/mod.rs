@@ -16,5 +16,5 @@ pub use self::thread::Thread;
 pub use self::process::Process;
 pub use self::wasm::Wasm;
 pub use self::mono_copy::MonoCopyRef;
-pub use self::event::Event;
+pub use self::event::{Event, EventState};
 pub use self::channel::{Channel, Message};

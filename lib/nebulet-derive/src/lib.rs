@@ -60,6 +60,7 @@ fn wrap_nebulet_abi(mut fn_item: syn::ItemFn) -> proc_macro2::TokenStream {
     if fn_item.decl.output == syn::ReturnType::Default {
         quote! {
             pub extern fn #outer_ident(#outer_inputs) {
+                #[inline(always)]
                 #fn_item
 
                 use wasm::instance::VmCtx;
@@ -74,6 +75,7 @@ fn wrap_nebulet_abi(mut fn_item: syn::ItemFn) -> proc_macro2::TokenStream {
     else {
         quote! {
             pub extern fn #outer_ident(#outer_inputs) -> u64 {
+                #[inline(always)]
                 #fn_item
 
                 use wasm::instance::VmCtx;

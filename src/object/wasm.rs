@@ -102,4 +102,21 @@ impl Wasm {
             .find(|trap_data| trap_data.offset == offset)
             .map(|trap_data| trap_data.code)
     }
+
+    /// Returns the index of the specified function in the module function index space.
+    pub fn lookup_func_index(&self, addr: *const ()) -> Option<usize> {
+        let base = self.region.as_ptr() as _;
+    
+        self.functions
+            .iter()
+            .enumerate()
+            .find(|&(index, _)| {
+                get_function_addr(base, &self.functions, index) == addr
+            })
+            .map(|(i, _)| i)
+    }
+
+    pub fn module(&self) -> &Module {
+        &self.module
+    }
 }
