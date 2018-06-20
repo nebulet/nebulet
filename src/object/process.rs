@@ -1,4 +1,4 @@
-use object::{HandleTable, Wasm, Thread};
+use object::{HandleTable, Wasm, Thread, Event};
 use wasm::Instance;
 use cretonne_codegen::ir::TrapCode;
 use nabi::Result;
@@ -6,6 +6,7 @@ use nil::{Ref, HandleRef};
 use nil::mem::{Bin, Array};
 use spin::RwLock;
 use arch::cpu::Local;
+use hashmap_core::HashMap;
 
 type ThreadList = Array<Ref<Thread>>;
 
@@ -24,6 +25,8 @@ pub struct Process {
     thread_list: RwLock<ThreadList>,
     /// A process owns its own instance.
     instance: RwLock<Instance>,
+    /// Hashmap of offsets in the wasm memory to an event
+    pfex_map: RwLock<HashMap<u32, Ref<Event>>>,
 }
 
 impl Process {
@@ -38,6 +41,7 @@ impl Process {
             handle_table: RwLock::new(HandleTable::new()),
             thread_list: RwLock::new(Array::with_capacity(1)?),
             instance: RwLock::new(instance),
+            pfex_map: RwLock::new(HashMap::new()),
         })
     }
 
@@ -103,5 +107,9 @@ impl Process {
 
     pub fn code(&self) -> &Wasm {
         &*self.code
+    }
+
+    pub fn pfex_map(&self) -> &RwLock<HashMap<u32, Ref<Event>>> {
+        &self.pfex_map
     }
 }

@@ -20,3 +20,7 @@ pub mod driver;
 pub mod irq;
 /// ABIs for events
 pub mod event;
+/// ABIs for threads
+pub mod thread;
+/// ABIs for pretty fast exclusion
+pub mod pfex;

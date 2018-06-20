@@ -12,6 +12,17 @@ abi_map! {
         returns: I64,
         abi::test::output_test,
     },
+    // generic handle operations
+    handle_close: {
+        params: [I32],
+        returns: I64,
+        abi::handle::handle_close,
+    },
+    handle_duplicate: {
+        params: [I32, I32],
+        returns: I64,
+        abi::handle::handle_duplicate,
+    },
     // actual abis
     wasm_compile: {
         params: [I32, I32],
@@ -84,10 +95,42 @@ abi_map! {
         returns: I64,
         abi::event::event_wait,
     },
+    event_poll: {
+        params: [I32],
+        returns: I64,
+        abi::event::event_poll,
+    },
     event_trigger: {
         params: [I32],
         returns: I64,
         abi::event::event_trigger,
+    },
+    event_rearm: {
+        params: [I32],
+        returns: I64,
+        abi::event::event_rearm,
+    },
+    // threads
+    thread_yield: {
+        params: [],
+        returns: VOID,
+        abi::thread::thread_yield,
+    },
+    thread_spawn: {
+        params: [I32, I32],
+        returns: I64,
+        abi::thread::thread_spawn,
+    },
+    // Pretty fast exclusion
+    pfex_acquire: {
+        params: [I32],
+        returns: VOID,
+        abi::pfex::pfex_acquire,
+    },
+    pfex_release: {
+        params: [I32],
+        returns: VOID,
+        abi::pfex::pfex_release,
     },
 }
 

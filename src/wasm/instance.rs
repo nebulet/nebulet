@@ -59,6 +59,15 @@ impl VmCtx {
             &*heap_ptr.sub(1)
         }
     }
+
+    /// This is safe because the offset is 32 bits and thus
+    /// cannot extend out of the guarded wasm memory.
+    pub fn fastpath_offset_ptr<T>(&self, offset: u32) -> *const T {
+        let heap_ptr = self as *const _ as *const u8;
+        unsafe {
+            heap_ptr.add(offset as usize) as *const T
+        }
+    }
 }
 
 #[repr(C)]
@@ -128,7 +137,7 @@ impl Instance {
         }
         // instantiate tables
         for table_element in &module.table_elements {
-            debug_assert!(table_element.base.is_none(), "globalvalue base not supported yet.");
+            assert!(table_element.base.is_none(), "globalvalue base not supported yet.");
             let base = 0;
 
             let table = &mut self.tables[table_element.table_index];
@@ -167,7 +176,7 @@ impl Instance {
         // so we need to be careful to map
         // in the pages that get initialized here.
         for init in data_initializers {
-            debug_assert!(init.base.is_none(), "globalvalue base not supported yet.");
+            assert!(init.base.is_none(), "globalvalue base not supported yet.");
             let memory = &mut self.memories[init.memory_index];
 
             let start_offset = init.offset;
