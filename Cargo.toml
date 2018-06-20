@@ -6,11 +6,6 @@ authors = ["Lachlan Sneff <lachlan.sneff@gmail.com>"]
 [package.metadata.bootimage]
 default-target = "x86_64-nebulet.json"
 output = "bootimage.bin"
-run-command = [
-    "qemu-system-x86_64",
-    "-machine", "q35,accel=kvm:xen:hax:tcg",
-    "-drive", "format=raw,file={}"
-]
 
 [package.metadata.cargo-xbuild]
 memcpy = true
