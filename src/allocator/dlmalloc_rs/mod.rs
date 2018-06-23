@@ -3,7 +3,7 @@ use core::alloc::Alloc;
 use core::cmp;
 use core::ptr::{self, NonNull};
 
-use arch::lock::IrqLock;
+use arch::lock::Spinlock;
 
 mod dlmalloc;
 
@@ -64,7 +64,7 @@ impl Dlmalloc {
     }
 }
 
-static HEAP: IrqLock<Dlmalloc> = IrqLock::new(DLMALLOC_INIT);
+static HEAP: Spinlock<Dlmalloc> = Spinlock::new(DLMALLOC_INIT);
 
 pub struct Allocator;
 

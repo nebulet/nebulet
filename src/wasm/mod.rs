@@ -15,7 +15,7 @@ mod abi;
 
 pub use self::module::Module;
 pub use self::compilation::{Compilation, Compiler};
-pub use self::instance::{Instance, VmCtx};
+pub use self::instance::{Instance, VmCtx, UserData};
 
 use cretonne_wasm::{self, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
                 GlobalValue, SignatureIndex, FuncTranslator, WasmResult};
@@ -276,7 +276,7 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
     fn get_table(&mut self, func: &mut ir::Function, table_index: TableIndex) -> ir::GlobalValue {
         let ptr_size = self.ptr_size();
         let base = self.tables_base.unwrap_or_else(|| {
-            let tables_offset = self.ptr_size() as i32 * -2;
+            let tables_offset = self.ptr_size() as i32 * -1;
             let new_base = func.create_global_value(ir::GlobalValueData::VMContext {
                 offset: tables_offset.into(),
             });
@@ -331,7 +331,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
 
     fn make_global(&mut self, func: &mut ir::Function, index: GlobalIndex) -> GlobalValue {
         let globals_base = self.globals_base.unwrap_or_else(|| {
-            let globals_offset = self.ptr_size() as i32 * -4;
+            let globals_offset = self.ptr_size() as i32 * -3;
             let new_base = func.create_global_value(ir::GlobalValueData::VMContext {
                 offset: globals_offset.into(),
             });
@@ -370,7 +370,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
             })
         } else {
             let memory_base = self.memory_base.unwrap_or_else(|| {
-                let memories_offset = self.ptr_size() as i32 * -3;
+                let memories_offset = self.ptr_size() as i32 * -2;
                 let new_base = func.create_global_value(ir::GlobalValueData::VMContext {
                     offset: memories_offset.into(),
                 });

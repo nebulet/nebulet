@@ -75,6 +75,7 @@ pub mod task;
 pub mod wasm;
 pub mod externs;
 pub mod sync;
+pub mod dpc;
 
 pub use consts::*;
 

@@ -2,17 +2,18 @@
 //!
 //! Literally taken from https://github.com/sunfishcode/wasmstandalone
 
-use cretonne_codegen::ir;
-use cretonne_wasm::{GlobalIndex, GlobalInit};
+use cretonne_wasm::{GlobalInit};
 use super::module::Module;
 use super::{DataInitializer, FunctionIndex};
 
 use memory::WasmMemory;
 use object::Process;
 use nil::Ref;
+use nabi::Result;
 use core::marker::PhantomData;
 use core::{slice, mem};
 use alloc::Vec;
+use spin::RwLock;
 use common::slice::{BoundedSlice, UncheckedSlice};
 
 pub fn get_function_addr(base: *const (), functions: &[usize], func_index: FunctionIndex) -> *const () {
@@ -27,7 +28,7 @@ pub struct VmCtxGenerator {
 }
 
 impl VmCtxGenerator {
-    pub fn vmctx(&mut self, process: Ref<Process>) -> &VmCtx {
+    pub fn vmctx(&mut self, process: Ref<Process>, instance: Instance) -> &VmCtx {
         assert!(self.memories.len() >= 1, "modules must have at least one memory");
         // the first memory has a space of `mem::size_of::<VmCtxData>()` rounded
         // up to the 4KiB before it. We write the VmCtxData into that.
@@ -35,7 +36,10 @@ impl VmCtxGenerator {
             globals: self.globals,
             memories: self.memories[1..].into(),
             tables: self.tables[..].into(),
-            process,
+            user_data: UserData {
+                process,
+                instance,
+            },
             phantom: PhantomData,
         };
 
@@ -72,56 +76,38 @@ impl VmCtx {
 
 #[repr(C)]
 pub struct VmCtxData<'a> {
+    pub user_data: UserData,
     globals: UncheckedSlice<u8>,
     memories: UncheckedSlice<UncheckedSlice<u8>>,
     tables: UncheckedSlice<BoundedSlice<usize>>,
-    pub process: Ref<Process>,
     phantom: PhantomData<&'a ()>,
 }
 
-/// An Instance of a WebAssembly module
-#[derive(Debug)]
-pub struct Instance {
-    /// WebAssembly table data
-    pub tables: Vec<Vec<usize>>,
-
-    /// WebAssembly linear memory data
-    pub memories: Vec<WasmMemory>,
-
-    /// WebAssembly global variable data
-    pub globals: Vec<u8>,
+#[repr(C)]
+pub struct UserData {
+    pub process: Ref<Process>,
+    pub instance: Instance,
 }
 
-impl Instance {
-    /// Create a new `Instance`.
-    pub fn new(module: &Module, data_initializers: &[DataInitializer], code_base: *const (), functions: &[usize]) -> Instance {
-        let mut result = Instance {
+struct InstanceBuilder {
+    tables: Vec<Vec<usize>>,
+    memories: Vec<WasmMemory>,
+    globals: Vec<u8>,
+}
+
+impl InstanceBuilder {
+    pub fn new(module: &Module, data_initializers: &[DataInitializer], code_base: *const (), functions: &[usize]) -> InstanceBuilder {
+        let mut builder = InstanceBuilder {
             tables: Vec::new(),
             memories: Vec::new(),
             globals: Vec::new(),
         };
 
-        result.instantiate_tables(module, code_base, functions);
-        result.instantiate_memories(module, data_initializers);
-        result.instantiate_globals(module);
+        builder.instantiate_tables(module, code_base, functions);
+        builder.instantiate_memories(module, data_initializers);
+        builder.instantiate_globals(module);
 
-        result
-    }
-
-    pub fn generate_vmctx_backing(&mut self) -> VmCtxGenerator {
-        let memories = self.memories.iter_mut()
-            .map(|mem| mem[..].into())
-            .collect();
-
-        let tables = self.tables.iter_mut()
-            .map(|table| table[..].into())
-            .collect();
-        
-        VmCtxGenerator {
-            globals: self.globals[..].into(),
-            memories,
-            tables,
-        }
+        builder
     }
 
     /// Allocate memory in `self` for just the tables of the current module.
@@ -210,18 +196,60 @@ impl Instance {
             globals_data[i] = value;
         }
     }
+}
 
-    /// Returns a slice of the contents of allocated linear memory
-    pub fn inspect_memory(&self, memory_index: usize, address: usize, len: usize) -> &[u8] {
-        &self.memories.get(memory_index).expect(
-            format!("no memory for index {}", memory_index).as_str()
-        )[address..address + len]
+/// An Instance of a WebAssembly module
+#[derive(Debug)]
+pub struct Instance {
+    /// WebAssembly table data
+    pub tables: Ref<Vec<RwLock<Vec<usize>>>>,
+
+    /// WebAssembly linear memory data
+    pub memories: Ref<Vec<RwLock<WasmMemory>>>,
+
+    /// WebAssembly global variable data
+    pub globals: Vec<u8>,
+}
+
+impl Instance {
+    /// Create a new `Instance`.
+    pub fn build(module: &Module, data_initializers: &[DataInitializer], code_base: *const (), functions: &[usize]) -> Result<Instance> {
+        let builder = InstanceBuilder::new(module, data_initializers, code_base, functions);
+
+        Ok(Instance {
+            tables: Ref::new(builder.tables.into_iter().map(|table| RwLock::new(table)).collect())?,
+            memories: Ref::new(builder.memories.into_iter().map(|mem| RwLock::new(mem)).collect())?,
+            globals: builder.globals,
+        })
     }
 
-    /// Return the value of a global variable.
-    pub fn inspect_globals(&self, global_index: GlobalIndex, ty: ir::Type) -> &[u8] {
-        let offset = global_index * 8;
-        let len = ty.bytes() as usize;
-        &self.globals[offset..offset + len]
+    pub fn generate_vmctx_backing(&mut self) -> VmCtxGenerator {
+        let memories = self.memories.iter()
+            .map(|mem| mem.write()[..].into())
+            .collect();
+
+        let tables = self.tables.iter()
+            .map(|table| table.write()[..].into())
+            .collect();
+        
+        VmCtxGenerator {
+            globals: self.globals[..].into(),
+            memories,
+            tables,
+        }
+    }
+
+    pub fn memories(&self) -> Ref<Vec<RwLock<WasmMemory>>> {
+        self.memories.clone()
+    }
+}
+
+impl Clone for Instance {
+    fn clone(&self) -> Instance {
+        Instance {
+            tables: Ref::clone(&self.tables),
+            memories: Ref::clone(&self.memories),
+            globals: self.globals.clone(),
+        }
     }
 }

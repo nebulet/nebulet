@@ -9,11 +9,8 @@ use core::cell::UnsafeCell;
 /// The current state of a process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum State {
-    /// The thread is currently executing.
+    /// The thread is currently executing or ready to execute.
     Running,
-    /// This thread is not currently running, but it's ready to execute.
-    /// For example, in the cpu thread queue.
-    Ready,
     /// The thread has been suspended and cannot be run right now.
     Suspended,
     /// The thread is blocked.
@@ -60,10 +57,11 @@ impl Thread {
 extern fn common_thread_entry<F>()
     where F: FnOnce() + Send + Sync
 {
-    let current_thread_ref = Local::current_thread();
+    use object::Thread as ThreadObject;
+    let current_thread = ThreadObject::current();
 
     let f = {
-        let thread = current_thread_ref.inner();
+        let thread = current_thread.inner();
 
         unsafe { (thread.entry as *const F).read() }  
     };
@@ -71,7 +69,7 @@ extern fn common_thread_entry<F>()
     f();
 
     {
-        let thread = current_thread_ref.inner();
+        let thread = current_thread.inner();
 
         thread.state.store(State::Dead, Ordering::SeqCst);
     }
@@ -81,4 +79,10 @@ extern fn common_thread_entry<F>()
     }
 
     unreachable!();
+}
+
+impl Drop for Thread {
+    fn drop(&mut self) {
+        println!("dropping thread");
+    }
 }

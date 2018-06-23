@@ -38,9 +38,3 @@ pub const KERNEL_HEAP_SIZE: usize = 20 * 1024 * 1024; // 1MB
 pub const SIP_MEM_OFFSET: usize = 1 << 31;
 
 pub const SIP_MEM_SIZE: usize = KERNEL_HEAP_OFFSET - SIP_MEM_OFFSET;
-
-/// Offset of the Handle Table.
-/// This starts at 1 GiB
-/// and goes up to 2 Gib.
-pub const HANDLE_TABLE_OFFSET: usize = 1 << 30;
-pub const HANDLE_TABLE_SIZE: usize = 1 << 30;

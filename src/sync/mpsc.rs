@@ -49,32 +49,29 @@ impl<T: Sized> Mpsc<T> {
     }
 
     #[inline]
-    pub fn pop(&self) -> Option<T> {
+    pub unsafe fn pop(&self) -> Option<T> {
         if !self.poplist.get().is_null() {
             // The poplist is not empty, so pop from it
-            let node = unsafe { &mut *self.poplist.get() };
-            self.poplist.set(node.next);
-            let boxed = unsafe { Box::from_raw(node as *mut MpscNode<T>) };
+            let node = self.poplist.get();
+            self.poplist.set((*node).next);
+            let boxed = Box::from_raw(node);
             Some(boxed.item)
         } else {
             // The poplist is empty, so atomically take
             // the entire pushlist and reverse it into the poplist
-            let mut node = {
-                let node_ptr = self.pushlist.swap(ptr::null_mut(), Ordering::Acquire);
-                if node_ptr.is_null() {
-                    return None; // both the pushlist and poplist were empty
-                }
-                unsafe { &mut *node_ptr }
-            };
-
-            while !node.next.is_null() {
-                let next_ptr = node.next;
-                node.next = self.poplist.get();
-                self.poplist.set(node);
-                node = unsafe { &mut *next_ptr };
+            let mut node = self.pushlist.swap(ptr::null_mut(), Ordering::Acquire);
+            if node.is_null() {
+                return None;
             }
 
-            let boxed = unsafe { Box::from_raw(node) };
+            while !(*node).next.is_null() {
+                let next = (*node).next;
+                (*node).next = self.poplist.get();
+                self.poplist.set(node);
+                node = next;
+            }
+
+            let boxed = Box::from_raw(node);
             Some(boxed.item)
         }
     }
@@ -82,7 +79,7 @@ impl<T: Sized> Mpsc<T> {
 
 impl<T: Sized> Drop for Mpsc<T> {
     fn drop(&mut self) {
-        while let Some(item) = self.pop() {
+        while let Some(item) = unsafe { self.pop() } {
             drop(item);
         }
     }

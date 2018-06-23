@@ -1,7 +1,7 @@
 use core::mem;
 use x86_64::registers::rflags::RFlags;
 
-extern "C" {
+extern {
     fn x86_64_context_switch(prev: *mut ThreadContext, next: *const ThreadContext);
 }
 

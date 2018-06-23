@@ -1,6 +1,7 @@
 use os_bootinfo::BootInfo;
 use arch::memory;
 use arch::{idt, interrupt, devices, paging, cpu};
+use dpc;
 
 /// Test of zero values in BSS.
 static BSS_TEST_ZERO: usize = 0x0;
@@ -39,6 +40,9 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
 
     // Initialize non-essential devices
     devices::init_noncore();
+
+    // Initialize deferred procedure calls
+    dpc::init();
 
     ::kmain();
 }

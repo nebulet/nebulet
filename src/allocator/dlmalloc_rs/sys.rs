@@ -1,16 +1,13 @@
 use core::ptr;
 use super::super::map_heap;
 use arch::paging::PageMapper;
-use sync::atomic::{Atomic, Ordering};
-
-static OFFSET: Atomic<usize> = Atomic::new(0);
 
 pub unsafe fn alloc(size: usize) -> (*mut u8, usize, u32) {
-    let offset = OFFSET.load(Ordering::Relaxed);
+    static mut OFFSET: usize = 0;
 
-    let (ptr, actual_size) = map_heap(&mut PageMapper::new(), ::KERNEL_HEAP_OFFSET + offset, size);
-    
-    OFFSET.fetch_add(actual_size, Ordering::Relaxed);
+    let (ptr, actual_size) = map_heap(&mut PageMapper::new(), ::KERNEL_HEAP_OFFSET + OFFSET, size);
+
+    OFFSET += actual_size;
 
     (ptr, actual_size, 0)
 }

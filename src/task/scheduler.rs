@@ -1,18 +1,17 @@
-use super::thread::{Thread as TaskThread, State};
+use super::thread::State;
 use arch::cpu::Local;
 use sync::mpsc::Mpsc;
 use object::Thread;
-use nil::Ref;
 
 /// The Scheduler schedules threads to be run.
-/// Currently, it's a simple, round-robin.
+/// Currently, it's a simple round-robin.
 pub struct Scheduler {
-    thread_queue: Mpsc<Ref<Thread>>,
-    idle_thread: Ref<Thread>,
+    thread_queue: Mpsc<*const Thread>,
+    idle_thread: *const Thread,
 }
 
 impl Scheduler {
-    pub fn new(idle_thread: Ref<Thread>) -> Scheduler {
+    pub fn new(idle_thread: *const Thread) -> Scheduler {
         let thread_queue = Mpsc::new();
         Scheduler {
             thread_queue,
@@ -20,8 +19,7 @@ impl Scheduler {
         }
     }
 
-    #[inline]
-    pub fn schedule_thread(&self, thread: Ref<Thread>) {
+    pub fn schedule_thread(&self, thread: *const Thread) {
         self.thread_queue.push(thread);
     }
 
@@ -30,40 +28,34 @@ impl Scheduler {
 
         let next_thread = loop {
             if let Some(next_thread) = self.thread_queue.pop() {
-                if next_thread.state() == State::Ready {
+                let state = (*next_thread).state();
+                if state == State::Running {
                     break next_thread;
                 }
             } else {
-                if current_thread.state() == State::Running {
-                    break current_thread.clone();
+                if (*current_thread).state() == State::Running {
+                    break current_thread;
                 } else {
-                    break self.idle_thread.clone();
+                    break self.idle_thread;
                 }
             }
         };
 
-        if next_thread.ptr_eq(&current_thread) {
+        debug_assert!((*next_thread).state() == State::Running);
+
+        if next_thread == current_thread {
             return;
         }
 
-        debug_assert!(next_thread.state() == State::Ready);
-
-        if current_thread.state() == State::Running && !current_thread.ptr_eq(&self.idle_thread) {
-            current_thread.set_state(State::Ready);
-            self.thread_queue.push(current_thread.clone());
+        if current_thread != self.idle_thread {
+            self.thread_queue.push(current_thread);
         }
 
-        next_thread.set_state(State::Running);
+        Local::set_current_thread(next_thread);
 
-        Local::set_current_thread(next_thread.clone());
+        // println!("current_thread stacktop: {:p}", (*(*current_thread).inner().stack.get()).top());
+        // println!("next_thread stacktop: {:p}", (*(*next_thread).inner().stack.get()).top());
 
-        let (current_thread_inner, next_thread_inner) = {
-            (
-                &*(&*current_thread.inner() as *const TaskThread),
-                &*(&*next_thread.inner() as *const TaskThread),
-            )
-        };
-
-        current_thread_inner.swap(next_thread_inner);
+        (*(*current_thread).inner()).swap(&*(*next_thread).inner());
     }
 }

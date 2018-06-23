@@ -3,6 +3,8 @@ use core::marker::Unsize;
 use core::ops::{Deref, CoerceUnsized};
 use core::sync::atomic::{self, AtomicUsize, Ordering};
 use core::ptr::NonNull;
+use core::{mem, ptr};
+use core::alloc::Layout;
 use mem::Bin;
 use nabi::Result;
 
@@ -58,6 +60,25 @@ impl<T: ?Sized> Ref<T> {
         self.ptr == other.ptr
     }
 
+    pub fn into_raw(self: Self) -> *const T {
+        let ptr: *const T = &*self;
+        mem::forget(self);
+        ptr
+    }
+
+    pub unsafe fn from_raw(ptr: *const T) -> Self {
+        let align = mem::align_of_val(&*ptr);
+        let layout = Layout::new::<RefInner<()>>();
+        let offset = (layout.size() + layout.padding_needed_for(align)) as isize;
+
+        let fake_ptr = ptr as *mut RefInner<T>;
+        let ref_ptr = set_data_ptr(fake_ptr, (ptr as *mut u8).offset(-offset));
+
+        Ref {
+            ptr: NonNull::new_unchecked(ref_ptr),
+        }
+    }
+
     fn copy_ref(&self) -> Self {
         self.inc_ref();
         
@@ -66,11 +87,11 @@ impl<T: ?Sized> Ref<T> {
         }
     }
 
-    fn inc_ref(&self) -> usize {
+    pub fn inc_ref(&self) -> usize {
         self.inner().count.fetch_add(1, Ordering::Relaxed)
     }
 
-    fn dec_ref(&self) -> usize {
+    pub fn dec_ref(&self) -> usize {
         self.inner().count.fetch_sub(1, Ordering::Release)
     }
 }
@@ -133,4 +154,13 @@ impl<T: ?Sized> Deref for Ref<T> {
     fn deref(&self) -> &T {
         &self.inner().data
     }
+}
+
+// Sets the data pointer of a `?Sized` raw pointer.
+//
+// For a slice/trait object, this sets the `data` field and leaves the rest
+// unchanged. For a sized raw pointer, this simply sets the pointer.
+unsafe fn set_data_ptr<T: ?Sized, U>(mut ptr: *mut T, data: *mut U) -> *mut T {
+    ptr::write(&mut ptr as *mut _ as *mut *mut u8, data as *mut u8);
+    ptr
 }

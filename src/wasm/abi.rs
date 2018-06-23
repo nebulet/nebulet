@@ -12,6 +12,7 @@ abi_map! {
         returns: I64,
         abi::test::output_test,
     },
+
     // generic handle operations
     handle_close: {
         params: [I32],
@@ -23,7 +24,8 @@ abi_map! {
         returns: I64,
         abi::handle::handle_duplicate,
     },
-    // actual abis
+
+    // process
     wasm_compile: {
         params: [I32, I32],
         returns: I64,
@@ -39,6 +41,7 @@ abi_map! {
         returns: I64,
         abi::process::process_start,
     },
+
     // ipc
     channel_create: {
         params: [I32, I32],
@@ -55,7 +58,8 @@ abi_map! {
         returns: I64,
         abi::ipc::channel_read,
     },
-    // I/O
+
+    // debug
     print: {
         params: [I32, I32],
         returns: VOID,
@@ -117,10 +121,11 @@ abi_map! {
         abi::thread::thread_yield,
     },
     thread_spawn: {
-        params: [I32, I32],
+        params: [I32, I32, I32],
         returns: I64,
         abi::thread::thread_spawn,
     },
+
     // Pretty fast exclusion
     pfex_acquire: {
         params: [I32],

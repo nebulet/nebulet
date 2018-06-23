@@ -54,35 +54,33 @@ fn wrap_nebulet_abi(mut fn_item: syn::ItemFn) -> proc_macro2::TokenStream {
         })
         .collect::<syn::punctuated::Punctuated<syn::Pat, syn::token::Comma>>();
     inner_inputs.pop();
-    inner_inputs.push(syn::parse(quote!(process).into()).unwrap());
+    inner_inputs.push(syn::parse(quote!(user_data).into()).unwrap());
 
     // TODO: More generic handling of return type.
     if fn_item.decl.output == syn::ReturnType::Default {
         quote! {
             pub extern fn #outer_ident(#outer_inputs) {
-                #[inline(always)]
+                #[inline]
                 #fn_item
 
                 use wasm::instance::VmCtx;
                 let vmctx = unsafe { &*(vmctx as *const VmCtx) };
-                let data = vmctx.data();
+                let user_data = &vmctx.data().user_data;
 
-                let process = &data.process;
-                inner(#inner_inputs)
+                inner(#inner_inputs);
             }
         }
     }
     else {
         quote! {
             pub extern fn #outer_ident(#outer_inputs) -> u64 {
-                #[inline(always)]
+                #[inline]
                 #fn_item
 
                 use wasm::instance::VmCtx;
                 let vmctx = unsafe { &*(vmctx as *const VmCtx) };
-                let data = vmctx.data();
+                let user_data = &vmctx.data().user_data;
 
-                let process = &data.process;
                 let res = inner(#inner_inputs);
                 Error::mux(res)
             }

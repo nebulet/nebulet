@@ -1,11 +1,12 @@
-use object::{Process, Event, HandleRights, UserHandle};
+use object::{Event, HandleRights, UserHandle};
 use nabi::{Result, Error};
+use wasm::UserData;
 use nebulet_derive::nebulet_abi;
 use nil::Ref;
 
 #[nebulet_abi]
-pub fn event_create(process: &Process) -> Result<u32> {
-    let mut handle_table = process.handle_table().write();
+pub fn event_create(user_data: &UserData) -> Result<u32> {
+    let mut handle_table = user_data.process.handle_table().write();
 
     let event = Ref::new(Event::new())?;
 
@@ -17,9 +18,9 @@ pub fn event_create(process: &Process) -> Result<u32> {
 }
 
 #[nebulet_abi]
-pub fn event_wait(event_handle: UserHandle<Event>, process: &Process) -> Result<u32> {
+pub fn event_wait(event_handle: UserHandle<Event>, user_data: &UserData) -> Result<u32> {
     let event = {
-        let handle_table = process.handle_table().read();
+        let handle_table = user_data.process.handle_table().read();
 
         let handle = handle_table
             .get(event_handle)?;
@@ -35,9 +36,9 @@ pub fn event_wait(event_handle: UserHandle<Event>, process: &Process) -> Result<
 /// Poll an event to determine if it's done. Returns `0` if not done yet,
 /// `1` if done, and < 0 if an error occured.
 #[nebulet_abi]
-pub fn event_poll(event_handle: UserHandle<Event>, process: &Process) -> Result<u32> {
+pub fn event_poll(event_handle: UserHandle<Event>, user_data: &UserData) -> Result<u32> {
     let event = {
-        let handle_table = process.handle_table().read();
+        let handle_table = user_data.process.handle_table().read();
 
         let handle = handle_table
             .get(event_handle)?;
@@ -51,9 +52,9 @@ pub fn event_poll(event_handle: UserHandle<Event>, process: &Process) -> Result<
 /// Returns `ACCESS_DENIED` when the thread that attempts to trigger the event
 /// is not the thread that created the event.
 #[nebulet_abi]
-pub fn event_trigger(event_handle: UserHandle<Event>, process: &Process) -> Result<u32> {
+pub fn event_trigger(event_handle: UserHandle<Event>, user_data: &UserData) -> Result<u32> {
     let event = {
-        let handle_table = process.handle_table().read();
+        let handle_table = user_data.process.handle_table().read();
 
         let handle = handle_table
             .get(event_handle)?;
@@ -65,9 +66,9 @@ pub fn event_trigger(event_handle: UserHandle<Event>, process: &Process) -> Resu
 }
 
 #[nebulet_abi]
-pub fn event_rearm(event_handle: UserHandle<Event>, process: &Process) -> Result<u32> {
+pub fn event_rearm(event_handle: UserHandle<Event>, user_data: &UserData) -> Result<u32> {
     let event = {
-        let handle_table = process.handle_table().read();
+        let handle_table = user_data.process.handle_table().read();
 
         let handle = handle_table
             .get(event_handle)?;

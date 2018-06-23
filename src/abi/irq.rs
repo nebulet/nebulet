@@ -15,10 +15,10 @@ pub fn set_irq_handler(index: u32, handler: u32, vmctx: &VmCtx) {
 
     let index = index as usize;
     let data = vmctx.data();
-    let process = &data.process;
-    let table = &process.instance().read().tables;
 
-    let func_addr = table[0][handler as usize];
+    let table = &data.user_data.instance.tables[0].read();
+
+    let func_addr = table[handler as usize];
 
     unsafe {
         let handler = mem::transmute(func_addr);

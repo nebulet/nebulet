@@ -1,5 +1,5 @@
 use arch::macros::{interrupt_stack, interrupt_stack_err, interrupt_stack_page};
-use arch::cpu::Local;
+use object::Thread;
 
 interrupt_stack!(divide_by_zero, _stack, {
     println!("Divide by zero fault");
@@ -26,7 +26,7 @@ interrupt_stack!(bound_range_exceeded, _stack, {
 });
 
 interrupt_stack!(invalid_opcode, stack, {
-    let current_thread = Local::current_thread();
+    let current_thread = Thread::current();
     let process = current_thread.parent();
     let code = process.code();
 
@@ -70,21 +70,21 @@ interrupt_stack_page!(page_fault, stack, error, {
     let faulting_addr: *const ();
     asm!("mov %cr2, $0" : "=r"(faulting_addr));
 
-    let current_thread = Local::current_thread();
+    let current_thread = Thread::current();
 
     {
         let thread = current_thread.inner();
         let stack = unsafe { &mut*thread.stack.get() };
 
-        if stack.addr_committed(faulting_addr) {
+        if stack.contains_addr(faulting_addr) {
             let _ = stack.region.map_page(faulting_addr);
             return;
         }
     }
 
     let process = current_thread.parent();
-    let mut instance = process.instance().write();
-    let memory = &mut instance.memories[0];
+    let instance = process.initial_instance();
+    let mut memory = instance.memories[0].write();
     
     if likely!(memory.in_mapped_bounds(faulting_addr)) {
         // this path should be as low-latency as possible.

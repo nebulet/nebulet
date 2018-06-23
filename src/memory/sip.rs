@@ -98,6 +98,7 @@ impl SipAllocator {
             self.bump += allocated_size;
 
             let flags = MemFlags::READ | MemFlags::WRITE;
+            // let region = Region::new(start, requested_size, flags, true).ok()?;
             let mut region = LazyRegion::new(start, requested_size, flags).ok()?;
 
             // Map in the last page of the stack.
@@ -110,7 +111,6 @@ impl SipAllocator {
 
             Some(WasmStack {
                 region,
-                total_size: allocated_size,
             })
         }
     }
@@ -285,8 +285,6 @@ impl DerefMut for WasmMemory {
 #[derive(Debug)]
 pub struct WasmStack {
     pub region: LazyRegion,
-    /// Should be region.size + 8192 (two guard pages)
-    total_size: usize,
 }
 
 impl WasmStack {
@@ -296,29 +294,25 @@ impl WasmStack {
 
     pub fn top(&self) -> *mut u8 {
         unsafe {
-            (self.mapped_start().as_mut_ptr() as *mut u8).add(self.mapped_size())
+            self.start().add(self.size())
         }
     }
 
-    pub fn mapped_start(&self) -> VirtAddr {
-        self.region.start()
+    pub fn start(&self) -> *mut u8 {
+        self.region.start().as_mut_ptr()
     }
 
-    pub fn unmapped_start(&self) -> VirtAddr {
-        self.mapped_start() - Size4KiB::SIZE as u64
-    }
-
-    pub fn mapped_size(&self) -> usize {
+    pub fn size(&self) -> usize {
         self.region.size()
     }
 
     pub fn total_size(&self) -> usize {
-        self.total_size
+        self.size() + (2 * Size4KiB::SIZE as usize)
     }
 
-    pub fn addr_committed(&self, addr: *const ()) -> bool {
+    pub fn contains_addr(&self, addr: *const ()) -> bool {
         let start = self.region.start().as_ptr::<u8>() as usize;
-        let end = start + self.mapped_size();
+        let end = start + self.size();
 
         (start..end).contains(&(addr as _))
     }

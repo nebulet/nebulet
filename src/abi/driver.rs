@@ -1,11 +1,10 @@
-use object::{Process};
+use wasm::UserData;
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
 
 #[nebulet_abi]
-pub fn physical_map(phys_address: u64, count: u32, process: &Process) -> Result<u32> {
-    let mut instance = process.instance().write();
-    let memory = &mut instance.memories[0];
+pub fn physical_map(phys_address: u64, count: u32, data: &UserData) -> Result<u32> {
+    let mut memory = data.instance.memories[0].write();
 
     memory.physical_map(phys_address, count as usize)
         .map(|addr| addr as u32)

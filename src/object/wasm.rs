@@ -78,9 +78,9 @@ impl Wasm {
         })
     }
 
-    pub fn generate_instance(&self) -> Instance {
+    pub fn generate_instance(&self) -> Result<Instance> {
         let code_base = self.region.start().as_ptr() as _;
-        Instance::new(&self.module, &self.data_initializers, code_base, &self.functions)
+        Instance::build(&self.module, &self.data_initializers, code_base, &self.functions)
     }
 
     pub fn start_func(&self) -> extern fn(&VmCtx) {

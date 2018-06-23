@@ -10,6 +10,7 @@ use task::{State, scheduler::Scheduler};
 use alloc::boxed::Box;
 use nil::Ref;
 use object::Thread;
+use sync::atomic::{Atomic, Ordering};
 
 // static GLOBAL: Once<Global> = Once::new();
 
@@ -85,29 +86,29 @@ pub struct Local {
     /// The scheduler associated with this cpu.
     scheduler: Scheduler,
     /// Pointer to current thread.
-    current_thread: Ref<Thread>,
+    current_thread: Atomic<*const Thread>,
 }
 
 impl Local {
-    fn new(cpu: &'static mut Cpu) -> Local {
-        let idle_thread = Thread::new(unsafe { Ref::dangling() }, 4096, || {
+    unsafe fn new(cpu: &'static mut Cpu) -> Local {
+        let idle_thread = Thread::new(4096, || {
             loop {
-                unsafe { ::arch::interrupt::halt(); }
+                ::arch::interrupt::halt();
             }
         }).unwrap();
 
-        let kernel_thread = Thread::new(unsafe { Ref::dangling() }, 4096, || {}).unwrap();
+        let kernel_thread = Thread::new(4096, || {}).unwrap();
 
-        idle_thread.set_state(State::Ready);
-        kernel_thread.set_state(State::Ready);
+        idle_thread.set_state(State::Running);
+        kernel_thread.set_state(State::Dead);
 
-        let scheduler = Scheduler::new(idle_thread);
+        let scheduler = Scheduler::new(Ref::into_raw(idle_thread));
 
         Local {
             direct: NonNull::dangling(),
             _cpu: cpu,
             scheduler,
-            current_thread: kernel_thread,
+            current_thread: Atomic::new(Ref::into_raw(kernel_thread)),
         }
     }
 
@@ -117,15 +118,15 @@ impl Local {
         }
     }
 
-    pub fn current_thread() -> Ref<Thread> {
-        Self::current().current_thread.clone()
+    pub fn current_thread() -> *const Thread {
+        Self::current().current_thread.load(Ordering::Acquire)
     }
 
-    pub fn set_current_thread(thread: Ref<Thread>) {
-        Self::current().current_thread = thread;
+    pub fn set_current_thread(thread: *const Thread) {
+        Self::current().current_thread.swap(thread, Ordering::Release);
     }
 
-    pub fn schedule_thread(thread: Ref<Thread>) {
+    pub fn schedule_thread(thread: *const Thread) {
         Self::current().scheduler.schedule_thread(thread);
     }
 
