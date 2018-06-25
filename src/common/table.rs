@@ -1,13 +1,14 @@
-use alloc::Vec;
-use core::mem;
-use core::ops::{Index, IndexMut};
+use alloc::vec::{Vec, Drain};
+use core::iter::FilterMap;
+use core::ops::{Index, IndexMut, RangeBounds};
 
 pub type TableIndex = usize;
 
 #[derive(Debug)]
 pub struct Table<T> {
-    objects: Vec<T>,
+    objects: Vec<Option<T>>,
     free_list: Vec<usize>,
+    len: usize,
 }
 
 impl<T> Table<T> {
@@ -15,49 +16,62 @@ impl<T> Table<T> {
         Table {
             objects: Vec::new(),
             free_list: Vec::new(),
+            len: 0,
         }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        assert!(capacity > 0, "`capacity` must be greater than 0.");
         Table {
             objects: Vec::with_capacity(capacity),
             free_list: Vec::new(),
+            len: 0,
         }
     }
 
     pub fn len(&self) -> usize {
-        self.objects.len()
+        self.len
     }
 
-    pub fn allocate(&mut self, object: T) -> Option<TableIndex> {
-        if let Some(index) = self.free_list.pop() {
-            unsafe {
-                (&mut self.objects[index] as *mut T).write(object);
-            }
-            Some(index)
+    pub fn next_index(&self) -> TableIndex {
+        if let Some(index) = self.free_list.last() {
+            *index
         } else {
-            self.objects.push(object);
-            Some(self.objects.len() - 1)
+            self.objects.len()
+        }
+    }
+
+    pub fn allocate(&mut self, object: T) -> TableIndex {
+        self.len += 1;
+        if let Some(index) = self.free_list.pop() {
+            self.objects[index] = Some(object);
+            index
+        } else {
+            self.objects.push(Some(object));
+            self.objects.len() - 1
         }
     }
 
     pub fn free(&mut self, index: TableIndex) -> Option<T> {
+        self.len -= 1;
         if self.objects.len() > index {
-            Some(unsafe {
-                (&mut self.objects[index] as *mut T).replace(mem::uninitialized())
-            })
+            self.objects[index].take()
         } else {
             None
         }
     }
 
     pub fn get(&self, index: TableIndex) -> Option<&T> {
-        self.objects.get(index)
+        self.objects.get(index).and_then(|item| item.as_ref())
     }
 
     pub fn get_mut(&mut self, index: TableIndex) -> Option<&mut T> {
-        self.objects.get_mut(index)
+        self.objects.get_mut(index).and_then(|item| item.as_mut())
+    }
+
+    pub fn drain<R>(&mut self, range: R) -> FilterMap<Drain<Option<T>>, impl FnMut(Option<T>) -> Option<T>>
+        where R: RangeBounds<usize>
+    {
+        self.objects.drain(range).filter_map(|item| item)
     }
 }
 

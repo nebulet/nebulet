@@ -5,12 +5,12 @@ use core::ptr::NonNull;
 use arch::interrupt;
 use arch::asm::read_gs_offset64;
 
-use task::{State, scheduler::Scheduler};
+use task::scheduler::Scheduler;
+use object::thread::{Thread, State};
 
 use alloc::boxed::Box;
-use nil::Ref;
-use object::Thread;
-use sync::atomic::{Atomic, Ordering};
+use object::Event;
+use sync::mpsc::{Mpsc, IntrusiveMpsc};
 
 // static GLOBAL: Once<Global> = Once::new();
 
@@ -81,16 +81,18 @@ pub unsafe fn init(cpu_id: u32) {
 /// Each cpu contains this in the gs register.
 pub struct Local {
     direct: NonNull<Local>,
-    /// Reference to the current `Cpu`.
-    _cpu: &'static mut Cpu,
+    /// Reference to the local `Cpu`.
+    _cpu: *const Cpu,
     /// The scheduler associated with this cpu.
     scheduler: Scheduler,
     /// Pointer to current thread.
-    current_thread: Atomic<*const Thread>,
+    pub current_thread: *mut Thread,
+    /// The dpc instance local to this cpu
+    dpc: Dpc,
 }
 
 impl Local {
-    unsafe fn new(cpu: &'static mut Cpu) -> Local {
+    unsafe fn new(cpu: *const Cpu) -> Local {
         let idle_thread = Thread::new(4096, || {
             loop {
                 ::arch::interrupt::halt();
@@ -99,16 +101,22 @@ impl Local {
 
         let kernel_thread = Thread::new(4096, || {}).unwrap();
 
-        idle_thread.set_state(State::Running);
+        idle_thread.set_state(State::Ready);
         kernel_thread.set_state(State::Dead);
 
-        let scheduler = Scheduler::new(Ref::into_raw(idle_thread));
+        let scheduler = Scheduler::new(Box::into_raw(idle_thread));
+
+        let (dpc_thread, dpc) = Dpc::new();
+
+        dpc_thread.set_state(State::Ready);
+        scheduler.schedule_thread(Box::into_raw(dpc_thread));
 
         Local {
             direct: NonNull::dangling(),
             _cpu: cpu,
             scheduler,
-            current_thread: Atomic::new(Ref::into_raw(kernel_thread)),
+            current_thread: Box::into_raw(kernel_thread),
+            dpc,
         }
     }
 
@@ -118,19 +126,70 @@ impl Local {
         }
     }
 
-    pub fn current_thread() -> *const Thread {
-        Self::current().current_thread.load(Ordering::Acquire)
+    #[inline]
+    pub fn current_thread() -> *mut Thread {
+        unsafe {
+            read_gs_offset64!(offset_of!(Local, current_thread)) as *mut Thread
+        }
     }
 
-    pub fn set_current_thread(thread: *const Thread) {
-        Self::current().current_thread.swap(thread, Ordering::Release);
+    #[inline]
+    pub fn set_current_thread(thread: *mut Thread) {
+        unsafe {
+            asm!("mov $0, %gs:0x28" : : "r"(thread) : "memory" : "volatile");
+        }
     }
 
-    pub fn schedule_thread(thread: *const Thread) {
+    pub fn schedule_thread(thread: *mut Thread) {
         Self::current().scheduler.schedule_thread(thread);
     }
 
     pub unsafe fn context_switch() {
         Self::current().scheduler.switch();
+    }
+}
+
+pub struct Dpc {
+    runqueue: Mpsc<(usize, fn(usize))>,
+    thread_cleanup_queue: IntrusiveMpsc<Thread>,
+    event: Event,
+}
+
+impl Dpc {
+    fn new() -> (Box<Thread>, Dpc) {
+        let dpc_thread = Thread::new(4096 * 4, || {
+            let local = Local::current();
+            loop {
+                local.dpc.event.wait();
+                while let Some((arg, f)) = unsafe { local.dpc.runqueue.pop() } {
+                    f(arg);
+                }
+                while let Some(thread) = unsafe { local.dpc.thread_cleanup_queue.pop() } {
+                    let boxed_thread = unsafe { Box::from_raw(thread) };
+                    debug_assert!(boxed_thread.state() == State::Dead);
+                }
+                local.dpc.event.rearm();
+            }
+        }).expect("Enable to create dpc thread");
+
+        (dpc_thread, Dpc {
+            runqueue: Mpsc::new(),
+            thread_cleanup_queue: IntrusiveMpsc::new(),
+            event: Event::new(),
+        })
+    }
+
+    pub fn queue(arg: usize, f: fn(usize)) {
+        let local = Local::current();
+        local.dpc.runqueue.push((arg, f));
+        let _ = local.dpc.event.trigger();
+    }
+
+    pub fn cleanup_thread(thread: *mut Thread) {
+        let local = Local::current();
+        unsafe {
+            local.dpc.thread_cleanup_queue.push(thread);
+        }
+        let _ = local.dpc.event.trigger();
     }
 }

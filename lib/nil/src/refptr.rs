@@ -80,19 +80,23 @@ impl<T: ?Sized> Ref<T> {
     }
 
     fn copy_ref(&self) -> Self {
-        self.inc_ref();
+        self.acquire();
         
         Self {
             ptr: self.ptr,
         }
     }
 
-    pub fn inc_ref(&self) -> usize {
+    pub fn acquire(&self) -> usize {
         self.inner().count.fetch_add(1, Ordering::Relaxed)
     }
 
-    pub fn dec_ref(&self) -> usize {
+    pub fn release(&self) -> usize {
         self.inner().count.fetch_sub(1, Ordering::Release)
+    }
+
+    pub fn refcount(&self) -> usize {
+        self.inner().count.load(Ordering::Relaxed)
     }
 }
 
@@ -102,7 +106,7 @@ impl Ref<HandleRef> {
         if self_.get_type_id() == TypeId::of::<T>() {
             let ptr: NonNull<RefInner<T>> = self.ptr.cast();
             let refptr = Ref { ptr, };
-            refptr.inc_ref();
+            refptr.acquire();
             Some(refptr)
         } else {
             None
@@ -123,7 +127,7 @@ impl<T: ?Sized> Clone for Ref<T> {
 
 unsafe impl<#[may_dangle] T: ?Sized> Drop for Ref<T> {
     fn drop(&mut self) {
-        if self.dec_ref() != 1 {
+        if self.release() != 1 {
             return;
         }
 

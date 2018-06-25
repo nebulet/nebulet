@@ -1,6 +1,5 @@
 use arch::devices::pic;
 use arch::macros::interrupt;
-use arch;
 // use x86_64::instructions::port::Port;
 use arch::cpu::Local;
 use sync::atomic::{Atomic, Ordering};
@@ -32,9 +31,7 @@ interrupt!(pit, {
     if PIT_TICKS.fetch_add(1, Ordering::SeqCst) >= CONTEXT_SWITCH_TICKS {
         PIT_TICKS.store(0, Ordering::SeqCst);
 
-        arch::interrupt::disable();
         Local::context_switch();
-        arch::interrupt::enable();
     }
 });
 

@@ -30,6 +30,7 @@
     range_contains,
     iterator_step_by,
     future_atomic_orderings,
+    stmt_expr_attributes,
 )]
 
 #![no_main]
@@ -75,7 +76,6 @@ pub mod task;
 pub mod wasm;
 pub mod externs;
 pub mod sync;
-pub mod dpc;
 
 pub use consts::*;
 

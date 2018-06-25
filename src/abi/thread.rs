@@ -9,6 +9,15 @@ pub fn thread_yield(_: &UserData) {
 }
 
 #[nebulet_abi]
+pub fn thread_join(id: u32, user_data: &UserData) -> Result<u32> {
+    if let Some(thread) = user_data.process.thread_list().write().free(id as usize) {
+        thread.join()?;
+    }
+
+    Ok(0)
+}
+
+#[nebulet_abi]
 pub fn thread_spawn(func_table_index: u32, arg: u32, new_stack_offset: u32, user_data: &UserData) -> Result<u32> {
     let func_addr = {
         let table = user_data.instance.tables[0].write();
@@ -47,9 +56,9 @@ pub fn thread_spawn(func_table_index: u32, arg: u32, new_stack_offset: u32, user
         let current_thread = Thread::current();
         let current_process = current_thread.parent();
 
-        let handle = current_process.create_thread(func_addr, arg, new_stack_offset)?;
+        let thread_id = current_process.create_thread(func_addr, arg, new_stack_offset)?;
        
-        Ok(handle.inner())
+        Ok(thread_id)
     } else {
         Err(Error::INVALID_ARG)
     }

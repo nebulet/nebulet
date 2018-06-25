@@ -1,8 +1,7 @@
-use object::Thread;
-use task::State;
+use object::thread::{Thread, State};
 use wasm::VmCtx;
 use sync::atomic::{Atomic, Ordering};
-use sync::mpsc::Mpsc;
+use sync::mpsc::IntrusiveMpsc;
 
 /// This will crash the process when the value_offset doesn't point to committed memory.
 /// While somewhat extreme, it is safe.
@@ -21,11 +20,11 @@ pub extern fn pfex_acquire(lock_offset: u32, vmctx: &VmCtx) {
         } else {
             let queue = pfex_map
                 .entry(lock_offset)
-                .or_insert(Mpsc::new());
+                .or_insert(IntrusiveMpsc::new());
 
             let current_thread = Thread::current();
 
-            queue.push(current_thread as *const _); // this must be first
+            unsafe { queue.push(current_thread); } // this must be first
             current_thread.set_state(State::Blocked);
 
             // drop the lock on the pfex_map to avoid deadlocks

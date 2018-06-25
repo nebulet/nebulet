@@ -23,10 +23,12 @@ memcpy = true
 [profile.release]
 lto = true
 panic = "abort"
-# for debugging in release mode
-# debug-assertions = true
-# debug = true
-# overflow-checks = true
+opt-level = 3
+
+[profile.dev]
+debug-assertions = true
+panic = "abort"
+opt-level = 3
 
 [workspace]
 members = [

@@ -54,6 +54,10 @@ impl<T> Spinlock<T> {
             None
         }
     }
+
+    pub fn held(&self) -> bool {
+        self.lock.load(Ordering::Relaxed)
+    }
 }
 
 impl Spinlock<()> {

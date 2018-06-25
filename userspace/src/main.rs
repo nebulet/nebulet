@@ -56,14 +56,16 @@ pub fn main() {
         Philosopher::new("Gilles Deleuze", 1, 2),
         Philosopher::new("Karl Marx", 2, 3),
         Philosopher::new("Emma Goldman", 3, 4),
-        Philosopher::new("Michel Foucault", 4, 0),
+        Philosopher::new("Michel Foucault", 0, 4),
     ];
 
-    for p in philosophers {
+    let threads: Vec<_> = philosophers.into_iter().map(|p| {
         thread::spawn(move || {
             p.eat(&TABLE);
-        }).unwrap();
-    }
+        }).unwrap()
+    }).collect();
 
-    loop {}
+    for thread in threads {
+        thread.join().unwrap();
+    }
 }

@@ -1,7 +1,6 @@
-use nil::{Ref, HandleRef};
-use object::{Thread, Process};
-use task::State;
-use sync::mpsc::Mpsc;
+use nil::HandleRef;
+use object::thread::{Thread, State};
+use sync::mpsc::IntrusiveMpsc;
 use nabi::{Result, Error};
 use sync::atomic::{Atomic, Ordering};
 use arch::lock::Spinlock;
@@ -14,8 +13,9 @@ pub enum EventState {
 
 #[derive(HandleRef)]
 pub struct Event {
-    queue: Mpsc<*const Thread>,
-    owner: Ref<Process>,
+    // the thread will either be in 
+    // a wait queue or the scheduler run queue.
+    queue: IntrusiveMpsc<Thread>,
     state: Atomic<Result<EventState>>,
     lock: Spinlock<()>,
 }
@@ -27,8 +27,7 @@ impl Event {
     /// that created it.
     pub fn new() -> Event {
         Event {
-            queue: Mpsc::new(),
-            owner: Thread::current().parent().clone(),
+            queue: IntrusiveMpsc::new(),
             state: Atomic::new(Ok(EventState::Pending)),
             lock: Spinlock::new(()),
         }
@@ -49,7 +48,7 @@ impl Event {
 
         let current_thread = Thread::current();
 
-        self.queue.push(current_thread); // this must be first
+        unsafe { self.queue.push(current_thread); } // this must be first
         current_thread.set_state(State::Blocked);
 
         drop(guard);
@@ -69,9 +68,6 @@ impl Event {
     /// tries to trigger the event, this will return `Error::ACCESS_DENIED`.
     pub fn trigger(&self) -> Result<usize> {
         let guard = self.lock.lock();
-        if !Thread::current().parent().ptr_eq(&self.owner) {
-            return Err(Error::ACCESS_DENIED);
-        }
 
         let _ = self.state.compare_exchange(
             Ok(EventState::Pending),
@@ -95,9 +91,6 @@ impl Event {
 
     pub fn trigger_and_rearm(&self) -> Result<usize> {
         let guard = self.lock.lock();
-        if !Thread::current().parent().ptr_eq(&self.owner) {
-            return Err(Error::ACCESS_DENIED);
-        }
 
         let _ = self.state.compare_exchange(
             Ok(EventState::Pending),

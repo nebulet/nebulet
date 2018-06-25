@@ -1,11 +1,11 @@
 mod handle;
 mod table;
 // objects
-mod thread;
-mod process;
-mod wasm;
-mod event;
-mod channel;
+pub mod thread;
+pub mod process;
+pub mod wasm;
+pub mod event;
+pub mod channel;
 
 pub use self::handle::{Handle, UserHandle};
 pub use self::table::HandleTable;

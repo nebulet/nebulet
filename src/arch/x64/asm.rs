@@ -8,7 +8,7 @@ pub macro read_gs_offset64($offset:expr) {{
 }}
 
 pub macro write_gs_offset64($offset:expr, $val:expr) {{
-    asm!("mov gs:$1, $0" : : "r"($val), "i"($offset) : "memory" : "intel" "volatile");
+    asm!("mov $0, %gs:$1" : : "r"($val), "i"($offset) : "memory" : "volatile");
 }}
 
 pub macro read_gs_offset32($offset:expr) {{
@@ -18,5 +18,5 @@ pub macro read_gs_offset32($offset:expr) {{
 }}
 
 pub macro write_gs_offset32($offset:expr, $val:expr) {{
-    asm!("movl gs:$1, $0" : : "r"($val), "i"($offset) : "memory" : "intel" "volatile");
+    asm!("movl gs:$1, $0" : : "r"($val), "i"($offset) : "memory" : "intel", "volatile");
 }}

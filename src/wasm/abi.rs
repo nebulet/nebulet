@@ -125,6 +125,11 @@ abi_map! {
         returns: I64,
         abi::thread::thread_spawn,
     },
+    thread_join: {
+        params: [I32],
+        returns: I64,
+        abi::thread::thread_join,
+    },
 
     // Pretty fast exclusion
     pfex_acquire: {

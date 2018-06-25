@@ -73,7 +73,7 @@ macro_rules! unlikely {
 }
 
 macro_rules! offset_of {
-    ($ty:ty:$field:ident) => {
+    ($ty:ty, $field:ident) => {
         #[allow(unused_unsafe)]
         unsafe { &(*(0 as *const $ty)).$field as *const _ as usize }
     }

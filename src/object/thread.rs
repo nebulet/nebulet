@@ -1,43 +1,119 @@
-use task::{Thread as TaskThread, State};
-use object::Process;
+use object::{Process, Event};
 use arch::cpu::Local;
-use nabi::Result;
-use nil::{Ref, HandleRef};
-use nil::mem::Bin;
-use sync::atomic::Ordering;
-use dpc;
+use nabi::{Result, Error};
+use nil::Ref;
+use sync::atomic::{Atomic, Ordering};
+use sync::mpsc::IntrusiveNode;
+use core::ptr;
+use arch::cpu::Dpc;
+use memory::sip::WasmStack;
+use alloc::boxed::Box;
+use arch::context::ThreadContext;
+
+impl IntrusiveNode for Thread {
+    #[inline]
+    unsafe fn get_next(self: *mut Thread) -> *mut Thread {
+        (*self).next_thread
+    }
+
+    #[inline]
+    unsafe fn set_next(self: *mut Thread, next: *mut Thread) {
+        (*self).next_thread = next;
+    }
+
+    #[inline]
+    unsafe fn is_on_queue(self: *mut Thread) -> bool {
+        !(*self).next_thread.is_null()
+    }
+}
+
+/// The current state of a thread.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum State {
+    /// The thread has not yet been started.
+    Initial,
+    /// The thread is ready to execute.
+    Ready,
+    /// The thread is currently executing.
+    Running,
+    /// The thread has been suspended and cannot be run right now.
+    Suspended,
+    /// The thread is blocked.
+    Blocked,
+    /// Ready to be killed.
+    Killable,
+    /// It's dead, Jim.
+    Dead,
+}
+
+unsafe impl Send for Thread {}
+unsafe impl Sync for Thread {}
 
 /// Represents a thread.
-#[derive(HandleRef)]
 pub struct Thread {
-    thread: TaskThread,
+    pub ctx: ThreadContext,
+    pub stack: WasmStack,
+
+    exit_event: Event,
+
+    func: *const (),
+
     parent: Ref<Process>,
+
+    /// for intrusive queue
+    next_thread: *mut Thread,
+
+    /// process-local thread id
+    local_id: usize,
+
+    state: Atomic<State>,
 }
 
 impl Thread {
-    pub fn new<F>(stack_size: usize, f: F) -> Result<Ref<Thread>>
+    pub fn new<F>(stack_size: usize, f: F) -> Result<Box<Thread>>
         where F: FnOnce() + Send + Sync
     {
-        Self::new_with_parent(unsafe { Ref::dangling() }, stack_size, f)
+        Self::new_with_parent(unsafe { Ref::dangling() }, !0, stack_size, f)
     }
 
-    pub fn new_with_parent<F>(parent: Ref<Process>, stack_size: usize, f: F) -> Result<Ref<Thread>>
+    pub fn new_with_parent<F>(parent: Ref<Process>, local_id: usize, stack_size: usize, f: F) -> Result<Box<Thread>>
         where F: FnOnce() + Send + Sync
     {
-        let thread = TaskThread::new(stack_size, Bin::new(move || f())?)?;
+        let stack = WasmStack::allocate(stack_size)
+            .ok_or(Error::NO_MEMORY)?;
 
-        let t = Ref::new(Thread {
-            thread,
+        let exit_event = Event::new();
+
+        Ok(Box::new(Thread {
+            ctx: ThreadContext::new(stack.top(), common_thread_entry::<F>),
+            stack,
+            exit_event,
+            func: Box::into_raw(Box::new(f)) as *const (),
             parent,
-        })?;
+            next_thread: ptr::null_mut(),
+            local_id,
+            state: Atomic::new(State::Initial),
+        }))
+    }
 
-        t.inc_ref();
+    pub fn start(&mut self) {
+        let old_state = self.state.compare_and_swap(State::Initial, State::Ready, Ordering::SeqCst);
 
-        Ok(t)
+        debug_assert!(old_state == State::Initial);
+
+        Local::schedule_thread(self);
+    }
+
+    pub fn state(&self) -> State {
+        self.state.load(Ordering::Relaxed)
+    }
+
+    pub fn set_state(&self, state: State) {
+        self.state.store(state, Ordering::Relaxed);
     }
     
-    pub fn current() -> &'static Thread {
-        unsafe { &*Local::current_thread() }
+    pub fn current<'a>() -> &'a mut Thread {
+        unsafe { &mut *Local::current_thread() }
     }
 
     /// Yield the current thread.
@@ -47,49 +123,86 @@ impl Thread {
         }
     }
 
-    pub fn inner(&self) -> &TaskThread {
-        &self.thread
-    }
-
-    pub fn set_state(&self, state: State) {
-        self.thread.state.store(state, Ordering::Release)
-    }
-
-    pub fn state(&self) -> State {
-        self.thread.state.load(Ordering::Acquire)
-    }
-
     pub fn parent(&self) -> &Ref<Process> {
         &self.parent
     }
 
     pub fn resume(&self) {
-        assert!({
-           let state = self.state();
-           state == State::Blocked || state == State::Suspended 
+        debug_assert!({
+            let state = self.state();
+            state == State::Blocked || state == State::Suspended 
         });
         
-        self.set_state(State::Running);
-
-        Local::schedule_thread(self);
+        self.set_state(State::Ready);
+        
+        Local::schedule_thread(self as *const _ as *mut _);
     }
 
-    pub fn exit(self: Ref<Self>) -> Result<()> {
-        /// Killing a thread has to use
-        /// a deferred procedure call
-        /// because if the exit method decremented
-        /// the ref itself, the thread (including its stack)
-        /// would get deallocated while it was running, and
-        /// this would instantly crash.
-        fn kill_thread(arg: usize) {
-            let thread = unsafe { Ref::from_raw(arg as *const Thread) };
-            thread.dec_ref();
+    pub fn join(self: Box<Self>) -> Result<()> {
+        // cannot join with the current thread
+        if &*self as *const _ == Thread::current() as *const _ {
+            return Err(Error::INVALID_ARG);
         }
 
-        self.set_state(State::Dead);
+        let state = self.state();
 
-        dpc::queue(Ref::into_raw(self) as _, kill_thread);
+        if state != State::Dead || state != State::Killable {
+            self.exit_event.wait();
+        }
 
+        // At this point the thread denoted by `self` has died
+        // so it's safe to let it drop.
         Ok(())
     }
+
+    pub fn kill(self: Box<Self>) {
+        if &*self as *const _ == Thread::current() as *const _ {
+            return;
+        }
+
+        if !self.next_thread.is_null() {
+            // the thread is on the runqueue
+            self.set_state(State::Killable);
+            // Don't drop the thread now the scheduler will take care of it.
+            Box::into_raw(self);
+        }
+        // Otherwise, we can just let it drop.
+    }
+
+    // exit the current thread
+    pub fn exit() {
+        let current_thread = Thread::current();
+
+        debug_assert!(current_thread.next_thread.is_null());
+
+        current_thread.set_state(State::Dead);
+
+        current_thread.exit_event.trigger().unwrap();
+
+        let boxed_thread = {
+            let mut thread_list = current_thread.parent().thread_list().write();
+            thread_list.free(current_thread.local_id).unwrap()
+        };
+
+        Dpc::cleanup_thread(Box::into_raw(boxed_thread));
+
+        unsafe {
+            Local::context_switch();
+        }
+
+        unreachable!()
+    }
+}
+
+extern fn common_thread_entry<F>()
+    where F: FnOnce() + Send + Sync
+{
+    let current_thread = Thread::current();
+
+    let f = unsafe { Box::from_raw(current_thread.func as *mut F) };
+    f();
+
+    Thread::exit();
+
+    unreachable!();
 }
