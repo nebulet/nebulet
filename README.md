@@ -15,7 +15,7 @@ Right now, Nebulet isn't ready to do anything yet, but it'll get there.
 
 ```sh
 # install tools
-# make sure that `python` is accessible.
+# make sure that `python`, `qemu`, and `rustup` are accessible.
 $> cargo install xargo
 $> rustup component add --target=nightly rust-src
 $> rustup target add --toolchain nightly wasm32-unknown-unknown
