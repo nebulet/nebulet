@@ -1,16 +1,16 @@
 use core::ops::{Deref, DerefMut};
-use x86_64::structures::idt::Idt;
+use x86_64::structures::idt::InterruptDescriptorTable;
 use x86_64::structures::tss::TaskStateSegment;
 use arch::interrupt::{*, self};
 use spin::Once;
 
-pub static mut IDT: Idt = Idt::new();
+pub static mut IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
 
 static TSS: Once<TaskStateSegment> = Once::new();
 static GDT: Once<gdt::Gdt> = Once::new();
 
-pub fn default_idt() -> Idt {
-    let mut idt = Idt::new();
+pub fn default_idt() -> InterruptDescriptorTable {
+    let mut idt = InterruptDescriptorTable::new();
     idt.divide_by_zero.set_handler_fn(exception::divide_by_zero);
     idt.debug.set_handler_fn(exception::debug);
     idt.non_maskable_interrupt.set_handler_fn(exception::non_maskable);
@@ -75,18 +75,18 @@ pub fn init() {
 }
 
 pub struct IdtGuard {
-    inner: &'static mut Idt
+    inner: &'static mut InterruptDescriptorTable
 }
 
 impl <'a> Deref for IdtGuard {
-    type Target=Idt;
-    fn deref(&self) -> &Idt {
+    type Target=InterruptDescriptorTable;
+    fn deref(&self) -> &InterruptDescriptorTable {
         self.inner
     }
 }
 
 impl <'a> DerefMut for IdtGuard {
-    fn deref_mut(&mut self) -> &mut Idt {
+    fn deref_mut(&mut self) -> &mut InterruptDescriptorTable {
         self.inner
     }
 }

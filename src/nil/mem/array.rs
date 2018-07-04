@@ -5,7 +5,7 @@ use core::ptr::{self, NonNull};
 use core::mem;
 use core::ops::{Deref, DerefMut};
 use core::slice;
-use mem::Bin;
+use super::Bin;
 
 pub struct Array<T> {
     backing: NonNull<T>,

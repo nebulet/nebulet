@@ -48,15 +48,31 @@ abi_map! {
         returns: I64,
         abi::ipc::channel_create,
     },
-    channel_write: {
+    channel_send: {
         params: [I32, I32, I32],
         returns: I64,
-        abi::ipc::channel_write,
+        abi::ipc::channel_send,
     },
-    channel_read: {
+    channel_recv: {
         params: [I32, I32, I32, I32],
         returns: I64,
-        abi::ipc::channel_read,
+        abi::ipc::channel_recv,
+    },
+
+    stream_create: {
+        params: [I32, I32],
+        returns: I64,
+        abi::ipc::stream_create,
+    },
+    stream_write: {
+        params: [I32, I32, I32, I32],
+        returns: I64,
+        abi::ipc::stream_write,
+    },
+    stream_read: {
+        params: [I32, I32, I32, I32],
+        returns: I64,
+        abi::ipc::stream_read,
     },
 
     // debug
@@ -82,10 +98,15 @@ abi_map! {
         returns: VOID,
         abi::io::write_port_u8,
     },
-    set_irq_handler: {
-        params: [I32, I32],
-        returns: VOID,
-        abi::irq::set_irq_handler,
+    create_irq_event: {
+        params: [I32],
+        returns: I64,
+        abi::irq::create_irq_event,
+    },
+    ack_irq: {
+        params: [I32],
+        returns: I64,
+        abi::irq::ack_irq,
     },
 
     // events
@@ -94,25 +115,16 @@ abi_map! {
         returns: I64,
         abi::event::event_create,
     },
-    event_wait: {
-        params: [I32],
+    // objects
+    object_wait_one: {
+        params: [I32, I32],
         returns: I64,
-        abi::event::event_wait,
+        abi::object::object_wait_one,
     },
-    event_poll: {
-        params: [I32],
+    object_signal: {
+        params: [I32, I32, I32],
         returns: I64,
-        abi::event::event_poll,
-    },
-    event_trigger: {
-        params: [I32],
-        returns: I64,
-        abi::event::event_trigger,
-    },
-    event_rearm: {
-        params: [I32],
-        returns: I64,
-        abi::event::event_rearm,
+        abi::object::object_signal,
     },
     // threads
     thread_yield: {

@@ -1,6 +1,7 @@
 use os_bootinfo::BootInfo;
 use arch::memory;
 use arch::{idt, interrupt, devices, paging, cpu};
+use core::mem;
 
 /// Test of zero values in BSS.
 static BSS_TEST_ZERO: usize = 0x0;
@@ -14,6 +15,8 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
     let boot_info = &mut*boot_info_ptr;
 
     boot_info.check_version().unwrap();
+
+    let package = mem::replace(&mut boot_info.package, mem::zeroed());
 
     // .bss section should be zeroed
     {
@@ -40,5 +43,5 @@ pub unsafe fn _start(boot_info_ptr: *mut BootInfo) -> ! {
     // Initialize non-essential devices
     devices::init_noncore();
 
-    ::kmain();
+    ::kmain(&package);
 }

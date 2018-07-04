@@ -11,14 +11,13 @@ run-command = [
     "-machine", "q35,accel=kvm:xen:hax:tcg",
     "-drive", "format=raw,file={}"
 ]
+package-file = "userspace/target/wasm32-unknown-unknown/release/userspace.wasm"
 
 [package.metadata.cargo-xbuild]
 memcpy = true
 
-# We're pulling down the pre-compiled bootloader, so no
-# need to build it. (Also avoids a bug in xargo)
-#[package.metadata.bootimage.bootloader]
-#git = "https://github.com/rust-osdev/bootloader.git"
+[package.metadata.bootimage.bootloader]
+git = "https://github.com/nebulet/bootloader"
 
 [profile.release]
 lto = true
@@ -33,7 +32,6 @@ opt-level = 3
 [workspace]
 members = [
     "tools",
-    "lib/nil",
     "lib/nebulet-derive",
 ]
 exclude = [
@@ -63,13 +61,13 @@ spin = "0.4.6"
 bitflags = "1.0"
 bit_field = "0.9.0"
 raw-cpuid = "3.1.0"
-x86_64 = "0.2.0-beta"
-os_bootinfo = "0.2.0"
+# x86_64 = "0.2.0-beta"
+x86_64 = { git = "https://github.com/nebulet/x86_64" }
+# os_bootinfo = "0.2.0"
+os_bootinfo = { git = "https://github.com/nebulet/os_bootinfo" }
 hashmap_core = "0.1.7"
 
 # lib/
-[dependencies.nil]
-path = "lib/nil"
 [dependencies.nebulet-derive]
 path = "lib/nebulet-derive"
 

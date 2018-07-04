@@ -1,8 +1,11 @@
 
+use sip::irq::{create_irq_event, ack_irq};
+use sip::thread;
+use sip::Mutex;
 use sip::abi;
-use keyboard::{Keyboard, layouts};
+use keyboard::{Keyboard, layouts, DecodedKey};
 
-static mut KEYBOARD: Keyboard<layouts::Us104Key> = Keyboard::new();
+static EVENT_QUEUE: Mutex<Vec<DecodedKey>> = Mutex::new(Vec::new());
 
 pub struct KeyboardDriver;
 
@@ -11,18 +14,38 @@ impl KeyboardDriver {
         unsafe {
             ps2_init();
             keyboard_init();
-            abi::set_irq_handler(33, handler);
         }
+
+        let mut keyboard: Keyboard<layouts::Us104Key> = Keyboard::new();
+        let irq_event = unsafe { create_irq_event(33).unwrap() };
+
+        thread::spawn(move || {
+            loop {
+                irq_event.wait().unwrap();
+                irq_event.rearm().unwrap();
+                let scancode = unsafe { abi::read_port_u8(0x60) };
+
+                if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
+                    if let Some(key) = keyboard.process_keyevent(key_event) {
+                        EVENT_QUEUE
+                            .lock()
+                            .push(key);
+                    }
+                }
+                unsafe { ack_irq(33).unwrap(); }
+            }
+        }).unwrap();
+
         KeyboardDriver
     }
-}
 
-unsafe extern fn handler() {
-    let scancode = abi::read_port_u8(0x60);
+    pub fn get_key(&self) -> Option<DecodedKey> {
+        let mut queue = EVENT_QUEUE.lock();
 
-    if let Ok(Some(key_event)) = KEYBOARD.add_byte(scancode) {
-        if let Some(key) = KEYBOARD.process_keyevent(key_event) {
-            println!("{:?}", key);
+        if queue.len() > 0 {
+            Some(queue.remove(0))
+        } else {
+            None
         }
     }
 }
@@ -60,8 +83,10 @@ unsafe fn keyboard_init() {
     };
 
     let set_scanset_2 = || {
+        try_cmd(0xf5)?;
         try_cmd(0xf0)?;
-        try_cmd(0x02)
+        try_cmd(0x02)?;
+        try_cmd(0xf4)
     };
 
     match set_scanset_2() {

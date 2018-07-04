@@ -9,7 +9,7 @@ use task::scheduler::Scheduler;
 use object::thread::{Thread, State};
 
 use alloc::boxed::Box;
-use object::Event;
+use event::{Event, EventVariant};
 use sync::mpsc::{Mpsc, IntrusiveMpsc};
 
 // static GLOBAL: Once<Global> = Once::new();
@@ -168,21 +168,20 @@ impl Dpc {
                     let boxed_thread = unsafe { Box::from_raw(thread) };
                     debug_assert!(boxed_thread.state() == State::Dead);
                 }
-                local.dpc.event.rearm();
             }
         }).expect("Enable to create dpc thread");
 
         (dpc_thread, Dpc {
             runqueue: Mpsc::new(),
             thread_cleanup_queue: IntrusiveMpsc::new(),
-            event: Event::new(),
+            event: Event::new(EventVariant::AutoUnsignal),
         })
     }
 
     pub fn queue(arg: usize, f: fn(usize)) {
         let local = Local::current();
         local.dpc.runqueue.push((arg, f));
-        let _ = local.dpc.event.trigger();
+        local.dpc.event.signal(false);
     }
 
     pub fn cleanup_thread(thread: *mut Thread) {
@@ -190,6 +189,6 @@ impl Dpc {
         unsafe {
             local.dpc.thread_cleanup_queue.push(thread);
         }
-        let _ = local.dpc.event.trigger();
+        local.dpc.event.signal(false);
     }
 }

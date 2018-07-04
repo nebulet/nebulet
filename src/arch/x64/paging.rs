@@ -29,21 +29,20 @@ impl PageMapper {
     }
 
     pub fn map(&mut self, page: Page<Size4KiB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KiB>, MapToError> {
-        let mut frame_allocator = || memory::allocate_frame();
-        let frame = frame_allocator()
+        let frame = memory::allocate_frame()
             .expect("Couldn't allocate any frames!");
 
-        self.table.map_to(page, frame, flags, &mut frame_allocator)
+        self.table.map_to(page, frame, flags, &mut memory::GlobalFrameAllocator)
     }
 
     pub fn map_to(&mut self, page: Page<Size4KiB>, frame: PhysFrame<Size4KiB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KiB>, MapToError> {
-        let mut frame_allocator = || memory::allocate_frame();
-        self.table.map_to(page, frame, flags, &mut frame_allocator)
+        self.table.map_to(page, frame, flags, &mut memory::GlobalFrameAllocator)
     }
 
     pub fn unmap(&mut self, page: Page<Size4KiB>) -> Result<MapperFlush<Size4KiB>, UnmapError> {
-        let mut frame_deallocator = |frame| memory::deallocate_frame(frame);
-        self.table.unmap(page, &mut frame_deallocator)
+        let (frame, mapper_flush) = self.table.unmap(page)?;
+        memory::deallocate_frame(frame);
+        Ok(mapper_flush)
     }
 
     pub fn remap(&mut self, page: Page<Size4KiB>, flags: PageTableFlags) -> Result<MapperFlush<Size4KiB>, FlagUpdateError> {

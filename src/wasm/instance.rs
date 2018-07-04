@@ -7,12 +7,12 @@ use super::module::Module;
 use super::{DataInitializer, FunctionIndex};
 
 use memory::WasmMemory;
-use object::Process;
-use nil::Ref;
+use object::{Dispatch, Process};
 use nabi::Result;
 use core::marker::PhantomData;
 use core::{slice, mem};
 use alloc::Vec;
+use alloc::arc::Arc;
 use spin::RwLock;
 use common::slice::{BoundedSlice, UncheckedSlice};
 
@@ -28,7 +28,7 @@ pub struct VmCtxGenerator {
 }
 
 impl VmCtxGenerator {
-    pub fn vmctx(&mut self, process: Ref<Process>, instance: Instance) -> &VmCtx {
+    pub fn vmctx(&mut self, process: Dispatch<Process>, instance: Instance) -> &VmCtx {
         assert!(self.memories.len() >= 1, "modules must have at least one memory");
         // the first memory has a space of `mem::size_of::<VmCtxData>()` rounded
         // up to the 4KiB before it. We write the VmCtxData into that.
@@ -85,7 +85,7 @@ pub struct VmCtxData<'a> {
 
 #[repr(C)]
 pub struct UserData {
-    pub process: Ref<Process>,
+    pub process: Dispatch<Process>,
     pub instance: Instance,
 }
 
@@ -159,7 +159,7 @@ impl InstanceBuilder {
         }
 
         // the wasm memories are lazily mapped,
-        // so we need to be careful to map
+        // so we need to be caArcul to map
         // in the pages that get initialized here.
         for init in data_initializers {
             assert!(init.base.is_none(), "globalvalue base not supported yet.");
@@ -202,10 +202,10 @@ impl InstanceBuilder {
 #[derive(Debug)]
 pub struct Instance {
     /// WebAssembly table data
-    pub tables: Ref<Vec<RwLock<Vec<usize>>>>,
+    pub tables: Arc<Vec<RwLock<Vec<usize>>>>,
 
     /// WebAssembly linear memory data
-    pub memories: Ref<Vec<RwLock<WasmMemory>>>,
+    pub memories: Arc<Vec<RwLock<WasmMemory>>>,
 
     /// WebAssembly global variable data
     pub globals: Vec<u8>,
@@ -217,8 +217,8 @@ impl Instance {
         let builder = InstanceBuilder::new(module, data_initializers, code_base, functions);
 
         Ok(Instance {
-            tables: Ref::new(builder.tables.into_iter().map(|table| RwLock::new(table)).collect())?,
-            memories: Ref::new(builder.memories.into_iter().map(|mem| RwLock::new(mem)).collect())?,
+            tables: Arc::new(builder.tables.into_iter().map(|table| RwLock::new(table)).collect()),
+            memories: Arc::new(builder.memories.into_iter().map(|mem| RwLock::new(mem)).collect()),
             globals: builder.globals,
         })
     }
@@ -239,7 +239,7 @@ impl Instance {
         }
     }
 
-    pub fn memories(&self) -> Ref<Vec<RwLock<WasmMemory>>> {
+    pub fn memories(&self) -> Arc<Vec<RwLock<WasmMemory>>> {
         self.memories.clone()
     }
 }
@@ -247,8 +247,8 @@ impl Instance {
 impl Clone for Instance {
     fn clone(&self) -> Instance {
         Instance {
-            tables: Ref::clone(&self.tables),
-            memories: Ref::clone(&self.memories),
+            tables: Arc::clone(&self.tables),
+            memories: Arc::clone(&self.memories),
             globals: self.globals.clone(),
         }
     }

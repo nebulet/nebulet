@@ -31,6 +31,7 @@
     iterator_step_by,
     future_atomic_orderings,
     stmt_expr_attributes,
+    get_type_id,
 )]
 
 #![no_main]
@@ -58,10 +59,9 @@ extern crate cretonne_native;
 extern crate cretonne_codegen;
 extern crate target_lexicon;
 extern crate wasmparser;
-extern crate nil;
-#[macro_use]
 extern crate nebulet_derive;
 
+pub mod nil;
 #[macro_use]
 pub mod arch;
 pub mod panic;
@@ -76,24 +76,24 @@ pub mod task;
 pub mod wasm;
 pub mod externs;
 pub mod sync;
+pub mod signals;
+pub mod event;
 
 pub use consts::*;
 
 #[global_allocator]
 pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 
-pub fn kmain() -> ! {
+pub fn kmain(init_wasm: &[u8]) -> ! {
     println!("------------");
     println!("Nebulet v{}", VERSION);
 
     use object::{Process, Wasm};
 
-    let code = include_bytes!("../userspace/target/wasm32-unknown-unknown/release/userspace.wasm");
-
-    let code = Wasm::compile(code)
+    let code = Wasm::compile(init_wasm)
         .unwrap();
 
-    let process = Process::create(code.clone())
+    let process = Process::create(code.copy_ref())
         .unwrap();
 
     process.start().unwrap();
