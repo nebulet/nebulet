@@ -14,7 +14,7 @@ dependencies = [
 [[package]]
 name = "sip"
 version = "0.1.0"
-source = "git+https://github.com/nebulet/libsip#64bb4fed8e0e8a6527472be94a6eff82f340f0e4"
+source = "git+https://github.com/nebulet/libsip#8765645b52bba6850dc2bc5eec16ec5f3870dfb1"
 dependencies = [
  "nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)",
 ]

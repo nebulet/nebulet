@@ -1,22 +1,22 @@
 use nabi::{Result, Error, HandleRights};
-use nil::{Ref, HandleRef};
+use super::dispatcher::{Dispatch, Dispatcher};
 use core::marker::PhantomData;
 use core::ops::Deref;
 
 /// A Handle represents an atomically reference-counted object with specfic rights.
 /// Handles can be duplicated if they have the `HandleRights::DUPLICATE` right.
-pub struct Handle<T: HandleRef + ?Sized> {
+pub struct Handle<T: Dispatcher + ?Sized> {
     /// Reference-counted ptr to the stored object.
-    refptr: Ref<T>,
+    dispatch: Dispatch<T>,
     /// This handle's access rights to the `Ref<T>`.
     rights: HandleRights,
 }
 
-impl<T: HandleRef + ?Sized> Handle<T>
+impl<T: Dispatcher + ?Sized> Handle<T>
 {
-    pub fn new(refptr: Ref<T>, rights: HandleRights) -> Handle<T> {
+    pub fn new(dispatch: Dispatch<T>, rights: HandleRights) -> Handle<T> {
         Handle {
-            refptr,
+            dispatch,
             rights,
         }
     }
@@ -24,7 +24,7 @@ impl<T: HandleRef + ?Sized> Handle<T>
     pub fn duplicate(&self, new_rights: HandleRights) -> Option<Self> {
         if self.rights.contains(new_rights | HandleRights::DUPLICATE) {
             Some(Handle {
-                refptr: self.refptr.clone(),
+                dispatch: self.dispatch.copy_ref(),
                 rights: new_rights,
             })
         } else {
@@ -44,30 +44,29 @@ impl<T: HandleRef + ?Sized> Handle<T>
         self.rights
     }
 
-    pub fn refptr(self) -> Ref<T> {
-        self.refptr
+    pub fn dispatcher(&self) -> &Dispatch<T> {
+        &self.dispatch
     }
 }
 
 impl<T> Handle<T>
 where
-    T: HandleRef + Sized
+    T: Dispatcher + Sized
 {
-    pub fn upcast(self) -> Handle<HandleRef> {
+    pub fn upcast(self) -> Handle<Dispatcher> {
         Handle {
-            refptr: self.refptr,
+            dispatch: self.dispatch.upcast(),
             rights: self.rights,
         }
     }
 }
 
-impl Handle<HandleRef> {
-    pub fn cast<T: HandleRef>(&self) -> Result<Handle<T>> {
-        let refptr = self.refptr.cast()
-            .ok_or(Error::WRONG_TYPE)?;
+impl Handle<Dispatcher> {
+    pub fn cast<T: Dispatcher>(&self) -> Result<Handle<T>> {
+        let dispatch = self.dispatch.cast()?;
 
         Ok(Handle {
-            refptr,
+            dispatch,
             rights: self.rights,
         })
     }
@@ -75,20 +74,20 @@ impl Handle<HandleRef> {
 
 impl<T> Deref for Handle<T>
 where
-    T: HandleRef + ?Sized
+    T: Dispatcher + ?Sized
 {
-    type Target = Ref<T>;
-    fn deref(&self) -> &Ref<T> {
-        &self.refptr
+    type Target = Dispatch<T>;
+    fn deref(&self) -> &Dispatch<T> {
+        &self.dispatch
     }
 }
 
 #[repr(transparent)]
-pub struct UserHandle<T: HandleRef + ?Sized>(u32, PhantomData<T>);
+pub struct UserHandle<T: Dispatcher + ?Sized>(u32, PhantomData<T>);
 
 impl<T> UserHandle<T>
 where
-    T: HandleRef + ?Sized
+    T: Dispatcher + ?Sized
 {
     #[inline]
     pub fn new(index: u32) -> UserHandle<T> {

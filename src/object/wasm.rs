@@ -5,11 +5,12 @@ use memory::{Region, MemFlags};
 use nabi::{Result, Error};
 use core::mem;
 use alloc::Vec;
-use nil::{Ref, HandleRef};
 use cretonne_codegen::settings::{self, Configurable};
 use cretonne_codegen::ir::TrapCode;
 use cretonne_wasm::translate_module;
 use cretonne_native;
+
+use super::dispatcher::{Dispatch, Dispatcher};
 
 /// A `Wasm` represents
 /// webassembly code compiled
@@ -17,7 +18,6 @@ use cretonne_native;
 /// have one of these to create
 /// a process.
 #[allow(dead_code)]
-#[derive(HandleRef)]
 pub struct Wasm {
     data_initializers: Vec<DataInitializer>,
     functions: Vec<usize>,
@@ -29,7 +29,7 @@ pub struct Wasm {
 
 impl Wasm {
     /// Compile webassembly bytecode into a Wasm.
-    pub fn compile(wasm: &[u8]) -> Result<Ref<Wasm>> {
+    pub fn compile(wasm: &[u8]) -> Result<Dispatch<Wasm>> {
         let (mut flag_builder, isa_builder) = cretonne_native::builders()
             .map_err(|_| internal_error!())?;
 
@@ -59,7 +59,7 @@ impl Wasm {
         functions: Vec<usize>,
         traps: Vec<TrapData>,
     )
-        -> Result<Ref<Wasm>>
+        -> Result<Dispatch<Wasm>>
     {
         let flags = MemFlags::READ | MemFlags::EXEC;
         region.remap(flags)?;
@@ -68,14 +68,14 @@ impl Wasm {
             mem::transmute(start_func)
         };
 
-        Ref::new(Wasm {
+        Ok(Dispatch::new(Wasm {
             data_initializers,
             module,
             functions,
             region,
             start_func,
             traps,
-        })
+        }))
     }
 
     pub fn generate_instance(&self) -> Result<Instance> {
@@ -120,3 +120,5 @@ impl Wasm {
         &self.module
     }
 }
+
+impl Dispatcher for Wasm {}

@@ -1,4 +1,5 @@
 use object::Thread;
+use common::table::TableSlot;
 use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
 use wasm::UserData;
@@ -10,7 +11,7 @@ pub fn thread_yield(_: &UserData) {
 
 #[nebulet_abi]
 pub fn thread_join(id: u32, user_data: &UserData) -> Result<u32> {
-    if let Some(thread) = user_data.process.thread_list().write().free(id as usize) {
+    if let Some(thread) = user_data.process.thread_list().write().free(TableSlot::from_usize(id as usize)) {
         thread.join()?;
     }
 
@@ -54,11 +55,13 @@ pub fn thread_spawn(func_table_index: u32, arg: u32, new_stack_offset: u32, user
         // the signature is valid for threading
 
         let current_thread = Thread::current();
-        let current_process = current_thread.parent();
-
-        let thread_id = current_process.create_thread(func_addr, arg, new_stack_offset)?;
+        if let Some(current_process) = current_thread.parent() {
+            let thread_id = current_process.create_thread(func_addr, arg, new_stack_offset)?;
        
-        Ok(thread_id)
+            Ok(thread_id)
+        } else {
+            panic!("added thread from intrinsic thread!")
+        }
     } else {
         Err(Error::INVALID_ARG)
     }

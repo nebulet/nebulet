@@ -22,7 +22,7 @@ pub fn process_create(code_handle: UserHandle<Wasm>, channel_handle: UserHandle<
         (code_handle, chan_handle)
     };
 
-    let new_proc = Process::create(code.refptr())?;
+    let new_proc = Process::create(code.dispatcher().copy_ref())?;
 
     {
         let mut new_handle_table = new_proc.handle_table().write();
@@ -30,7 +30,7 @@ pub fn process_create(code_handle: UserHandle<Wasm>, channel_handle: UserHandle<
         // this should set the 0th place in the handle table
         // of the new process as the handle to the read-end
         // of the supplied channel.
-        let chan_handle = new_handle_table.allocate(chan.refptr(), rights)?;
+        let chan_handle = new_handle_table.allocate(chan.dispatcher().copy_ref(), rights)?;
         assert_eq!(chan_handle.inner(), 0);
     }
 

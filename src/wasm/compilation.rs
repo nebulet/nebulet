@@ -10,7 +10,7 @@ use super::abi::{ABI_MAP, INTRINSIC_MAP};
 
 use memory::Region;
 use object::Wasm;
-use nil::Ref;
+use object::Dispatch;
 
 use nabi::{Result, Error};
 use alloc::{Vec, String};
@@ -144,7 +144,7 @@ impl Compilation {
     }
 
     /// Emit a `Code` instance
-    pub fn emit(mut self, module: Module, data_initializers: Vec<DataInitializer>) -> Result<Ref<Wasm>> {
+    pub fn emit(mut self, module: Module, data_initializers: Vec<DataInitializer>) -> Result<Dispatch<Wasm>> {
         self.relocate(&module)?;
 
         let start_index;

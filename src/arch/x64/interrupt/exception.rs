@@ -27,13 +27,14 @@ interrupt_stack!(bound_range_exceeded, _stack, {
 
 interrupt_stack!(invalid_opcode, stack, {
     let current_thread = Thread::current();
-    let process = current_thread.parent();
-    let code = process.code();
+    if let Some(process) = current_thread.parent() {
+        let code = process.code();
 
-    let address = stack.instruction_pointer.as_ptr();
+        let address = stack.instruction_pointer.as_ptr();
 
-    if let Some(trap_code) = code.lookup_trap_code(address) {
-        process.handle_trap(trap_code);
+        if let Some(trap_code) = code.lookup_trap_code(address) {
+            process.handle_trap(trap_code);
+        }
     }
 
     loop {}
@@ -81,21 +82,24 @@ interrupt_stack_page!(page_fault, stack, error, {
         }
     }
 
-    let process = current_thread.parent();
-    let instance = process.initial_instance();
-    let mut memory = instance.memories[0].write();
-    
-    if likely!(memory.in_mapped_bounds(faulting_addr)) {
-        // this path should be as low-latency as possible.
-        // just map in the offending page
-        let _ = memory.region.map_page(faulting_addr);
-    } else if memory.in_unmapped_bounds(faulting_addr) {
-        process.handle_trap(TrapCode::HeapOutOfBounds);
+    if let Some(process) = current_thread.parent() {
+        let instance = process.initial_instance();
+        let mut memory = instance.memories[0].write();
+        
+        if likely!(memory.in_mapped_bounds(faulting_addr)) {
+            // this path should be as low-latency as possible.
+            // just map in the offending page
+            let _ = memory.region.map_page(faulting_addr);
+        } else if memory.in_unmapped_bounds(faulting_addr) {
+            process.handle_trap(TrapCode::HeapOutOfBounds);
 
-        loop {}
+            loop {}
+        } else {
+            // Something serious has gone wrong here.
+            panic!("page fault at {:p} with {:?}: {:#?}", faulting_addr, error, stack);
+        }
     } else {
-        // Something serious has gone wrong here.
-        panic!("page fault at {:p} with {:?}: {:#?}", faulting_addr, error, stack);
+        panic!("Intrinsic thread page faulted at {:p} with {:?}: {:#?}", faulting_addr, error, stack);
     }
 });
 

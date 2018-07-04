@@ -1,12 +1,12 @@
 use super::{UserHandle, Handle, HandleRights};
-use nil::{Ref, HandleRef};
+use super::dispatcher::{Dispatch, Dispatcher};
 use nil::mem::Array;
 
 use nabi::{Result, Error};
 
 pub struct HandleTable {
     /// Raw array of handles,
-    array: Array<Option<Handle<HandleRef>>>,
+    array: Array<Option<Handle<Dispatcher>>>,
     /// Stack/queue of free indices.
     free_indices: Array<usize>,
 }
@@ -19,13 +19,13 @@ impl HandleTable {
         }
     }
 
-    pub fn get_uncasted(&self, user_handle: UserHandle<HandleRef>) -> Result<&Handle<HandleRef>> {
+    pub fn get_uncasted(&self, user_handle: UserHandle<Dispatcher>) -> Result<&Handle<Dispatcher>> {
         self.array.get(user_handle.inner() as usize)
             .and_then(|obj| obj.as_ref())
             .ok_or(Error::NOT_FOUND)
     }
 
-    pub fn get<T: HandleRef>(&self, user_handle: UserHandle<T>) -> Result<Handle<T>> {
+    pub fn get<T: Dispatcher>(&self, user_handle: UserHandle<T>) -> Result<Handle<T>> {
         self.array.get(user_handle.inner() as usize)
             .and_then(|obj| obj.as_ref())
             .ok_or(Error::NOT_FOUND)
@@ -34,7 +34,7 @@ impl HandleTable {
 
     /// This makes a copy of the supplied handle
     /// and inserts it into `self`.
-    pub fn transfer_handle(&mut self, handle: Handle<HandleRef>) -> Result<UserHandle<HandleRef>> {
+    pub fn transfer_handle(&mut self, handle: Handle<Dispatcher>) -> Result<UserHandle<Dispatcher>> {
         if handle.rights().contains(HandleRights::TRANSFER) {
             self.allocate_handle_uncasted(handle)
         } else {
@@ -42,18 +42,18 @@ impl HandleTable {
         }
     }
 
-    fn allocate_handle_uncasted(&mut self, handle: Handle<HandleRef>) -> Result<UserHandle<HandleRef>> {
+    fn allocate_handle_uncasted(&mut self, handle: Handle<Dispatcher>) -> Result<UserHandle<Dispatcher>> {
         if let Some(index) = self.free_indices.pop() {
             debug_assert!(self.array[index].is_none());
             self.array[index] = Some(handle);
-            Ok(UserHandle::<HandleRef>::new(index as u32))
+            Ok(UserHandle::<Dispatcher>::new(index as u32))
         } else {
             self.array.push(Some(handle))?;
-            Ok(UserHandle::<HandleRef>::new(self.array.len() as u32 - 1))
+            Ok(UserHandle::<Dispatcher>::new(self.array.len() as u32 - 1))
         }
     }
 
-    fn allocate_handle<T: HandleRef>(&mut self, handle: Handle<T>) -> Result<UserHandle<T>> {
+    fn allocate_handle<T: Dispatcher>(&mut self, handle: Handle<T>) -> Result<UserHandle<T>> {
         if let Some(index) = self.free_indices.pop() {
             debug_assert!(self.array[index].is_none());
             self.array[index] = Some(handle.upcast());
@@ -64,12 +64,12 @@ impl HandleTable {
         }
     }
 
-    pub fn allocate<T: HandleRef>(&mut self, refptr: Ref<T>, rights: HandleRights) -> Result<UserHandle<T>> {
+    pub fn allocate<T: Dispatcher>(&mut self, refptr: Dispatch<T>, rights: HandleRights) -> Result<UserHandle<T>> {
         let handle = Handle::new(refptr, rights);
         self.allocate_handle(handle)
     }
 
-    pub fn free_uncasted(&mut self, user_handle: UserHandle<HandleRef>) -> Result<Handle<HandleRef>> {
+    pub fn free_uncasted(&mut self, user_handle: UserHandle<Dispatcher>) -> Result<Handle<Dispatcher>> {
         let index = user_handle.inner() as usize;
         let handle = self.array.replace_at(index, None)
             .and_then(|opt| opt)
@@ -80,7 +80,7 @@ impl HandleTable {
         Ok(handle)
     }
 
-    pub fn free<T: HandleRef>(&mut self, user_handle: UserHandle<T>) -> Result<Handle<T>> {
+    pub fn free<T: Dispatcher>(&mut self, user_handle: UserHandle<T>) -> Result<Handle<T>> {
         let index = user_handle.inner() as usize;
         let handle = self.array.replace_at(index, None)
             .and_then(|opt| opt)
@@ -91,7 +91,7 @@ impl HandleTable {
         handle.cast()
     }
 
-    pub fn duplicate_uncasted(&mut self, user_handle: UserHandle<HandleRef>, new_rights: HandleRights) -> Result<UserHandle<HandleRef>> {
+    pub fn duplicate_uncasted(&mut self, user_handle: UserHandle<Dispatcher>, new_rights: HandleRights) -> Result<UserHandle<Dispatcher>> {
         let dup = {
             let handle = self.get_uncasted(user_handle)?;
             handle.duplicate(new_rights)
@@ -101,7 +101,7 @@ impl HandleTable {
         self.allocate_handle_uncasted(dup)
     }
 
-    pub fn duplicate<T: HandleRef>(&mut self, user_handle: UserHandle<T>, new_rights: HandleRights) -> Result<UserHandle<T>> {
+    pub fn duplicate<T: Dispatcher>(&mut self, user_handle: UserHandle<T>, new_rights: HandleRights) -> Result<UserHandle<T>> {
         let dup = {
             let handle = self.get(user_handle)?;
             handle.duplicate(new_rights)

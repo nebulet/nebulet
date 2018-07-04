@@ -2,7 +2,6 @@ use object::{HandleTable, Wasm, Thread};
 use wasm::{Instance, VmCtx};
 use cretonne_codegen::ir::TrapCode;
 use nabi::Result;
-use nil::{Ref, HandleRef};
 use nil::mem::Bin;
 use spin::RwLock;
 use common::table::Table;
@@ -11,15 +10,15 @@ use core::{mem, slice};
 use sync::mpsc::IntrusiveMpsc;
 use arch::lock::Spinlock;
 use alloc::boxed::Box;
+use super::dispatcher::{Dispatch, Dispatcher};
 
 /// Represents a process.
-#[derive(HandleRef)]
 #[allow(dead_code)]
 pub struct Process {
     /// The process name
     name: RwLock<Option<Bin<str>>>,
     /// Compiled code can be shared between processes.
-    code: Ref<Wasm>,
+    code: Dispatch<Wasm>,
     /// Process specific handle table.
     handle_table: RwLock<HandleTable>,
     /// List of threads operating in this
@@ -33,21 +32,21 @@ pub struct Process {
 impl Process {
     /// Create a process from already existing code.
     /// This is the only way to create a process.
-    pub fn create(code: Ref<Wasm>) -> Result<Ref<Process>> {
+    pub fn create(code: Dispatch<Wasm>) -> Result<Dispatch<Self>> {
         let initial_instance = code.generate_instance()?;
 
-        Ref::new(Process {
+        Ok(Dispatch::new(Process {
             name: RwLock::new(None),
             code,
             handle_table: RwLock::new(HandleTable::new()),
             thread_list: RwLock::new(Table::new()),
             pfex_map: Spinlock::new(HashMap::new()),
             initial_instance,
-        })
+        }))
     }
 
-    pub fn create_thread(self: &Ref<Self>, func_addr: *const (), arg: u32, stack_ptr: u32) -> Result<u32> {
-        let process = self.clone();
+    pub fn create_thread(self: &Dispatch<Self>, func_addr: *const (), arg: u32, stack_ptr: u32) -> Result<u32> {
+        let process = self.copy_ref();
 
         let entry_point: extern fn(u32, &VmCtx) = unsafe { mem::transmute(func_addr) };
 
@@ -59,9 +58,9 @@ impl Process {
 
         let mut thread_list = self.thread_list.write();
 
-        let id = thread_list.next_index();
+        let id = thread_list.next_slot();
 
-        let mut thread = Thread::new_with_parent(self.clone(), id, 1024 * 1024, move || {
+        let mut thread = Thread::new_with_parent(self.copy_ref(), id, 1024 * 1024, move || {
             let mut vmctx_gen = instance.generate_vmctx_backing();
             
             let vmctx = vmctx_gen.vmctx(process, instance);
@@ -73,18 +72,24 @@ impl Process {
         let thread_id = thread_list.allocate(thread);
 
         debug_assert!(thread_id == id);
-        debug_assert!(thread_id <= u32::max_value() as usize);
+        debug_assert!(thread_id.inner() <= u32::max_value() as usize);
 
-        Ok(thread_id as u32)
+        Ok(thread_id.inner() as u32)
     }
 
     /// Start the process by spawning a thread at the entry point.
-    pub fn start(self: &Ref<Self>) -> Result<()> {
-        let process = self.clone();
+    pub fn start(self: &Dispatch<Self>) -> Result<()> {
+        let process = self.copy_ref();
 
         let mut instance = self.initial_instance.clone();
 
-        let mut thread = Thread::new_with_parent(self.clone(), 0, 1024 * 1024, move || {
+        let mut thread_list = self.thread_list().write();
+
+        let thread_id = thread_list.next_slot();
+
+        debug_assert!(thread_id.inner() == 0);
+
+        let mut thread = Thread::new_with_parent(self.copy_ref(), thread_id, 1024 * 1024, move || {
             let entry_point = process.code.start_func();
 
             let mut vmctx_gen = instance.generate_vmctx_backing();
@@ -94,9 +99,10 @@ impl Process {
 
         thread.start();
 
-        let id = self.thread_list.write().allocate(thread);
+        let id = thread_list.allocate(thread);
 
-        debug_assert!(id == 0);
+        debug_assert!(id == thread_id);
+        debug_assert!(id.inner() == 0);
         
         Ok(())
     }
@@ -161,6 +167,7 @@ impl Process {
     }
 }
 
+impl Dispatcher for Process {}
 
 impl Drop for Process {
     fn drop(&mut self) {

@@ -2,7 +2,7 @@
 //! Allocator, paging (although there isn't much), etc
 
 use os_bootinfo::BootInfo;
-use x86_64::structures::paging::PhysFrame;
+use x86_64::structures::paging::{PhysFrame, Size4KiB, FrameAllocator as PhysFrameAllocator, FrameDeallocator as PhysFrameDeallocator};
 
 use arch::lock::IrqLock;
 use self::bump::BumpAllocator;
@@ -30,6 +30,20 @@ pub fn deallocate_frame(frame: PhysFrame) {
         allocator.deallocate_frame(frame)
     } else {
         panic!("frame allocator not initialized");
+    }
+}
+
+pub struct GlobalFrameAllocator;
+
+impl PhysFrameAllocator<Size4KiB> for GlobalFrameAllocator {
+    fn alloc(&mut self) -> Option<PhysFrame<Size4KiB>> {
+        allocate_frame()
+    }
+}
+
+impl PhysFrameDeallocator<Size4KiB> for GlobalFrameAllocator {
+    fn dealloc(&mut self, frame: PhysFrame<Size4KiB>) {
+        deallocate_frame(frame);
     }
 }
 

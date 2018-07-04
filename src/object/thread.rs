@@ -1,7 +1,8 @@
-use object::{Process, Event};
+use object::Process;
+use event::{Event, EventVariant};
+use common::table::TableSlot;
 use arch::cpu::Local;
 use nabi::{Result, Error};
-use nil::Ref;
 use sync::atomic::{Atomic, Ordering};
 use sync::mpsc::IntrusiveNode;
 use core::ptr;
@@ -9,6 +10,7 @@ use arch::cpu::Dpc;
 use memory::sip::WasmStack;
 use alloc::boxed::Box;
 use arch::context::ThreadContext;
+use super::dispatcher::Dispatch;
 
 impl IntrusiveNode for Thread {
     #[inline]
@@ -58,13 +60,13 @@ pub struct Thread {
 
     func: *const (),
 
-    parent: Ref<Process>,
+    parent: Option<Dispatch<Process>>,
 
     /// for intrusive queue
     next_thread: *mut Thread,
 
     /// process-local thread id
-    local_id: usize,
+    local_id: TableSlot,
 
     state: Atomic<State>,
 }
@@ -73,23 +75,37 @@ impl Thread {
     pub fn new<F>(stack_size: usize, f: F) -> Result<Box<Thread>>
         where F: FnOnce() + Send + Sync
     {
-        Self::new_with_parent(unsafe { Ref::dangling() }, !0, stack_size, f)
-    }
-
-    pub fn new_with_parent<F>(parent: Ref<Process>, local_id: usize, stack_size: usize, f: F) -> Result<Box<Thread>>
-        where F: FnOnce() + Send + Sync
-    {
         let stack = WasmStack::allocate(stack_size)
             .ok_or(Error::NO_MEMORY)?;
 
-        let exit_event = Event::new();
+        let exit_event = Event::new(EventVariant::Normal);
 
         Ok(Box::new(Thread {
             ctx: ThreadContext::new(stack.top(), common_thread_entry::<F>),
             stack,
             exit_event,
             func: Box::into_raw(Box::new(f)) as *const (),
-            parent,
+            parent: None,
+            next_thread: ptr::null_mut(),
+            local_id: TableSlot::invalid(),
+            state: Atomic::new(State::Initial),
+        }))
+    }
+
+    pub fn new_with_parent<F>(parent: Dispatch<Process>, local_id: TableSlot, stack_size: usize, f: F) -> Result<Box<Thread>>
+        where F: FnOnce() + Send + Sync
+    {
+        let stack = WasmStack::allocate(stack_size)
+            .ok_or(Error::NO_MEMORY)?;
+
+        let exit_event = Event::new(EventVariant::Normal);
+
+        Ok(Box::new(Thread {
+            ctx: ThreadContext::new(stack.top(), common_thread_entry::<F>),
+            stack,
+            exit_event,
+            func: Box::into_raw(Box::new(f)) as *const (),
+            parent: Some(parent),
             next_thread: ptr::null_mut(),
             local_id,
             state: Atomic::new(State::Initial),
@@ -123,8 +139,8 @@ impl Thread {
         }
     }
 
-    pub fn parent(&self) -> &Ref<Process> {
-        &self.parent
+    pub fn parent(&self) -> Option<&Dispatch<Process>> {
+        self.parent.as_ref()
     }
 
     pub fn resume(&self) {
@@ -177,14 +193,16 @@ impl Thread {
 
         current_thread.set_state(State::Dead);
 
-        current_thread.exit_event.trigger().unwrap();
+        current_thread.exit_event.signal(false);
 
-        let boxed_thread = {
-            let mut thread_list = current_thread.parent().thread_list().write();
-            thread_list.free(current_thread.local_id).unwrap()
-        };
+        if let Some(parent) = current_thread.parent() {
+            let boxed_thread = {
+                let mut thread_list = parent.thread_list().write();
+                thread_list.free(current_thread.local_id).unwrap()
+            };
 
-        Dpc::cleanup_thread(Box::into_raw(boxed_thread));
+            Dpc::cleanup_thread(Box::into_raw(boxed_thread));
+        }
 
         unsafe {
             Local::context_switch();

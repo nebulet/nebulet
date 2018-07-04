@@ -3,7 +3,7 @@ use arch::x64::idt;
 use arch::macros::interrupt;
 use arch::devices::{pic, pit};
 use sync::atomic::{Atomic, Ordering};
-use x86_64::structures::idt::Idt;
+use x86_64::structures::idt::InterruptDescriptorTable;
 use core::mem::transmute;
 
 /// Cycles per second according to rdtsc (which is generally a maximum
@@ -12,7 +12,7 @@ static mut TSC_RATE: u64 = 0;
 
 static PIT_TICKS: Atomic<u8> = Atomic::new(0);
 
-fn custom_idt() -> Idt {
+fn custom_idt() -> InterruptDescriptorTable {
     interrupt!(pit, {
         PIT_TICKS.fetch_add(1, Ordering::SeqCst);
         // Saves CPU time by shortcutting
@@ -40,7 +40,7 @@ pub fn rdtsc() -> u64 {
 
 pub unsafe fn init() {
     let idt = custom_idt();
-    let idt_ref = transmute::<&Idt, &'static Idt>(&idt);
+    let idt_ref = transmute::<&InterruptDescriptorTable, &'static InterruptDescriptorTable>(&idt);
     idt_ref.load();
     interrupt::enable();
 

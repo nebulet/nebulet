@@ -128,15 +128,14 @@ dependencies = [
  "lazy_static 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "nebulet-derive 0.1.0",
  "nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)",
- "nil 0.1.0",
- "os_bootinfo 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "os_bootinfo 0.2.1 (git+https://github.com/nebulet/os_bootinfo)",
  "rand 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand_core 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "raw-cpuid 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "spin 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "target-lexicon 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasmparser 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "x86_64 0.2.0-beta (registry+https://github.com/rust-lang/crates.io-index)",
+ "x86_64 0.2.7 (git+https://github.com/nebulet/x86_64)",
 ]
 
 [[package]]
@@ -157,16 +156,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "nil"
-version = "0.1.0"
-dependencies = [
- "nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)",
-]
-
-[[package]]
 name = "os_bootinfo"
 version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/nebulet/os_bootinfo#e447b7c161a3fbaae2bfe078cbfb45e248cccf98"
 
 [[package]]
 name = "proc-macro2"
@@ -312,12 +304,12 @@ dependencies = [
 
 [[package]]
 name = "x86_64"
-version = "0.2.0-beta"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.2.7"
+source = "git+https://github.com/nebulet/x86_64#9cb2f3bae665f6697cc4f860bf58f392bd90a662"
 dependencies = [
  "bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "os_bootinfo 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "os_bootinfo 0.2.1 (git+https://github.com/nebulet/os_bootinfo)",
  "usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ux 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -340,7 +332,7 @@ dependencies = [
 "checksum itoa 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c069bbec61e1ca5a596166e55dfe4773ff745c3d16b700013bcaff9a6df2c682"
 "checksum lazy_static 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e6412c5e2ad9584b0b8e979393122026cdd6d2a80b933f890dcd694ddbe73739"
 "checksum nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)" = "<none>"
-"checksum os_bootinfo 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "66481dbeb5e773e7bd85b63cd6042c30786f834338288c5ec4f3742673db360a"
+"checksum os_bootinfo 0.2.1 (git+https://github.com/nebulet/os_bootinfo)" = "<none>"
 "checksum proc-macro2 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "1fa93823f53cfd0f5ac117b189aed6cfdfb2cfc0a9d82e956dd7927595ed7d46"
 "checksum quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)" = "7a6e920b65c65f10b2ae65c831a81a073a89edd28c7cce89475bff467ab4167a"
 "checksum quote 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)" = "e44651a0dc4cdd99f71c83b561e221f714912d11af1a4dff0631f923d53af035"
@@ -360,4 +352,4 @@ dependencies = [
 "checksum usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f70329e2cbe45d6c97a5112daad40c34cd9a4e18edb5a2a18fefeb584d8d25e5"
 "checksum ux 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "53d8df5dd8d07fedccd202de1887d94481fadaea3db70479f459e8163a1fab41"
 "checksum wasmparser 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5a415f275740c6d536b5750c3a861bc932845bf479923700f81096cb969210ac"
-"checksum x86_64 0.2.0-beta (registry+https://github.com/rust-lang/crates.io-index)" = "e651deaff8bbbd72ef4135f7720d766c82e0415e4e7fb42e097af9ed0dc20dad"
+"checksum x86_64 0.2.7 (git+https://github.com/nebulet/x86_64)" = "<none>"

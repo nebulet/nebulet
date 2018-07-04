@@ -24,3 +24,5 @@ pub mod event;
 pub mod thread;
 /// ABIs for pretty fast exclusion
 pub mod pfex;
+/// ABIs for interfacing with generic objects
+pub mod object;

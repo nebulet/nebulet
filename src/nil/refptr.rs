@@ -7,10 +7,7 @@ use core::{mem, ptr};
 use core::alloc::Layout;
 use mem::Bin;
 use nabi::Result;
-
-/// All handle objects must implement this trait.
-/// Handle objects are refcounted.
-pub trait HandleRef: Any + Send + Sync {}
+use object::dipatcher::Dispatcher;
 
 struct RefInner<T: ?Sized> {
     count: AtomicUsize,
@@ -100,9 +97,9 @@ impl<T: ?Sized> Ref<T> {
     }
 }
 
-impl Ref<HandleRef> {
-    pub fn cast<T: HandleRef>(&self) -> Option<Ref<T>> {
-        let self_: &HandleRef = &**self;
+impl Ref<Dispatcher> {
+    pub fn cast<T: Dispatcher>(&self) -> Option<Ref<T>> {
+        let self_: &Dispatcher = &**self;
         if self_.get_type_id() == TypeId::of::<T>() {
             let ptr: NonNull<RefInner<T>> = self.ptr.cast();
             let refptr = Ref { ptr, };
@@ -113,7 +110,7 @@ impl Ref<HandleRef> {
         }
     }
 
-    pub fn cast_ref<T: HandleRef>(&self) -> Option<&T> {
+    pub fn cast_ref<T: Dispatcher>(&self) -> Option<&T> {
         self.cast()
             .map(|refptr: Ref<T>| unsafe { &(&*refptr.ptr.as_ptr()).data })
     }
