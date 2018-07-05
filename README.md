@@ -13,19 +13,19 @@ Right now, Nebulet isn't ready to do anything yet, but it'll get there.
 
 ## Building & Running
 
+MacOS requires you to first [cross compile binutils](https://os.phil-opp.com/cross-compile-binutils/) and to add the newly compiled ld-bfd to your path.
+
 ```sh
 # install tools
-# make sure that `python`, `qemu`, and `rustup` are accessible.
-$> cargo install xargo
+# make sure that `python` is accessible.
 $> rustup component add --target=nightly rust-src
 $> rustup target add --toolchain nightly wasm32-unknown-unknown
 $> cargo install cargo-xbuild
-$> cargo install bootimage
+$> cargo install --git https://github.com/nebulet/bootimage --branch package
 
 # checkout code and associated submodules
 $> git clone https://github.com/nebulet/nebulet.git
 $> cd nebulet/ && rustup override set nightly
-$> git submodule update --init
 
 # compile the kernel
 $> bootimage build --release
