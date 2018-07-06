@@ -17,7 +17,7 @@ pub mod io;
 /// ABIs for drivers
 pub mod driver;
 /// ABIs for irqs
-pub mod irq;
+pub mod interrupt;
 /// ABIs for events
 pub mod event;
 /// ABIs for threads

@@ -13,13 +13,13 @@ pub fn start() -> SystemTime {
 
 /// Return the up time of the kernel in nanoseconds
 #[inline]
-fn monotonic() -> u64 {
+pub fn monotonic() -> u64 {
     high_precision_timer::now()
 }
 
 /// Returns the realtime of the kernel
 #[inline]
-fn realtime() -> (u64, u32) {
+pub fn realtime() -> (u64, u32) {
     let offset = monotonic();
     let start = unsafe{ START };
     let sum = start.1 as u64 + offset;
@@ -32,10 +32,8 @@ pub struct Instant(Duration);
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct SystemTime(Duration);
 
-pub const UNIX_EPOCH: SystemTime = SystemTime(Duration::from_secs(0));
-pub const INSTANT_INIT: Instant = Instant(Duration::from_secs(0));
-
 impl Instant {
+    pub const EPOCH: Instant = Instant(Duration::from_secs(0));
     pub fn now() -> Instant {
         let nanos = monotonic();
         Instant(Duration::new(nanos / 1_000_000_000, (nanos % 1_000_000_000) as u32))
@@ -87,6 +85,7 @@ impl Sub<Instant> for Instant {
 }
 
 impl SystemTime {
+    pub const EPOCH: SystemTime = SystemTime(Duration::from_secs(0));
     pub fn new() -> SystemTime {
         let (secs, nanos) = realtime();
         SystemTime(Duration::new(secs, nanos))

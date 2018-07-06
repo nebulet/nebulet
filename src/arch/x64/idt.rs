@@ -1,7 +1,8 @@
-use core::ops::{Deref, DerefMut};
-use x86_64::structures::idt::InterruptDescriptorTable;
+use core::ptr;
+use x86_64::structures::idt::{InterruptDescriptorTable, ExceptionStackFrame};
 use x86_64::structures::tss::TaskStateSegment;
 use arch::interrupt::{*, self};
+use arch::devices::pic;
 use spin::Once;
 
 pub static mut IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
@@ -33,7 +34,6 @@ pub fn default_idt() -> InterruptDescriptorTable {
     idt.security_exception.set_handler_fn(exception::security);
 
     idt[32].set_handler_fn(irq::pit);
-    // idt[33].set_handler_fn(irq::keyboard);
 
     // idt[40].set_handler_fn(irq::rtc);
 
@@ -74,38 +74,74 @@ pub fn init() {
     }
 }
 
-pub struct IdtGuard {
-    inner: &'static mut InterruptDescriptorTable
-}
+pub type Handler = fn(*const ());
 
-impl <'a> Deref for IdtGuard {
-    type Target=InterruptDescriptorTable;
-    fn deref(&self) -> &InterruptDescriptorTable {
-        self.inner
+static mut EVENT_TABLE: [(Option<Handler>, *const ()); 16] = [(None, ptr::null()); 16];
+
+macro_rules! idt_handlers {
+    ($($name:ident ( $value:expr) ),*) => {
+        [$( {
+                extern "x86-interrupt" fn $name(_: &mut ExceptionStackFrame) {
+                    let irq = $value - pic::MASTER_OFFSET;
+
+                    let (handler, arg) = unsafe { EVENT_TABLE[irq as usize] };
+                    if let Some(func) = handler {
+                        func(arg);
+                    }
+                    unsafe {
+                        if irq < 16 {
+                            if irq >= 8 {
+                                pic::MASTER.ack();
+                                pic::SLAVE.ack();
+                            } else {
+                                pic::MASTER.ack();
+                            }
+                        }
+                    }
+                }
+                $name
+            }
+         ),*
+        ]
     }
 }
 
-impl <'a> DerefMut for IdtGuard {
-    fn deref_mut(&mut self) -> &mut InterruptDescriptorTable {
-        self.inner
+static IDT_HANDLER: [extern "x86-interrupt" fn(&mut ExceptionStackFrame); 16] = idt_handlers! {
+    idt_handler_0x20 ( 0x20 ),
+    idt_handler_0x21 ( 0x21 ),
+    idt_handler_0x22 ( 0x22 ),
+    idt_handler_0x23 ( 0x23 ),
+    idt_handler_0x24 ( 0x24 ),
+    idt_handler_0x25 ( 0x25 ),
+    idt_handler_0x26 ( 0x26 ),
+    idt_handler_0x27 ( 0x27 ),
+    idt_handler_0x28 ( 0x28 ),
+    idt_handler_0x29 ( 0x29 ),
+    idt_handler_0x2a ( 0x2a ),
+    idt_handler_0x2b ( 0x2b ),
+    idt_handler_0x2c ( 0x2c ),
+    idt_handler_0x2d ( 0x2d ),
+    idt_handler_0x2e ( 0x2e ),
+    idt_handler_0x2f ( 0x2f )
+};
+
+pub fn register_handler(irq: u8, handler: fn(arg: *const ()), arg: *const()) {
+    let index = (irq - pic::MASTER_OFFSET) as usize;
+
+    let int_handler = IDT_HANDLER[index];
+
+    unsafe {
+        interrupt::mask(irq);
+        EVENT_TABLE[index] = (Some(handler), arg);
+        IDT[irq as usize].set_handler_fn(int_handler);
+        interrupt::unmask(irq);
     }
 }
 
-impl IdtGuard {
-    /// It is only safe to call this function if interrupts can be enabled when
-    /// you drop the result of the call... ugh.
-    pub unsafe fn new() -> IdtGuard {
-        interrupt::disable();
-        IdtGuard {
-            inner: &mut IDT
-        }
-    }
-}
-
-impl Drop for IdtGuard {
-    fn drop(&mut self) {
-        unsafe {
-            interrupt::enable();
-        }
+pub fn unregister_handler(irq: u8) {
+    let index = (irq - pic::MASTER_OFFSET) as usize;
+    unsafe {
+        interrupt::mask(irq);
+        EVENT_TABLE[index] = (None, ptr::null());
     }
 }

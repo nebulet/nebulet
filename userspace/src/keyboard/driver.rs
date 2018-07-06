@@ -1,51 +1,79 @@
 
-use sip::irq::{create_irq_event, ack_irq};
+use sip::interrupt::Interrupt;
+use sip::{Channel, ReadChannel};
 use sip::thread;
-use sip::Mutex;
 use sip::abi;
-use keyboard::{Keyboard, layouts, DecodedKey};
+use super::keyboard::{Keyboard, layouts, DecodedKey};
+use std::{slice, mem};
 
-static EVENT_QUEUE: Mutex<Vec<DecodedKey>> = Mutex::new(Vec::new());
-
-pub struct KeyboardDriver;
+pub struct KeyboardDriver {
+    key_rx: ReadChannel,
+}
 
 impl KeyboardDriver {
-    pub fn new() -> KeyboardDriver {
+    pub fn open() -> KeyboardDriver {
         unsafe {
             ps2_init();
             keyboard_init();
         }
 
         let mut keyboard: Keyboard<layouts::Us104Key> = Keyboard::new();
-        let irq_event = unsafe { create_irq_event(33).unwrap() };
+        
+        let (packet_tx, packet_rx) = Channel::create().unwrap();
+        let interrupt = Interrupt::create(packet_tx, 33).unwrap();
+        let (key_tx, key_rx) = Channel::create().unwrap();
 
         thread::spawn(move || {
+            let mut packet_buffer = [0u8; 16];
+
             loop {
-                irq_event.wait().unwrap();
-                irq_event.rearm().unwrap();
+                let (length, res) = packet_rx.recv_raw(&mut packet_buffer);
+                res.unwrap();
+                assert!(length == 16);
+
                 let scancode = unsafe { abi::read_port_u8(0x60) };
 
                 if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
                     if let Some(key) = keyboard.process_keyevent(key_event) {
-                        EVENT_QUEUE
-                            .lock()
-                            .push(key);
+                        let ptr = &key as *const DecodedKey as *const u8;
+                        let data = unsafe { slice::from_raw_parts(ptr, mem::size_of::<DecodedKey>()) };
+                        key_tx.send(data).unwrap();
                     }
                 }
-                unsafe { ack_irq(33).unwrap(); }
+                interrupt.ack().unwrap();
             }
         }).unwrap();
 
-        KeyboardDriver
+        KeyboardDriver {
+            key_rx,
+        }
     }
 
-    pub fn get_key(&self) -> Option<DecodedKey> {
-        let mut queue = EVENT_QUEUE.lock();
+    pub fn keys(self) -> Iter {
+        Iter {
+            key_rx: self.key_rx,
+        }
+    }
+}
 
-        if queue.len() > 0 {
-            Some(queue.remove(0))
-        } else {
-            None
+pub struct Iter {
+    key_rx: ReadChannel,
+}
+
+impl Iterator for Iter {
+    type Item = DecodedKey;
+    fn next(&mut self) -> Option<DecodedKey> {
+        let mut buffer = [0u8; mem::size_of::<DecodedKey>()];
+
+        let (_, res) = self.key_rx.recv_raw(&mut buffer);
+
+        match res {
+            Ok(_) => {
+                let ptr = &buffer as *const [u8] as *const DecodedKey;
+                let key = unsafe { *ptr };
+                Some(key)
+            },
+            Err(_) => None,
         }
     }
 }

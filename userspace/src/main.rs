@@ -6,11 +6,11 @@
 
 #[macro_use]
 extern crate sip;
-// use sip::thread;
 
-// mod keyboard;
-// mod driver;
-// use driver::KeyboardDriver;
+mod keyboard;
+mod vga;
+
+use keyboard::{KeyboardDriver, DecodedKey};
 
 use std::panic;
 
@@ -20,5 +20,16 @@ pub fn main() {
         println!("userspace: {}", info);
     }));
 
-    println!("Hello from wasm!");
+    println!("in driver");
+
+    let mut vga = vga::Vga::open();
+    vga.clear_screen();
+
+    let keyboard = KeyboardDriver::open();
+
+    for key in keyboard.keys() {
+        if let DecodedKey::Unicode(character) = key {
+            vga.write_bytes(&[character as u8]);
+        }
+    }
 }

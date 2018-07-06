@@ -98,15 +98,15 @@ abi_map! {
         returns: VOID,
         abi::io::write_port_u8,
     },
-    create_irq_event: {
-        params: [I32],
+    interrupt_create: {
+        params: [I32, I32],
         returns: I64,
-        abi::irq::create_irq_event,
+        abi::interrupt::interrupt_create,
     },
-    ack_irq: {
+    interrupt_ack: {
         params: [I32],
         returns: I64,
-        abi::irq::ack_irq,
+        abi::interrupt::interrupt_ack,
     },
 
     // events
