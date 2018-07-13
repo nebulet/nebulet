@@ -29,4 +29,5 @@ notifications:
     on_failure: change
 
 script:
+- cargo userspace
 - bootimage build
