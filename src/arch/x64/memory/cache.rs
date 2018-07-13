@@ -1,7 +1,7 @@
 /// Caches deallocated frames
 
 use x86_64::structures::paging::PhysFrame;
-use alloc::Vec;
+use alloc::vec::Vec;
 use super::FrameAllocator;
 
 pub struct FrameCache<T: FrameAllocator> {

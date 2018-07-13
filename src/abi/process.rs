@@ -69,6 +69,11 @@ pub fn wasm_compile(buffer_offset: u32, buffer_size: u32, user_data: &UserData) 
         let wasm_bytecode = wasm_memory.carve_slice(buffer_offset, buffer_size)
             .ok_or(Error::INVALID_ARG)?;
 
+        // copy the wasm to avoid aliasing from other threads
+        // in the current process
+        // let copied_wasm = wasm_bytecode.to_vec();
+
+        println!("wasm::compile");
         Wasm::compile(wasm_bytecode)?
     };
 

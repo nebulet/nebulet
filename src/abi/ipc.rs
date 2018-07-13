@@ -65,8 +65,7 @@ pub fn channel_recv(channel_handle: UserHandle<Channel>, buffer_offset: u32, buf
         handle
     };
 
-    let first_msg_len = chan.first_msg_len()
-        .ok_or(Error::SHOULD_WAIT)?;
+    let first_msg_len = chan.first_msg_len()?;
 
     let instance = &user_data.instance;
     let mut memory = instance.memories[0].write();

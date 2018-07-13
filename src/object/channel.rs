@@ -2,8 +2,9 @@ use super::dispatcher::{Dispatch, Dispatcher};
 use signals::Signal;
 use nabi::{Result, Error};
 use object::Handle;
-use alloc::{Vec, VecDeque};
-use alloc::arc::Arc;
+use alloc::vec::Vec;
+use alloc::collections::vec_deque::VecDeque;
+use alloc::sync::Arc;
 use arch::lock::Spinlock;
 
 pub const MAX_MSGS: usize       = 1000;
@@ -77,11 +78,11 @@ impl Channel {
     pub fn send(self: &Dispatch<Self>, msg: Message) -> Result<()> {
         let mut shared = self.shared.lock();
 
-        let peer_guard = self.peer.lock();  
+        let peer_guard = self.peer.lock();
 
         if let Some(peer) = peer_guard.as_ref() {
             if shared.msgs.len() == MAX_MSGS {
-                Err(Error::NO_MEMORY)
+                Err(Error::SHOULD_WAIT)
             } else {
                 shared.msgs.push_back(msg);
 
@@ -103,30 +104,41 @@ impl Channel {
 
         let peer_guard = self.peer.lock();
 
-        if let Some(peer) = peer_guard.as_ref() {
-            let signal_peer = shared.msgs.len() == MAX_MSGS;
+        let signal_peer = shared.msgs.len() == MAX_MSGS;
 
-            let msg = shared.msgs.pop_front().ok_or(Error::SHOULD_WAIT)?;
-
+        if let Some(msg) = shared.msgs.pop_front() {
             if shared.msgs.is_empty() {
                 // deassert readable signal on self
                 self.signal(Signal::empty(), Signal::READABLE)?;
             }
 
-            if signal_peer {
+            if let (true, Some(peer)) = (signal_peer, peer_guard.as_ref()) {
                 peer.signal(Signal::WRITABLE, Signal::empty())?;
             }
 
             Ok(msg)
         } else {
-            Err(Error::PEER_CLOSED)
+            if peer_guard.is_some() {
+                Err(Error::SHOULD_WAIT)
+            } else {
+                Err(Error::PEER_CLOSED)
+            }
         }
     }
 
-    pub fn first_msg_len(&self) -> Option<usize> {
+    pub fn first_msg_len(&self) -> Result<usize> {
         let shared = self.shared.lock();
 
-        shared.msgs.front().map(|msg| msg.data().len())
+        shared.msgs
+            .front()
+            .map(|msg| msg.data().len())
+            .ok_or_else(|| {
+                if self.peer().is_some() {
+                    Error::SHOULD_WAIT
+                } else {
+                    Error::PEER_CLOSED
+                }
+            })
     }
 }
 
@@ -139,4 +151,11 @@ impl Dispatcher for Channel {
     }
 
     fn allows_observers(&self) -> bool { true }
+
+    fn on_zero_handles(&self) {
+        if let Some(peer) = self.peer() {
+            let mut this_guard = peer.peer.lock();
+            *this_guard = None;
+        }
+    }
 }

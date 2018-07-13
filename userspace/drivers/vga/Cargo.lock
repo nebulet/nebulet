@@ -12,25 +12,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "ps2"
-version = "0.1.0"
-dependencies = [
- "sip 0.1.0 (git+https://github.com/nebulet/libsip)",
-]
-
-[[package]]
 name = "sip"
 version = "0.1.0"
 source = "git+https://github.com/nebulet/libsip#37365d69a6e03748b660a3c071c5a369e5038bf9"
 dependencies = [
  "nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)",
-]
-
-[[package]]
-name = "sipinit"
-version = "0.1.0"
-dependencies = [
- "sip 0.1.0 (git+https://github.com/nebulet/libsip)",
 ]
 
 [[package]]

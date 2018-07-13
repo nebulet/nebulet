@@ -1,0 +1,7 @@
+[package]
+name = "ps2"
+version = "0.1.0"
+authors = ["Lachlan Sneff <lachlan.sneff@gmail.com>"]
+
+[dependencies.sip]
+git = "https://github.com/nebulet/libsip"

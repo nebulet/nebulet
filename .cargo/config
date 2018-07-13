@@ -1,3 +1,4 @@
 [alias]
 boot = "run --package tools --bin boot"
 buildwasm = "run --package tools --bin buildwasm"
+userspace = "run --package tools --bin userspace"

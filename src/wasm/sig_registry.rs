@@ -1,5 +1,5 @@
 use cretonne_codegen::ir::Signature;
-use alloc::Vec;
+use alloc::vec::Vec;
 use spin::RwLock;
 
 pub struct SigRegistry {

@@ -3,6 +3,8 @@
     iterator_find_map,
 )]
 
+#![no_std]
+
 extern crate proc_macro;
 extern crate proc_macro2;
 extern crate syn;

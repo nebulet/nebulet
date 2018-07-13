@@ -13,7 +13,8 @@ use object::Wasm;
 use object::Dispatch;
 
 use nabi::{Result, Error};
-use alloc::{Vec, String};
+use alloc::vec::Vec;
+use alloc::string::String;
 
 pub fn get_abi_func(name: &str, sig: &Signature) -> Result<*const ()> {
     let abi_func = ABI_MAP.get(name).ok_or_else(|| internal_error!())?;

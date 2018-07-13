@@ -7,7 +7,8 @@ use cretonne_wasm::{FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global,
                 SignatureIndex};
 use cretonne_codegen::ir;
 
-use alloc::{Vec, String};
+use alloc::vec::Vec;
+use alloc::string::String;
 use hashmap_core::HashMap;
 
 /// Possible values for a WebAssembly table element.

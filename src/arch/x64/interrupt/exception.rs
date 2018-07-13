@@ -26,6 +26,7 @@ interrupt_stack!(bound_range_exceeded, _stack, {
 });
 
 interrupt_stack!(invalid_opcode, stack, {
+    println!("invalid opcode");
     let current_thread = Thread::current();
     if let Some(process) = current_thread.parent() {
         let code = process.code();
@@ -66,6 +67,7 @@ interrupt_stack_err!(general_protection_fault, _stack, _error, {
 /// This is used to catch "out of bounds" wasm heap
 /// accesses, as well as to implement lazy paging.
 interrupt_stack_page!(page_fault, stack, error, {
+    println!("page fault");
     use cretonne_codegen::ir::TrapCode;
 
     let faulting_addr: *const ();

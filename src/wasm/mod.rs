@@ -18,7 +18,7 @@ pub use self::compilation::{Compilation, Compiler};
 pub use self::instance::{Instance, VmCtx, UserData};
 
 use cretonne_wasm::{self, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
-                GlobalValue, SignatureIndex, FuncTranslator, WasmResult};
+                GlobalVariable, SignatureIndex, FuncTranslator, WasmResult};
 use cretonne_codegen::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam,
                    ArgumentPurpose, ArgumentLoc, ArgumentExtension, Function};
 use cretonne_codegen::ir::types::*;
@@ -31,7 +31,8 @@ use wasmparser;
 
 use nabi;
 
-use alloc::{Vec, String};
+use alloc::vec::Vec;
+use alloc::string::String;
 
 /// Compute a `ir::ExternalName` for a given wasm function index.
 pub fn get_func_name(func_index: FunctionIndex) -> cretonne_codegen::ir::ExternalName {
@@ -329,7 +330,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         }
     }
 
-    fn make_global(&mut self, func: &mut ir::Function, index: GlobalIndex) -> GlobalValue {
+    fn make_global(&mut self, func: &mut ir::Function, index: GlobalIndex) -> GlobalVariable {
         let globals_base = self.globals_base.unwrap_or_else(|| {
             let globals_offset = self.ptr_size() as i32 * -3;
             let new_base = func.create_global_value(ir::GlobalValueData::VMContext {
@@ -343,7 +344,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
             base: globals_base,
             offset: (offset as i32).into(),
         });
-        GlobalValue::Memory {
+        GlobalVariable::Memory {
             gv,
             ty: self.module.globals[index].ty,
         }
@@ -748,9 +749,11 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
         self,
         isa: &isa::TargetIsa,
     ) -> Result<(Compilation, Module, Vec<DataInitializer>), nabi::Error> {
+        println!("debug: {}:{}", file!(), line!());
         let mut compiler = Compiler::with_capacity(isa, self.lazy.function_body_inputs.len());
-
+        println!("debug: {}:{}", file!(), line!());
         for (func_index, input) in self.lazy.function_body_inputs.iter().enumerate() {
+            println!("debug: {}:{}", file!(), line!());
             let mut context = cretonne_codegen::Context::new();
             context.func.name = get_func_name(func_index);
             let num_imported = self.module.imported_funcs.len();
@@ -765,9 +768,12 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
                 })?;
 
             compiler.define_function(context)?;
+            println!("debug: {}:{}", file!(), line!());
         }
 
+        println!("debug: {}:{}", file!(), line!());
         let compilation = compiler.compile(&self.module)?;
+        println!("debug: {}:{}", file!(), line!());
 
         Ok((compilation, self.module, self.lazy.data_initializers))
     }

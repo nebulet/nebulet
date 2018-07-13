@@ -11,8 +11,8 @@ use object::{Dispatch, Process};
 use nabi::Result;
 use core::marker::PhantomData;
 use core::{slice, mem};
-use alloc::Vec;
-use alloc::arc::Arc;
+use alloc::vec::Vec;
+use alloc::sync::Arc;
 use spin::RwLock;
 use common::slice::{BoundedSlice, UncheckedSlice};
 

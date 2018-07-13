@@ -32,6 +32,8 @@
     future_atomic_orderings,
     stmt_expr_attributes,
     get_type_id,
+    iterator_find_map,
+    alloc_error_handler,
 )]
 
 #![no_main]
@@ -81,22 +83,68 @@ pub mod event;
 
 pub use consts::*;
 
+use object::{Thread, Process, Wasm, Channel, HandleRights, Dispatcher};
+use object::channel;
+use event::{Event, EventVariant};
+use object::dispatcher::LocalObserver;
+use object::wait_observer::WaitObserver;
+use signals::Signal;
+use common::tar::Tar;
+use alloc::vec::Vec;
+use nabi::Error;
+
 #[global_allocator]
 pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 
-pub fn kmain(init_wasm: &[u8]) -> ! {
+pub fn kmain(init_fs: &[u8]) -> ! {
     println!("------------");
     println!("Nebulet v{}", VERSION);
 
-    use object::{Process, Wasm};
+    let tar = Tar::load(init_fs);
 
-    let code = Wasm::compile(init_wasm)
+    let wasm = tar.iter().find(|file| {
+        file.path == "sipinit.wasm"
+    }).unwrap();
+
+    let code = Wasm::compile(wasm.data)
         .unwrap();
 
     let process = Process::create(code.copy_ref())
         .unwrap();
 
+    let (tx, rx) = Channel::new_pair();
+
+    {
+        let mut handle_table = process.handle_table().write();
+        let handle = handle_table.allocate(rx, HandleRights::READ | HandleRights::TRANSFER).unwrap();
+        assert!(handle.inner() == 0);
+    }
+
     process.start().unwrap();
+    
+    let mut thread = Thread::new(1024 * 16, move || {
+        let event = Event::new(EventVariant::AutoUnsignal);
+        let mut waiter = WaitObserver::new(event, Signal::WRITABLE);
+
+        for chunk in init_fs.chunks(channel::MAX_MSG_SIZE) {
+            loop {
+                let msg = channel::Message::new(chunk, Vec::new()).unwrap(); // not efficient, but it doesn't matter here
+                match tx.send(msg) {
+                    Ok(_) => break,
+                    Err(Error::SHOULD_WAIT) => {
+                        if let Some(observer) = LocalObserver::new(&mut waiter, &mut tx.copy_ref().upcast()) {
+                            observer.wait();
+                            drop(observer);
+                        }
+                    },
+                    Err(e) => panic!("initfs channel err: {:?}", e),
+                }
+            }
+        }
+        tx.on_zero_handles();
+    }).unwrap();
+
+    thread.start();
 
     unsafe {
         arch::cpu::Local::context_switch();

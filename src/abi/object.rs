@@ -3,7 +3,6 @@ use object::dispatcher::LocalObserver;
 use object::wait_observer::WaitObserver;
 use event::{Event, EventVariant};
 use signals::Signal;
-use alloc::arc::Arc;
 use nabi::{Result, Error};
 use wasm::UserData;
 use nebulet_derive::nebulet_abi;
@@ -23,9 +22,9 @@ pub fn object_wait_one(object_handle: UserHandle<Dispatcher>, signals: Signal, u
         return Err(Error::INVALID_ARG);
     }
 
-    let event = Arc::new(Event::new(EventVariant::Normal));
+    let event = Event::new(EventVariant::Normal);
 
-    let mut waiter = WaitObserver::new(Arc::clone(&event), signals);
+    let mut waiter = WaitObserver::new(event, signals);
 
     let local_observer = if let Some(observer) = LocalObserver::new(&mut waiter, &mut object) {
         observer
@@ -33,7 +32,7 @@ pub fn object_wait_one(object_handle: UserHandle<Dispatcher>, signals: Signal, u
         return Ok(0);
     };
 
-    event.wait();
+    local_observer.wait();
 
     // drop the local observer so we can access the waiter again.
     drop(local_observer);

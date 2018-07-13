@@ -1,12 +1,13 @@
 use signals::Signal;
 use nabi::{Result, Error};
 use common::table::{Table, TableSlot};
-use alloc::arc::Arc;
+use alloc::sync::Arc;
 use spin::Mutex;
 use super::Handle;
 use sync::atomic::{Atomic, Ordering};
 use core::any::{Any, TypeId};
 use core::ops::Deref;
+use object::wait_observer::WaitObserver;
 
 unsafe impl Send for Context {}
 unsafe impl Sync for Context {}
@@ -176,6 +177,8 @@ pub trait Dispatcher: Any + Send + Sync {
 
     fn get_name(&self) -> Option<&str> { None }
     fn set_name(&self) -> Result<()> { Err(Error::NOT_SUPPORTED) }
+
+    fn on_zero_handles(&self) {}
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -184,14 +187,14 @@ pub enum ObserverResult {
     Remove,
 }
 
-pub struct LocalObserver<'local, S: StateObserver + 'local> {
+pub struct LocalObserver<'local, 'dispatch, S: StateObserver + 'local> {
     slot: TableSlot,
     observer: &'local mut S,
-    dispatch: &'local Dispatch<Dispatcher>,
+    dispatch: &'dispatch Dispatch<Dispatcher>,
 }
 
-impl<'local, S: StateObserver + Send + Any> LocalObserver<'local, S> {
-    pub fn new(observer: &'local mut S, dispatch: &'local mut Dispatch<Dispatcher>) -> Option<LocalObserver<'local, S>> {
+impl<'local, 'dispatch, S: StateObserver + Send + Any> LocalObserver<'local, 'dispatch, S> {
+    pub fn new(observer: &'local mut S, dispatch: &'dispatch mut Dispatch<Dispatcher>) -> Option<LocalObserver<'local, 'dispatch, S>> {
         let slot = unsafe { dispatch.add_observer(observer as *mut _)? };
 
         Some(LocalObserver {
@@ -202,7 +205,13 @@ impl<'local, S: StateObserver + Send + Any> LocalObserver<'local, S> {
     }
 }
 
-impl<'local, S: StateObserver> Drop for LocalObserver<'local, S> {
+impl<'local, 'dispatch> LocalObserver<'local, 'dispatch, WaitObserver> {
+    pub fn wait(&self) {
+        self.observer.wait();
+    }
+}
+
+impl<'local, 'dispatch, S: StateObserver> Drop for LocalObserver<'local, 'dispatch, S> {
     fn drop(&mut self) {
         if let Some(observer_ptr) = self.dispatch.remove_observer(self.slot) {
             assert!(observer_ptr == self.observer as *mut _);

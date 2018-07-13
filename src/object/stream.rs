@@ -1,8 +1,8 @@
 use super::dispatcher::{Dispatch, Dispatcher};
 use signals::Signal;
 use nabi::{Result, Error};
-use alloc::VecDeque;
-use alloc::arc::Arc;
+use alloc::collections::vec_deque::VecDeque;
+use alloc::sync::Arc;
 use arch::lock::Spinlock;
 use core::cmp::min;
 

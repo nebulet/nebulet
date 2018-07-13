@@ -1,6 +1,6 @@
 use nebulet_derive::nebulet_abi;
 use wasm::{VmCtx, UserData};
-use alloc::String;
+use alloc::string::String;
 use x86_64::instructions::port::Port;
 
 #[nebulet_abi]

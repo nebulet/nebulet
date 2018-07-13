@@ -2,4 +2,5 @@
 **/target
 **/*.rs.bk
 bootimage.bin
+initfs.tar
 /rls

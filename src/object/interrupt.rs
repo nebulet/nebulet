@@ -1,7 +1,7 @@
 use sync::atomic::{Atomic, Ordering};
 use object::dispatcher::{Dispatch, Dispatcher};
 use object::channel::{Channel, Message};
-use alloc::Vec;
+use alloc::vec::Vec;
 use time::Instant;
 use core::ops::Deref;
 use core::{slice, mem};

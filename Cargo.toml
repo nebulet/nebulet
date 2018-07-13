@@ -11,7 +11,7 @@ run-command = [
     "-machine", "q35,accel=kvm:xen:hax:tcg",
     "-drive", "format=raw,file={}"
 ]
-package-file = "userspace/target/wasm32-unknown-unknown/release/userspace.wasm"
+package-file = "initfs.tar"
 
 [package.metadata.cargo-xbuild]
 memcpy = true
@@ -37,7 +37,6 @@ members = [
 exclude = [
     "target/x86_64-nebulet/release/bootloader",
     "target/x86_64-nebulet/debug/bootloader",
-    "cretonne",
     "userspace",
 ]
 
@@ -60,12 +59,9 @@ rdrand_entropy = []
 spin = "0.4.6"
 bitflags = "1.0"
 bit_field = "0.9.0"
-raw-cpuid = "3.1.0"
-# x86_64 = "0.2.0-beta"
 x86_64 = { git = "https://github.com/nebulet/x86_64" }
-# os_bootinfo = "0.2.0"
 os_bootinfo = { git = "https://github.com/nebulet/os_bootinfo" }
-hashmap_core = "0.1.7"
+hashmap_core = "0.1.8"
 
 # lib/
 [dependencies.nebulet-derive]
@@ -83,6 +79,10 @@ default-features = false
 version = "0.5"
 default-features = false
 
+[dependencies.raw-cpuid]
+version = "3.1.0"
+features = ["nightly"]
+
 [dependencies.nebulet_abi]
 git = "https://github.com/nebulet/abi"
 
@@ -92,22 +92,22 @@ version = "0.0.2"
 default-features = false
 
 [dependencies.cretonne-codegen]
-version = "0.12.0"
+version = "0.13.0"
 default-features = false
 features = ["core"]
 
 [dependencies.cretonne-frontend]
-version = "0.12.0"
+version = "0.13.0"
 default-features = false
 features = ["core"]
 
 [dependencies.cretonne-wasm]
-version = "0.12.0"
+version = "0.13.0"
 default-features = false
 features = ["core"]
 
 [dependencies.cretonne-native]
-version = "0.12.0"
+version = "0.13.0"
 default-features = false
 features = ["core"]
 
@@ -117,4 +117,8 @@ default_features = false
 features = ["core"]
 
 [replace]
-"hashmap_core:0.1.7" = { git = "https://github.com/lachlansneff/hashmap_core" }
+"hashmap_core:0.1.8" = { git = "https://github.com/lachlansneff/hashmap_core" }
+"cretonne-codegen:0.13.0" = { git = "https://github.com/nebulet/cretonne", branch = "broken-no_std"}
+"cretonne-native:0.13.0" = { git = "https://github.com/nebulet/cretonne", branch = "broken-no_std" }
+# "raw-cpuid:4.0.0" = { path = "../rust-cpuid" }
+# "hashmap_core:0.1.7" = { path = "../hashmap_core" }

@@ -145,8 +145,8 @@ unsafe impl GlobalAlloc for Allocator {
     }
 }
 
-#[lang = "oom"]
 #[no_mangle]
-pub extern fn oom() -> ! {
+#[alloc_error_handler]
+pub fn oom(_: Layout) -> ! {
     panic!("Memory allocation failed")
 }

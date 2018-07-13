@@ -1,10 +1,10 @@
-[package]
-name = "userspace"
-version = "0.1.0"
-authors = ["The Nebulet OS Authors"]
+[workspace]
+members = [
+    "drivers/ps2",
+    "drivers/vga",
+
+    "sipinit",
+]
 
 [profile.release]
 lto = true
-
-[dependencies.sip]
-git = "https://github.com/nebulet/libsip"

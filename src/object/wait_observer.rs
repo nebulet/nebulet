@@ -2,21 +2,24 @@ use super::dispatcher::{Dispatcher, StateObserver, ObserverResult};
 use object::Handle;
 use event::Event;
 use signals::Signal;
-use alloc::arc::Arc;
 
 pub struct WaitObserver {
     watched_signals: Signal,
     wakeup_reasons: Signal,
-    event: Arc<Event>,
+    event: Event,
 }
 
 impl WaitObserver {
-    pub fn new(event: Arc<Event>, watched_signals: Signal) -> WaitObserver {
+    pub fn new(event: Event, watched_signals: Signal) -> WaitObserver {
         WaitObserver {
             watched_signals,
             wakeup_reasons: Signal::empty(),
             event,
         }
+    }
+
+    pub fn wait(&self) {
+        self.event.wait();
     }
 
     pub fn finalize(self) -> Signal {
