@@ -68,7 +68,7 @@ interrupt_stack_err!(general_protection_fault, _stack, _error, {
 /// accesses, as well as to implement lazy paging.
 interrupt_stack_page!(page_fault, stack, error, {
     println!("page fault");
-    use cretonne_codegen::ir::TrapCode;
+    use cranelift_codegen::ir::TrapCode;
 
     let faulting_addr: *const ();
     asm!("mov %cr2, $0" : "=r"(faulting_addr));

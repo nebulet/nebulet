@@ -86,28 +86,28 @@ features = ["nightly"]
 [dependencies.nebulet_abi]
 git = "https://github.com/nebulet/abi"
 
-# Cretonne compiler
+# Cranelift compiler
 [dependencies.target-lexicon]
-version = "0.0.2"
+version = "0.0.3"
 default-features = false
 
-[dependencies.cretonne-codegen]
-version = "0.13.0"
-default-features = false
-features = ["core"]
-
-[dependencies.cretonne-frontend]
-version = "0.13.0"
+[dependencies.cranelift-codegen]
+version = "0.17.0"
 default-features = false
 features = ["core"]
 
-[dependencies.cretonne-wasm]
-version = "0.13.0"
+[dependencies.cranelift-frontend]
+version = "0.17.0"
 default-features = false
 features = ["core"]
 
-[dependencies.cretonne-native]
-version = "0.13.0"
+[dependencies.cranelift-wasm]
+version = "0.17.0"
+default-features = false
+features = ["core"]
+
+[dependencies.cranelift-native]
+version = "0.17.0"
 default-features = false
 features = ["core"]
 
@@ -116,9 +116,9 @@ version = "0.17.0"
 default_features = false
 features = ["core"]
 
-[replace]
-"hashmap_core:0.1.8" = { git = "https://github.com/lachlansneff/hashmap_core" }
-"cretonne-codegen:0.13.0" = { git = "https://github.com/nebulet/cretonne", branch = "broken-no_std"}
-"cretonne-native:0.13.0" = { git = "https://github.com/nebulet/cretonne", branch = "broken-no_std" }
+# [replace]
+# "hashmap_core:0.1.8" = { git = "https://github.com/lachlansneff/hashmap_core" }
+# "cranelift-codegen:0.13.0" = { git = "https://github.com/nebulet/cranelift", branch = "broken-no_std"}
+# "cranelift-native:0.13.0" = { git = "https://github.com/nebulet/cranelift", branch = "broken-no_std" }
 # "raw-cpuid:4.0.0" = { path = "../rust-cpuid" }
 # "hashmap_core:0.1.7" = { path = "../hashmap_core" }

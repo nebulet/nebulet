@@ -56,9 +56,9 @@ extern crate raw_cpuid;
 extern crate rand_core;
 extern crate rand;
 
-extern crate cretonne_wasm;
-extern crate cretonne_native;
-extern crate cretonne_codegen;
+extern crate cranelift_wasm;
+extern crate cranelift_native;
+extern crate cranelift_codegen;
 extern crate target_lexicon;
 extern crate wasmparser;
 extern crate nebulet_derive;

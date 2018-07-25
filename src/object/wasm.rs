@@ -5,10 +5,10 @@ use memory::{Region, MemFlags};
 use nabi::{Result, Error};
 use core::mem;
 use alloc::vec::Vec;
-use cretonne_codegen::settings::{self, Configurable};
-use cretonne_codegen::ir::TrapCode;
-use cretonne_wasm::translate_module;
-use cretonne_native;
+use cranelift_codegen::settings::{self, Configurable};
+use cranelift_codegen::ir::TrapCode;
+use cranelift_wasm::translate_module;
+use cranelift_native;
 
 use super::dispatcher::{Dispatch, Dispatcher};
 
@@ -31,7 +31,7 @@ impl Wasm {
     /// Compile webassembly bytecode into a Wasm.
     pub fn compile(wasm: &[u8]) -> Result<Dispatch<Wasm>> {
         println!("debug: {}", line!());
-        let (mut flag_builder, isa_builder) = cretonne_native::builders()
+        let (mut flag_builder, isa_builder) = cranelift_native::builders()
             .map_err(|_| internal_error!())?;
 
         println!("debug: {}", line!());

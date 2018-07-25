@@ -1,6 +1,6 @@
 use object::{HandleTable, Wasm, Thread};
 use wasm::{Instance, VmCtx};
-use cretonne_codegen::ir::TrapCode;
+use cranelift_codegen::ir::TrapCode;
 use nabi::Result;
 use nil::mem::Bin;
 use spin::RwLock;
@@ -133,7 +133,7 @@ impl Process {
     /// You just activated my trap card!
     /// 
     /// Being serious, almost all types of traps
-    /// entail a process shutdown. Cretonne does
+    /// entail a process shutdown. Cranelift does
     /// support resumable traps, but they're not
     /// currently used.
     pub fn handle_trap(&self, trap_code: TrapCode) {

@@ -3,9 +3,9 @@
 //!
 //! Literally just copied from https://github.com/sunfishcode/wasmstandalone
 
-use cretonne_wasm::{FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
+use cranelift_wasm::{FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
                 SignatureIndex};
-use cretonne_codegen::ir;
+use cranelift_codegen::ir;
 
 use alloc::vec::Vec;
 use alloc::string::String;

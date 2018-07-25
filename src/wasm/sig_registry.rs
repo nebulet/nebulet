@@ -1,4 +1,4 @@
-use cretonne_codegen::ir::Signature;
+use cranelift_codegen::ir::Signature;
 use alloc::vec::Vec;
 use spin::RwLock;
 

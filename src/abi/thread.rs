@@ -45,7 +45,7 @@ pub fn thread_spawn(func_table_index: u32, arg: u32, new_stack_offset: u32, user
         .get(sig_index)
         .ok_or(Error::NOT_FOUND)?;
 
-    use cretonne_codegen::ir::{types, ArgumentPurpose};
+    use cranelift_codegen::ir::{types, ArgumentPurpose};
     
     if signature.params.len() == 2
         && signature.params[0].value_type == types::I32

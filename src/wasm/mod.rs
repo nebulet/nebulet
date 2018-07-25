@@ -1,4 +1,4 @@
-//! Standalone runtime for WebAssembly using Cretonne. Provides functions to translate
+//! Standalone runtime for WebAssembly using Cranelift. Provides functions to translate
 //! `get_global`, `set_global`, `current_memory`, `grow_memory`, `call_indirect` that hardcode in
 //! the translation the base addresses of regions of memory that will hold the globals, tables and
 //! linear memories.
@@ -17,15 +17,15 @@ pub use self::module::Module;
 pub use self::compilation::{Compilation, Compiler};
 pub use self::instance::{Instance, VmCtx, UserData};
 
-use cretonne_wasm::{self, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
+use cranelift_wasm::{self, FuncEnvironment as FuncEnvironmentTrait, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
                 GlobalVariable, SignatureIndex, FuncTranslator, WasmResult};
-use cretonne_codegen::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam,
+use cranelift_codegen::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam,
                    ArgumentPurpose, ArgumentLoc, ArgumentExtension, Function};
-use cretonne_codegen::ir::types::*;
-use cretonne_codegen::ir::condcodes::IntCC;
-use cretonne_codegen::settings::CallConv;
-use cretonne_codegen::cursor::FuncCursor;
-use cretonne_codegen::{self, isa, settings, binemit};
+use cranelift_codegen::ir::types::*;
+use cranelift_codegen::ir::condcodes::IntCC;
+use cranelift_codegen::settings::CallConv;
+use cranelift_codegen::cursor::FuncCursor;
+use cranelift_codegen::{self, isa, settings, binemit};
 use target_lexicon::{Triple, Architecture, Vendor, OperatingSystem, Environment, BinaryFormat, PointerWidth};
 use wasmparser;
 
@@ -35,7 +35,7 @@ use alloc::vec::Vec;
 use alloc::string::String;
 
 /// Compute a `ir::ExternalName` for a given wasm function index.
-pub fn get_func_name(func_index: FunctionIndex) -> cretonne_codegen::ir::ExternalName {
+pub fn get_func_name(func_index: FunctionIndex) -> cranelift_codegen::ir::ExternalName {
     debug_assert!(func_index as u32 as FunctionIndex == func_index);
     ir::ExternalName::user(0, func_index as u32)
 }
@@ -193,8 +193,7 @@ impl<'data, 'flags> ModuleEnvironment<'data, 'flags> {
     }
 
     fn native_pointer(&self) -> ir::Type {
-        use cretonne_wasm::FuncEnvironment;
-        self.func_env().native_pointer()
+        self.func_env().pointer_type()
     }
 
     /// Declare that translation of the module is complete. This consumes the
@@ -220,10 +219,10 @@ pub struct FuncEnvironment<'module_environment> {
 
     pub main_memory_base: Option<ir::GlobalValue>,
 
-    /// The Cretonne global holding the base address of the memories vector.
+    /// The Cranelift global holding the base address of the memories vector.
     pub memory_base: Option<ir::GlobalValue>,
 
-    /// The Cretonne global holding the base address of the globals vector.
+    /// The Cranelift global holding the base address of the globals vector.
     pub globals_base: Option<ir::GlobalValue>,
 
     /// The list of globals that hold table bases.
@@ -266,7 +265,7 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
     }
 
     fn ptr_size(&self) -> usize {
-        use cretonne_wasm::FuncEnvironment;
+        use cranelift_wasm::FuncEnvironment;
         if self.triple().pointer_width().unwrap() == PointerWidth::U64 {
             8
         } else {
@@ -315,7 +314,7 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
     // }
 }
 
-impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'module_environment> {
+impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'module_environment> {
     fn flags(&self) -> &settings::Flags {
         &self.settings_flags
     }
@@ -417,14 +416,14 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         callee: ir::Value,
         call_args: &[ir::Value],
     ) -> WasmResult<ir::Inst> {
-        // TODO: Cretonne's call_indirect doesn't implement bounds checking
+        // TODO: Cranelift's call_indirect doesn't implement bounds checking
         // or signature checking, so we need to implement it ourselves.
         assert_eq!(table_index, 0, "non-default tables not supported yet");
         let table_gv = self.get_table(pos.func, table_index);
-        let gv_addr = pos.ins().global_value(self.native_pointer(), table_gv);
+        let gv_addr = pos.ins().global_value(self.pointer_type(), table_gv);
 
         let table_base = pos.ins().load(
-            self.native_pointer(),
+            self.pointer_type(),
             ir::MemFlags::new(),
             gv_addr,
             0,
@@ -447,8 +446,8 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
 
         let entry_size = self.ptr_size() as i64;
 
-        let callee = if self.native_pointer() != ir::types::I32 {
-            pos.ins().uextend(self.native_pointer(), callee)
+        let callee = if self.pointer_type() != ir::types::I32 {
+            pos.ins().uextend(self.pointer_type(), callee)
         } else {
             callee
         };
@@ -458,7 +457,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
         let entry = pos.ins().iadd(table_base, callee_scaled);
 
         let callee_func = pos.ins().load(
-            self.native_pointer(),
+            self.pointer_type(),
             ir::MemFlags::new(),
             entry,
             0,
@@ -488,7 +487,7 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
             let sig_ref = pos.func.dfg.ext_funcs[callee].signature;
             // convert callee into value needed for `call_indirect`
             let callee_value = pos.ins()
-                .func_addr(self.native_pointer(), callee);
+                .func_addr(self.pointer_type(), callee);
 
             Ok(pos.ins()
                 .call_indirect(sig_ref, callee_value, &real_call_args))
@@ -566,8 +565,8 @@ impl<'module_environment> cretonne_wasm::FuncEnvironment for FuncEnvironment<'mo
 /// `cton_wasm::translatemodule` because it
 /// tells how to translate runtime-dependent wasm instructions. These functions should not be
 /// called by the user.
-impl<'data, 'flags> cretonne_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'data, 'flags> {
-    fn get_func_name(&self, func_index: FunctionIndex) -> cretonne_codegen::ir::ExternalName {
+impl<'data, 'flags> cranelift_wasm::ModuleEnvironment<'data> for ModuleEnvironment<'data, 'flags> {
+    fn get_func_name(&self, func_index: FunctionIndex) -> cranelift_codegen::ir::ExternalName {
         get_func_name(func_index)
     }
 
@@ -621,7 +620,7 @@ impl<'data, 'flags> cretonne_wasm::ModuleEnvironment<'data> for ModuleEnvironmen
         self.module.globals.push(global);
     }
 
-    fn get_global(&self, global_index: GlobalIndex) -> &cretonne_wasm::Global {
+    fn get_global(&self, global_index: GlobalIndex) -> &cranelift_wasm::Global {
         &self.module.globals[global_index]
     }
 
@@ -754,7 +753,7 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
         println!("debug: {}:{}", file!(), line!());
         for (func_index, input) in self.lazy.function_body_inputs.iter().enumerate() {
             println!("debug: {}:{}", file!(), line!());
-            let mut context = cretonne_codegen::Context::new();
+            let mut context = cranelift_codegen::Context::new();
             context.func.name = get_func_name(func_index);
             let num_imported = self.module.imported_funcs.len();
             context.func.signature = self.module.signatures[self.module.functions[num_imported + func_index]].clone();

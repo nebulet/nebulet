@@ -3,8 +3,8 @@
 
 use super::module::{Module, Export};
 use super::{Relocation, Relocations, RelocationType, DataInitializer};
-use cretonne_codegen::{self, isa::TargetIsa, binemit::{self, Reloc}, ir::{Signature, TrapCode, SourceLoc}};
-use cretonne_wasm::FunctionIndex;
+use cranelift_codegen::{self, isa::TargetIsa, binemit::{self, Reloc}, ir::{Signature, TrapCode, SourceLoc}};
+use cranelift_wasm::FunctionIndex;
 use super::RelocSink;
 use super::abi::{ABI_MAP, INTRINSIC_MAP};
 
@@ -185,7 +185,7 @@ impl Compilation {
 pub struct Compiler<'isa> {
     isa: &'isa TargetIsa,
 
-    contexts: Vec<(cretonne_codegen::Context, usize)>,
+    contexts: Vec<(cranelift_codegen::Context, usize)>,
 
     total_size: usize,
 }
@@ -204,7 +204,7 @@ impl<'isa> Compiler<'isa> {
     }
 
     /// Define a function. This also compiles the function.
-    pub fn define_function(&mut self, mut ctx: cretonne_codegen::Context) -> Result<()> {
+    pub fn define_function(&mut self, mut ctx: cranelift_codegen::Context) -> Result<()> {
         let code_size = ctx.compile(self.isa)
             .map_err(|e| {
                 println!("Compile error: {:?}", e);

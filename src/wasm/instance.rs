@@ -2,7 +2,7 @@
 //!
 //! Literally taken from https://github.com/sunfishcode/wasmstandalone
 
-use cretonne_wasm::{GlobalInit};
+use cranelift_wasm::{GlobalInit};
 use super::module::Module;
 use super::{DataInitializer, FunctionIndex};
 
