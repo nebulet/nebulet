@@ -23,7 +23,6 @@
     arbitrary_self_types,
     nll,
     fnbox,
-    proc_macro,
     integer_atomics,
     platform_intrinsics,
     panic_implementation,
@@ -34,6 +33,7 @@
     get_type_id,
     iterator_find_map,
     alloc_error_handler,
+    use_extern_macros,
 )]
 
 #![no_main]

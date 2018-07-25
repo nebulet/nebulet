@@ -1,9 +1,8 @@
 #![feature(
-    proc_macro,
+    proc_macro_span,
+    proc_macro_diagnostic,
     iterator_find_map,
 )]
-
-#![no_std]
 
 extern crate proc_macro;
 extern crate proc_macro2;
