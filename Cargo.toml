@@ -112,7 +112,7 @@ default-features = false
 features = ["core"]
 
 [dependencies.wasmparser]
-version = "0.17.0"
+version = "0.17.2"
 default_features = false
 features = ["core"]
 

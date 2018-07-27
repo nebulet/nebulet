@@ -30,38 +30,23 @@ pub struct Wasm {
 impl Wasm {
     /// Compile webassembly bytecode into a Wasm.
     pub fn compile(wasm: &[u8]) -> Result<Dispatch<Wasm>> {
-        println!("debug: {}", line!());
         let (mut flag_builder, isa_builder) = cranelift_native::builders()
             .map_err(|_| internal_error!())?;
 
-        println!("debug: {}", line!());
-
-        flag_builder.set("opt_level", "best")
+        flag_builder.set("opt_level", "fastest")
             .map_err(|_| internal_error!())?;
 
-        println!("debug: {}", line!());
-
         let isa = isa_builder.finish(settings::Flags::new(flag_builder));
-
-        println!("debug: {}", line!());
 
         let module = Module::new();
         let mut environ = ModuleEnvironment::new(isa.flags(), module);
 
-        println!("debug: {}", line!());
-
         translate_module(wasm, &mut environ)
             .map_err(|_| internal_error!())?;
 
-        println!("debug: {}", line!());
-
         let translation = environ.finish_translation();
-        println!("debug: {}", line!());
-        println!("translation: {:p}", &translation as *const _);
         
-        println!("debug: {}", line!());
         let (compliation, module, data_initializers) = translation.compile(&*isa)?;
-        println!("debug: {}", line!());
 
         compliation.emit(module, data_initializers)
     }

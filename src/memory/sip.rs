@@ -98,16 +98,16 @@ impl SipAllocator {
             self.bump += allocated_size;
 
             let flags = MemFlags::READ | MemFlags::WRITE;
-            // let region = Region::new(start, requested_size, flags, true).ok()?;
-            let mut region = LazyRegion::new(start, requested_size, flags).ok()?;
+            let region = Region::new(start, requested_size, flags, true).ok()?;
+            // let mut region = LazyRegion::new(start, requested_size, flags).ok()?;
 
-            // Map in the last page of the stack.
-            // This is a bit hacky, but it should prevent
-            // page faults before the thread starts running.
-            if region.size() >= Size4KiB::SIZE as _ {
-                let addr = region.start() + region.size() as u64 - Size4KiB::SIZE;
-                region.map_page(addr.as_ptr()).ok()?;
-            }
+            // // Map in the last page of the stack.
+            // // This is a bit hacky, but it should prevent
+            // // page faults before the thread starts running.
+            // if region.size() >= Size4KiB::SIZE as _ {
+            //     let addr = region.start() + region.size() as u64 - Size4KiB::SIZE;
+            //     region.map_page(addr.as_ptr()).ok()?;
+            // }
 
             Some(WasmStack {
                 region,
@@ -284,7 +284,7 @@ impl DerefMut for WasmMemory {
 
 #[derive(Debug)]
 pub struct WasmStack {
-    pub region: LazyRegion,
+    pub region: Region,
 }
 
 impl WasmStack {
@@ -311,10 +311,11 @@ impl WasmStack {
     }
 
     pub fn contains_addr(&self, addr: *const ()) -> bool {
-        let start = self.region.start().as_ptr::<u8>() as usize;
-        let end = start + self.size();
+        let bottom = self.start() as usize;
+        let top = self.top() as usize;
+        let addr = addr as usize;
 
-        (start..end).contains(&(addr as _))
+        addr >= bottom && addr <= top
     }
 }
 

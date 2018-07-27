@@ -100,9 +100,25 @@ pub fn kmain(init_fs: &[u8]) -> ! {
     println!("------------");
     println!("Nebulet v{}", VERSION);
 
+    let mut thread = Thread::new(1024 * 1024, move || {
+        first_thread(init_fs);
+    }).unwrap();
+
+    thread.start();
+
+    unsafe {
+        arch::cpu::Local::context_switch();
+    }
+
+    unreachable!();
+}
+
+fn first_thread(init_fs: &[u8]) {
+    // println!("init_fs len: {}", init_fs.len());
     let tar = Tar::load(init_fs);
 
     let wasm = tar.iter().find(|file| {
+        // println!("path: {}", file.path);
         file.path == "sipinit.wasm"
     }).unwrap();
 
@@ -122,33 +138,23 @@ pub fn kmain(init_fs: &[u8]) -> ! {
 
     process.start().unwrap();
     
-    let mut thread = Thread::new(1024 * 16, move || {
-        let event = Event::new(EventVariant::AutoUnsignal);
-        let mut waiter = WaitObserver::new(event, Signal::WRITABLE);
+    let event = Event::new(EventVariant::AutoUnsignal);
+    let mut waiter = WaitObserver::new(event, Signal::WRITABLE);
 
-        for chunk in init_fs.chunks(channel::MAX_MSG_SIZE) {
-            loop {
-                let msg = channel::Message::new(chunk, Vec::new()).unwrap(); // not efficient, but it doesn't matter here
-                match tx.send(msg) {
-                    Ok(_) => break,
-                    Err(Error::SHOULD_WAIT) => {
-                        if let Some(observer) = LocalObserver::new(&mut waiter, &mut tx.copy_ref().upcast()) {
-                            observer.wait();
-                            drop(observer);
-                        }
-                    },
-                    Err(e) => panic!("initfs channel err: {:?}", e),
-                }
+    for chunk in init_fs.chunks(channel::MAX_MSG_SIZE) {
+        loop {
+            let msg = channel::Message::new(chunk, Vec::new()).unwrap(); // not efficient, but it doesn't matter here
+            match tx.send(msg) {
+                Ok(_) => break,
+                Err(Error::SHOULD_WAIT) => {
+                    if let Some(observer) = LocalObserver::new(&mut waiter, &mut tx.copy_ref().upcast()) {
+                        observer.wait();
+                        drop(observer);
+                    }
+                },
+                Err(e) => panic!("initfs channel err: {:?}", e),
             }
         }
-        tx.on_zero_handles();
-    }).unwrap();
-
-    thread.start();
-
-    unsafe {
-        arch::cpu::Local::context_switch();
     }
-
-    unreachable!();
+    tx.on_zero_handles();
 }

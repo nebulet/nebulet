@@ -748,11 +748,8 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
         self,
         isa: &isa::TargetIsa,
     ) -> Result<(Compilation, Module, Vec<DataInitializer>), nabi::Error> {
-        println!("debug: {}:{}", file!(), line!());
         let mut compiler = Compiler::with_capacity(isa, self.lazy.function_body_inputs.len());
-        println!("debug: {}:{}", file!(), line!());
         for (func_index, input) in self.lazy.function_body_inputs.iter().enumerate() {
-            println!("debug: {}:{}", file!(), line!());
             let mut context = cranelift_codegen::Context::new();
             context.func.name = get_func_name(func_index);
             let num_imported = self.module.imported_funcs.len();
@@ -767,12 +764,9 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
                 })?;
 
             compiler.define_function(context)?;
-            println!("debug: {}:{}", file!(), line!());
         }
 
-        println!("debug: {}:{}", file!(), line!());
         let compilation = compiler.compile(&self.module)?;
-        println!("debug: {}:{}", file!(), line!());
 
         Ok((compilation, self.module, self.lazy.data_initializers))
     }

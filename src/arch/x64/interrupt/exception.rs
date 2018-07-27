@@ -67,7 +67,7 @@ interrupt_stack_err!(general_protection_fault, _stack, _error, {
 /// This is used to catch "out of bounds" wasm heap
 /// accesses, as well as to implement lazy paging.
 interrupt_stack_page!(page_fault, stack, error, {
-    println!("page fault");
+    // println!("page fault");
     use cranelift_codegen::ir::TrapCode;
 
     let faulting_addr: *const ();
@@ -75,14 +75,16 @@ interrupt_stack_page!(page_fault, stack, error, {
 
     let current_thread = Thread::current();
 
-    {
-        let stack = &mut current_thread.stack;
+    // {
+    //     let stack = &mut current_thread.stack;
+    //     println!("faulting addr: {:p}", faulting_addr);
 
-        if stack.contains_addr(faulting_addr) {
-            let _ = stack.region.map_page(faulting_addr);
-            return;
-        }
-    }
+    //     if stack.contains_addr(faulting_addr) {
+    //         println!("faulting stack addr: {:p}", faulting_addr);
+    //         let _ = stack.region.map_page(faulting_addr);
+    //         return;
+    //     }
+    // }
 
     if let Some(process) = current_thread.parent() {
         let instance = process.initial_instance();

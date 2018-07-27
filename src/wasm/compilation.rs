@@ -247,9 +247,12 @@ impl<'isa> Compiler<'isa> {
             let mut trap_sink = TrapSink::new(offset);
             let mut reloc_sink = RelocSink::new();
 
+            // println!("{}", ctx.func.display(Some(self.isa)));
+
             unsafe {
                 ctx.emit_to_memory(self.isa, (region_start + offset) as *mut u8, &mut reloc_sink, &mut trap_sink);
             }
+
             functions.push(FunctionType::Local {
                 offset,
                 size: *size,

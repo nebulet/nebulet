@@ -38,15 +38,21 @@ impl<'a> Iterator for Iter<'a> {
         let header_size = mem::size_of::<Header>();
         assert!(header_size == 512);
 
+        // println!("debug: {}:{}", file!(), line!());
+
         if self.remaining <= header_size * 2 {
             return None;
         }
 
         let header = unsafe { &*(self.ptr as *const Header) };
 
+        // println!("debug: {}:{}", file!(), line!());
+
         if header == unsafe { &mem::zeroed() } {
             return None;
         }
+
+        // println!("debug: {}:{}", file!(), line!());
 
         self.remaining -= header_size;
 
@@ -59,7 +65,9 @@ impl<'a> Iterator for Iter<'a> {
         }).unwrap_or(header.size.len());
 
         let size_str = str::from_utf8(&header.size[..first_null]).ok()?.trim();
+        // println!("debug: {}:{}", file!(), line!());
         let size = usize::from_str_radix(size_str, 8).ok()?;
+        // println!("debug: {}:{}", file!(), line!());
         let file_size = cmp::min(size, self.remaining);
         let rounded_file_size = {
             let rem = file_size % 512;
@@ -77,8 +85,9 @@ impl<'a> Iterator for Iter<'a> {
                 None
             }
         }).unwrap_or(header.name.len());
-        
+        // println!("debug: {}:{}", file!(), line!());
         let path = str::from_utf8(&header.name[..first_null]).ok()?;
+        // println!("debug: {}:{}", file!(), line!());
 
         let file = File {
             path,

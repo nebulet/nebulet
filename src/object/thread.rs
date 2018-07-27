@@ -97,10 +97,7 @@ impl Thread {
     {
         let stack = WasmStack::allocate(stack_size)
             .ok_or(Error::NO_MEMORY)?;
-
-        println!("stack_top: {:p}", stack.top());
-        println!("stack_start: {:p}", stack.start());
-
+        
         let exit_event = Event::new(EventVariant::Normal);
 
         Ok(Box::new(Thread {
