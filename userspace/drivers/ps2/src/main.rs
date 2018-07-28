@@ -23,7 +23,7 @@ pub fn main() {
 
     for key in keyboard.keys() {
         if let keyboard::DecodedKey::Unicode(character) = key {
-            println!("{}", character);
+            print!("{}", character);
         }
     }
 }

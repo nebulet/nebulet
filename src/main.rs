@@ -114,11 +114,9 @@ pub fn kmain(init_fs: &[u8]) -> ! {
 }
 
 fn first_thread(init_fs: &[u8]) {
-    // println!("init_fs len: {}", init_fs.len());
     let tar = Tar::load(init_fs);
 
     let wasm = tar.iter().find(|file| {
-        // println!("path: {}", file.path);
         file.path == "sipinit.wasm"
     }).unwrap();
 
