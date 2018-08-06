@@ -275,6 +275,21 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
         }
     }
 
+    // /// Returns `Some(_)` if `value` can be resolved to an immediate value.
+    // fn iconst_inline(&self, func: &Function, value: ir::Value) -> Option<i64> {
+    //     let dfg = func.dfg;
+
+    //     if let ir::ValueDef::Result(inst, _) = dfg.value_def(value) {
+    //         if let ir::InstructionData::UnaryImm {imm, ..} = dfg[inst] {
+    //             Some(imm.into())
+    //         } else {
+    //             None
+    //         }
+    //     } else {
+    //         None
+    //     }
+    // }
+
     // fn debug_addr(&mut self, pos: &mut FuncCursor, addr: ir::Value) {
     //     let debug_addr_func = self.debug_addr_extfunc.unwrap_or_else(|| {
     //         let sig_ref = pos.func.import_signature(Signature {
@@ -306,7 +321,7 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
         #[cfg(target_arch = "x86_64")]
         const ARCH: Architecture = Architecture::X86_64;
         #[cfg(target_arch = "riscv64")]
-        let ARCH: Architecture = Architecture::Riscv64;
+        const ARCH: Architecture = Architecture::Riscv64;
         #[cfg(not(any(target_arch = "x86_64", target_arch = "riscv64")))]
         compile_error!("Nebulet only supports `x86_64` and `riscv64`");
 
@@ -399,23 +414,31 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
             });
 
             let table_data_offset = (table_index as usize * ptr_size * 2) as i32;
-            let new_table_addr = func.create_global_value(ir::GlobalValueData::Deref {
+
+            let new_table_addr_addr = func.create_global_value(ir::GlobalValueData::Deref {
                 base,
                 offset: table_data_offset.into(),
             });
-            let new_table_bounds = func.create_global_value(ir::GlobalValueData::Deref {
-                base,
-                offset: (table_data_offset + 8).into(),
+            let new_table_addr = func.create_global_value(ir::GlobalValueData::Deref {
+                base: new_table_addr_addr,
+                offset: 0.into(),
             });
 
-            let table_data = ir::TableData {
+            let new_table_bounds_addr = func.create_global_value(ir::GlobalValueData::Deref {
+                base,
+                offset: (table_data_offset + ptr_size as i32).into(),
+            });
+            let new_table_bounds = func.create_global_value(ir::GlobalValueData::Deref {
+                base: new_table_bounds_addr,
+                offset: 0.into(),
+            });
+
+            let table = func.create_table(ir::TableData {
                 base_gv: new_table_addr,
-                min_size: 0.into(),
+                min_size: (self.module.tables[table_index].size as i64).into(),
                 bound_gv: new_table_bounds,
                 element_size: (ptr_size as i64).into(),
-            };
-
-            let table = func.create_table(table_data);
+            });
 
             self.tables[table_index] = Some(table);
             table
