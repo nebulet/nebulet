@@ -85,5 +85,5 @@ pub fn now() -> u64 {
     let cycle = rdtsc();
     let rate = unsafe{ TSC_RATE };
 
-    (cycle * 1_000_000_000) / rate
+    cycle.wrapping_mul(1_000_000_000) / rate
 }
