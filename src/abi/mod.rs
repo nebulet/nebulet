@@ -26,3 +26,5 @@ pub mod thread;
 pub mod pfex;
 /// ABIs for interfacing with generic objects
 pub mod object;
+// /// ABIs for services
+// pub mod service;

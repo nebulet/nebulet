@@ -33,7 +33,7 @@ impl Wasm {
         let (mut flag_builder, isa_builder) = cranelift_native::builders()
             .map_err(|_| internal_error!())?;
 
-        flag_builder.set("opt_level", "fastest")
+        flag_builder.set("opt_level", "best")
             .map_err(|_| internal_error!())?;
 
         let isa = isa_builder.finish(settings::Flags::new(flag_builder));

@@ -22,7 +22,6 @@ use cranelift_wasm::{self, FuncEnvironment as FuncEnvironmentTrait, FunctionInde
 use cranelift_codegen::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam,
                    ArgumentPurpose, ArgumentLoc, ArgumentExtension, Function};
 use cranelift_codegen::ir::types::*;
-use cranelift_codegen::ir::condcodes::IntCC;
 use cranelift_codegen::settings::CallConv;
 use cranelift_codegen::cursor::FuncCursor;
 use cranelift_codegen::{self, isa, settings, binemit};
@@ -225,7 +224,9 @@ pub struct FuncEnvironment<'module_environment> {
     /// The Cranelift global holding the base address of the globals vector.
     pub globals_base: Option<ir::GlobalValue>,
 
-    /// The list of globals that hold table bases.
+    /// The list of globals that hold table bases and bounds.
+    pub tables: Vec<Option<ir::Table>>,
+    /// The base of tables.
     pub tables_base: Option<ir::GlobalValue>,
 
     /// The external function declaration for implementing wasm's `current_memory`.
@@ -248,6 +249,7 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
             main_memory_base: None,
             memory_base: None,
             globals_base: None,
+            tables: vec![None; module.tables.len()],
             tables_base: None,
             current_memory_extfunc: None,
             grow_memory_extfunc: None,
@@ -271,25 +273,6 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
         } else {
             4
         }
-    }
-
-    fn get_table(&mut self, func: &mut ir::Function, table_index: TableIndex) -> ir::GlobalValue {
-        let ptr_size = self.ptr_size();
-        let base = self.tables_base.unwrap_or_else(|| {
-            let tables_offset = self.ptr_size() as i32 * -1;
-            let new_base = func.create_global_value(ir::GlobalValueData::VMContext {
-                offset: tables_offset.into(),
-            });
-            self.globals_base = Some(new_base);
-            new_base
-        });
-
-        let offset = table_index as usize * ptr_size;
-        let offset = (offset as i32).into();
-        func.create_global_value(ir::GlobalValueData::Deref {
-            base,
-            offset,
-        })
     }
 
     // fn debug_addr(&mut self, pos: &mut FuncCursor, addr: ir::Value) {
@@ -320,8 +303,15 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
     }
 
     fn triple(&self) -> &Triple {
+        #[cfg(target_arch = "x86_64")]
+        const ARCH: Architecture = Architecture::X86_64;
+        #[cfg(target_arch = "riscv64")]
+        let ARCH: Architecture = Architecture::Riscv64;
+        #[cfg(not(any(target_arch = "x86_64", target_arch = "riscv64")))]
+        compile_error!("Nebulet only supports `x86_64` and `riscv64`");
+
         &Triple {
-            architecture: Architecture::X86_64,
+            architecture: ARCH,
             vendor: Vendor::Unknown,
             operating_system: OperatingSystem::Nebulet,
             environment: Environment::Unknown,
@@ -361,7 +351,7 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
             });
 
             func.create_heap(ir::HeapData {
-                base: ir::HeapBase::GlobalValue(heap_base),
+                base: heap_base,
                 min_size: 0.into(),
                 guard_size: (WasmMemory::DEFAULT_GUARD_SIZE as i64).into(),
                 style: ir::HeapStyle::Static {
@@ -385,7 +375,7 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
             });
 
             func.create_heap(ir::HeapData {
-                base: ir::HeapBase::GlobalValue(heap_base),
+                base: heap_base,
                 min_size: 0.into(),
                 guard_size: (WasmMemory::DEFAULT_GUARD_SIZE as i64).into(),
                 style: ir::HeapStyle::Static {
@@ -393,6 +383,43 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
                 },
             })
         }
+    }
+
+    fn make_table(&mut self, func: &mut Function, table_index: TableIndex) -> ir::Table {
+        let ptr_size = self.ptr_size();
+
+        self.tables[table_index].unwrap_or_else(|| {
+            let base = self.tables_base.unwrap_or_else(|| {
+                let tables_offset = self.ptr_size() as i32 * -1;
+                let new_base = func.create_global_value(ir::GlobalValueData::VMContext {
+                    offset: tables_offset.into(),
+                });
+                self.globals_base = Some(new_base);
+                new_base
+            });
+
+            let table_data_offset = (table_index as usize * ptr_size * 2) as i32;
+            let new_table_addr = func.create_global_value(ir::GlobalValueData::Deref {
+                base,
+                offset: table_data_offset.into(),
+            });
+            let new_table_bounds = func.create_global_value(ir::GlobalValueData::Deref {
+                base,
+                offset: (table_data_offset + 8).into(),
+            });
+
+            let table_data = ir::TableData {
+                base_gv: new_table_addr,
+                min_size: 0.into(),
+                bound_gv: new_table_bounds,
+                element_size: (ptr_size as i64).into(),
+            };
+
+            let table = func.create_table(table_data);
+
+            self.tables[table_index] = Some(table);
+            table
+        })
     }
 
     fn make_indirect_sig(&mut self, func: &mut ir::Function, index: SignatureIndex) -> ir::SigRef {
@@ -410,41 +437,14 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
     fn translate_call_indirect(
         &mut self,
         mut pos: FuncCursor,
-        table_index: TableIndex,
+        _table_index: TableIndex,
+        table: ir::Table,
         _sig_index: SignatureIndex,
         sig_ref: ir::SigRef,
         callee: ir::Value,
         call_args: &[ir::Value],
     ) -> WasmResult<ir::Inst> {
-        // TODO: Cranelift's call_indirect doesn't implement bounds checking
-        // or signature checking, so we need to implement it ourselves.
-        assert_eq!(table_index, 0, "non-default tables not supported yet");
-        let table_gv = self.get_table(pos.func, table_index);
-        let gv_addr = pos.ins().global_value(self.pointer_type(), table_gv);
-
-        let table_base = pos.ins().load(
-            self.pointer_type(),
-            ir::MemFlags::new(),
-            gv_addr,
-            0,
-        );
-
-        let table_len = pos.ins().load(
-            I32,
-            ir::MemFlags::new(),
-            gv_addr,
-            8 as i32,
-        );
-
-        let oob = pos.ins().icmp(
-            IntCC::UnsignedGreaterThanOrEqual,
-            callee,
-            table_len,
-        );
-
-        pos.ins().trapnz(oob, ir::TrapCode::OutOfBounds);
-
-        let entry_size = self.ptr_size() as i64;
+        // TODO: Cranelift doesn't implement signature checking, so we need to implement it ourselves.
 
         let callee = if self.pointer_type() != ir::types::I32 {
             pos.ins().uextend(self.pointer_type(), callee)
@@ -452,14 +452,17 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
             callee
         };
 
-        let callee_scaled = pos.ins().imul_imm(callee, entry_size);
-        
-        let entry = pos.ins().iadd(table_base, callee_scaled);
+        let entry_addr = pos.ins().table_addr(
+            self.pointer_type(),
+            table,
+            callee,
+            0,
+        );
 
         let callee_func = pos.ins().load(
             self.pointer_type(),
             ir::MemFlags::new(),
-            entry,
+            entry_addr,
             0,
         );
 

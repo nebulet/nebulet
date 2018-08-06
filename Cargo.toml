@@ -92,22 +92,22 @@ version = "0.0.3"
 default-features = false
 
 [dependencies.cranelift-codegen]
-version = "0.17.0"
+version = "0.18.1"
 default-features = false
 features = ["core"]
 
 [dependencies.cranelift-frontend]
-version = "0.17.0"
+version = "0.18.1"
 default-features = false
 features = ["core"]
 
 [dependencies.cranelift-wasm]
-version = "0.17.0"
+version = "0.18.1"
 default-features = false
 features = ["core"]
 
 [dependencies.cranelift-native]
-version = "0.17.0"
+version = "0.18.1"
 default-features = false
 features = ["core"]
 
