@@ -18,7 +18,7 @@ pub fn channel_create(handle_tx_offset: u32, handle_rx_offset: u32, user_data: &
 
     {
         let instance = &user_data.instance;
-        let mut memory = instance.memories[0].write();
+        let mut memory = &instance.memories[0];
 
         let h_tx = memory.carve_mut::<u32>(handle_tx_offset)?;
         *h_tx = handle_tx.inner();
@@ -35,7 +35,7 @@ pub fn channel_create(handle_tx_offset: u32, handle_rx_offset: u32, user_data: &
 pub fn channel_send(channel_handle: UserHandle<Channel>, buffer_offset: u32, buffer_size: u32, user_data: &UserData) -> Result<u32> {
     let msg = {
         let instance = &user_data.instance;
-        let wasm_memory = &instance.memories[0].read();
+        let wasm_memory = &instance.memories[0];
         let data = wasm_memory.carve_slice(buffer_offset, buffer_size)
             .ok_or(Error::INVALID_ARG)?;
         Message::new(data, vec![])?
@@ -68,7 +68,7 @@ pub fn channel_recv(channel_handle: UserHandle<Channel>, buffer_offset: u32, buf
     let first_msg_len = chan.first_msg_len()?;
 
     let instance = &user_data.instance;
-    let mut memory = instance.memories[0].write();
+    let mut memory = &instance.memories[0];
 
     let msg_size = memory.carve_mut::<u32>(msg_size_out)?;
     *msg_size = first_msg_len as u32;
@@ -106,7 +106,7 @@ pub fn stream_create(handle_tx_offset: u32, handle_rx_offset: u32, user_data: &U
 
     {
         let instance = &user_data.instance;
-        let mut memory = instance.memories[0].write();
+        let mut memory = &instance.memories[0];
 
         let h_tx = memory.carve_mut::<u32>(handle_tx_offset)?;
         *h_tx = handle_tx.inner();
@@ -121,7 +121,7 @@ pub fn stream_create(handle_tx_offset: u32, handle_rx_offset: u32, user_data: &U
 #[nebulet_abi]
 pub fn stream_write(stream_handle: UserHandle<Stream>, buffer_offset: u32, buffer_size: u32, written_size_out: u32, user_data: &UserData) -> Result<u32> {
     let instance = &user_data.instance;
-    let mut memory = instance.memories[0].write();
+    let mut memory = &instance.memories[0];
     let data = memory.carve_slice(buffer_offset, buffer_size)
         .ok_or(Error::INVALID_ARG)?;
     
@@ -148,7 +148,7 @@ pub fn stream_read(stream_handle: UserHandle<Stream>, buffer_offset: u32, buffer
     stream.check_rights(HandleRights::READ)?;
 
     let instance = &user_data.instance;
-    let mut memory = instance.memories[0].write();
+    let mut memory = &instance.memories[0];
 
     let mut data = memory.carve_slice_mut(buffer_offset, buffer_size)
         .ok_or(Error::INVALID_ARG)?;

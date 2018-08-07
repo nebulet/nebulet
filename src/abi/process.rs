@@ -65,7 +65,7 @@ pub fn process_start(proc_handle: UserHandle<Process>, user_data: &UserData) -> 
 #[nebulet_abi]
 pub fn wasm_compile(buffer_offset: u32, buffer_size: u32, user_data: &UserData) -> Result<u32> {
     let code_ref = {
-        let wasm_memory = user_data.instance.memories[0].write();
+        let wasm_memory = &user_data.instance.memories[0];
         let wasm_bytecode = wasm_memory.carve_slice(buffer_offset, buffer_size)
             .ok_or(Error::INVALID_ARG)?;
 

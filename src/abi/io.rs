@@ -5,7 +5,7 @@ use x86_64::instructions::port::Port;
 
 #[nebulet_abi]
 pub fn print(buffer_offset: u32, buffer_size: u32, user_data: &UserData) {
-    let memory = user_data.instance.memories[0].read();
+    let memory = &user_data.instance.memories[0];
     if let Some(buf) = memory.carve_slice(buffer_offset, buffer_size) {
         let s = String::from_utf8_lossy(buf);
         print!("{}", s);

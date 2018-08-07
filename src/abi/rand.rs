@@ -25,7 +25,7 @@ pub fn random_fill(buffer_offset: u32, buffer_size: u32, user_data: &UserData) -
     match rdrand {
         Ok(ref mut v) => {
             let instance = &user_data.instance;
-            let mut memory = instance.memories[0].write();
+            let memory = &instance.memories[0];
             let buffer = memory.carve_slice_mut(buffer_offset, buffer_size)
                 .ok_or(Error::INVALID_ARG)?;
             v.fill_bytes(buffer);
@@ -45,7 +45,7 @@ pub fn random_fill(buffer_offset: u32, buffer_size: u32, user_data: &UserData) -
 pub fn cprng_fill(buffer_offset: u32, buffer_size: u32, user_data: &UserData) -> Result<u32>
 {
     let instance = &user_data.instance;
-    let mut memory = instance.memories[0].write();
+    let mut memory = &instance.memories[0];
     let buffer = memory.carve_slice_mut(buffer_offset, buffer_size)
         .ok_or(Error::INVALID_ARG)?;
     seeded::with_global_rng(|rng| rng.fill_bytes(buffer))?;

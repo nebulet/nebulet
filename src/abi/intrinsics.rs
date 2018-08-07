@@ -6,7 +6,7 @@ pub extern fn grow_memory(count: u32, vmctx: &VmCtx) -> i32 {
         .data()
         .user_data
         .instance;
-    let mut memory = instance.memories[0].write();
+    let memory = &instance.memories[0];
 
     if let Ok(old_count) = memory.grow(count as usize) {
         old_count as i32
@@ -20,7 +20,7 @@ pub extern fn current_memory(vmctx: &VmCtx) -> u32 {
         .data()
         .user_data
         .instance;
-    let memory = &instance.memories[0].read();
+    let memory = &instance.memories[0];
 
     memory.page_count() as u32
 }

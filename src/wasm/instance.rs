@@ -151,7 +151,7 @@ impl InstanceBuilder {
                 0
             };
 
-            let mut heap = WasmMemory::allocate(pre_space)
+            let heap = WasmMemory::allocate(pre_space)
                 .expect("Could not allocate wasm memory");
             heap.grow(memory.pages_count)
                 .expect("Could not grow wasm heap to initial size");
@@ -205,7 +205,7 @@ pub struct Instance {
     pub tables: Arc<Vec<RwLock<Vec<usize>>>>,
 
     /// WebAssembly linear memory data
-    pub memories: Arc<Vec<RwLock<WasmMemory>>>,
+    pub memories: Arc<Vec<WasmMemory>>,
 
     /// WebAssembly global variable data
     pub globals: Vec<u8>,
@@ -218,14 +218,14 @@ impl Instance {
 
         Ok(Instance {
             tables: Arc::new(builder.tables.into_iter().map(|table| RwLock::new(table)).collect()),
-            memories: Arc::new(builder.memories.into_iter().map(|mem| RwLock::new(mem)).collect()),
+            memories: Arc::new(builder.memories.into_iter().collect()),
             globals: builder.globals,
         })
     }
 
     pub fn generate_vmctx_backing(&mut self) -> VmCtxGenerator {
         let memories = self.memories.iter()
-            .map(|mem| mem.write()[..].into())
+            .map(|mem| mem[..].into())
             .collect();
 
         let tables = self.tables.iter()
@@ -239,7 +239,7 @@ impl Instance {
         }
     }
 
-    pub fn memories(&self) -> Arc<Vec<RwLock<WasmMemory>>> {
+    pub fn memories(&self) -> Arc<Vec<WasmMemory>> {
         self.memories.clone()
     }
 }

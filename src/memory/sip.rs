@@ -3,6 +3,7 @@ use x86_64::VirtAddr;
 
 use core::ops::{Deref, DerefMut};
 use core::mem;
+use core::cell::UnsafeCell;
 
 use memory::{LazyRegion, Region, MemFlags};
 
@@ -74,7 +75,7 @@ impl SipAllocator {
             self.bump += allocated_size;
 
             Some(WasmMemory {
-                region,
+                region: UnsafeCell::new(region),
                 total_size: WasmMemory::DEFAULT_SIZE,
                 pre_region,
             })
@@ -122,10 +123,12 @@ impl SipAllocator {
 /// will be unmapped.
 #[derive(Debug)]
 pub struct WasmMemory {
-    pub region: LazyRegion,
+    region: UnsafeCell<LazyRegion>,
     total_size: usize,
     pub pre_region: Option<Region>,
 }
+
+unsafe impl Sync for WasmMemory {}
 
 impl WasmMemory {
     pub const WASM_PAGE_SIZE: usize = 1 << 16; // 64 KiB
@@ -137,12 +140,17 @@ impl WasmMemory {
         super::SIP_ALLOCATOR.lock().allocate_wasm_memory(pre_space)
     }
 
+    #[inline]
+    pub fn region(&self) -> &mut LazyRegion {
+        unsafe { &mut *self.region.get() }
+    }
+
     /// Map virtual memory to physical memory by 
     /// multiples of `WasmMemory::WASM_PAGE_SIZE`.
     /// This starts at `mapped_end` and bump up.
     /// 
     /// Returns the number of pages before growing.
-    pub fn grow(&mut self, count: usize) -> Result<usize> {
+    pub fn grow(&self, count: usize) -> Result<usize> {
         let old_count = self.page_count();
 
         if count == 0 {
@@ -153,7 +161,7 @@ impl WasmMemory {
         if new_size > self.total_size {
             Err(internal_error!())
         } else {
-            self.region.resize(new_size)?;
+            self.region().resize(new_size)?;
             Ok(old_count)
         }
     }
@@ -162,11 +170,11 @@ impl WasmMemory {
     /// of the wasm linear memory.
     /// 
     /// Returns the offset of the mapped region in the wasm linear memory.
-    pub fn physical_map(&mut self, phys_addr: u64, count: usize) -> Result<usize> {
+    pub fn physical_map(&self, phys_addr: u64, count: usize) -> Result<usize> {
         let old_count = self.page_count();
 
         let expand_by = count * Self::WASM_PAGE_SIZE;
-        self.region.grow_from_phys_addr(expand_by, phys_addr as _)
+        self.region().grow_from_phys_addr(expand_by, phys_addr as _)
             .map(|_| old_count * Self::WASM_PAGE_SIZE)
     }
 
@@ -182,11 +190,12 @@ impl WasmMemory {
         }
     }
 
-    pub fn carve_slice_mut(&mut self, offset: u32, size: u32) -> Option<&mut [u8]> {
+    pub fn carve_slice_mut(&self, offset: u32, size: u32) -> Option<&mut [u8]> {
         let start = offset as usize;
         let end = start + size as usize;
         let mapped_size = self.mapped_size();
-        let slice: &mut [u8] = &mut *self;
+        let mut_self: &mut Self = unsafe { &mut *(self as *const _ as *mut _) };
+        let slice: &mut [u8] = &mut *mut_self;
 
         if end <= mapped_size {
             Some(&mut slice[start..end])
@@ -211,7 +220,7 @@ impl WasmMemory {
         }
     }
 
-    pub fn carve_mut<T>(&mut self, offset: u32) -> Option<&mut T> {
+    pub fn carve_mut<T>(&self, offset: u32) -> Option<&mut T> {
         let end_offset = offset as usize + mem::size_of::<T>();
         let mapped_size = self.mapped_size();
 
@@ -228,7 +237,7 @@ impl WasmMemory {
     }
 
     pub fn start(&self) -> VirtAddr {
-        self.region.start()
+        self.region().start()
     }
 
     pub fn unmapped_size(&self) -> usize {
@@ -236,7 +245,7 @@ impl WasmMemory {
     }
 
     pub fn mapped_size(&self) -> usize {
-        self.region.size()
+        self.region().size()
     }
 
     /// Returns the number of `WASM_PAGE_SIZE` pages
@@ -265,20 +274,20 @@ impl WasmMemory {
         let start_addr = start + start_offset;
         let end_addr = start + end_offset;
 
-        self.region.map_range(start_addr as _, end_addr as _)
+        self.region().map_range(start_addr as _, end_addr as _)
     }
 }
 
 impl Deref for WasmMemory {
     type Target = [u8];
     fn deref(&self) -> &[u8] {
-        &*self.region
+        &*self.region()
     }
 }
 
 impl DerefMut for WasmMemory {
     fn deref_mut(&mut self) -> &mut [u8] {
-        &mut *self.region
+        &mut *self.region()
     }
 }
 
