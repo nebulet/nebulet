@@ -97,8 +97,8 @@ use nabi::Error;
 pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
 
 pub fn kmain(init_fs: &[u8]) -> ! {
-    println!("------------");
-    println!("Nebulet v{}", VERSION);
+    // println!("------------");
+    // println!("Nebulet v{}", VERSION);
 
     let mut thread = Thread::new(1024 * 1024, move || {
         first_thread(init_fs);
