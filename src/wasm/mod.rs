@@ -17,7 +17,7 @@ pub use self::module::Module;
 pub use self::compilation::{Compilation, Compiler};
 pub use self::instance::{Instance, VmCtx, UserData};
 
-use cranelift_wasm::{self, FuncEnvironment as FuncEnvironmentTrait, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
+use cranelift_wasm::{self, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
                 GlobalVariable, SignatureIndex, FuncTranslator, WasmResult};
 use cranelift_codegen::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam,
                    ArgumentPurpose, ArgumentLoc, ArgumentExtension, Function};
@@ -187,12 +187,29 @@ impl<'data, 'flags> ModuleEnvironment<'data, 'flags> {
         }
     }
 
-    fn func_env(&self) -> FuncEnvironment {
-        FuncEnvironment::new(&self.flags, &self.module)
+    fn triple(&self) -> &Triple {
+        #[cfg(target_arch = "x86_64")]
+        const ARCH: Architecture = Architecture::X86_64;
+        #[cfg(target_arch = "riscv64")]
+        const ARCH: Architecture = Architecture::Riscv64;
+        #[cfg(not(any(target_arch = "x86_64", target_arch = "riscv64")))]
+        compile_error!("Nebulet only supports `x86_64` and `riscv64`");
+
+        &Triple {
+            architecture: ARCH,
+            vendor: Vendor::Unknown,
+            operating_system: OperatingSystem::Nebulet,
+            environment: Environment::Unknown,
+            binary_format: BinaryFormat::Unknown,
+        }
     }
 
+    // fn func_env(&self) -> FuncEnvironment {
+    //     FuncEnvironment::new(&self.flags, &self.module)
+    // }
+
     fn native_pointer(&self) -> ir::Type {
-        self.func_env().pointer_type()
+        ir::Type::int(u16::from(self.triple().pointer_width().unwrap().bits())).unwrap()
     }
 
     /// Declare that translation of the module is complete. This consumes the
@@ -209,12 +226,15 @@ impl<'data, 'flags> ModuleEnvironment<'data, 'flags> {
 }
 
 /// The FuncEnvironment implementation for use by the `ModuleEnvironment`.
-pub struct FuncEnvironment<'module_environment> {
+pub struct FuncEnvironment<'module_environment, 'param_vec> {
     /// Compilation setting flags.
     settings_flags: &'module_environment settings::Flags,
 
     /// The module-level environment which this function-level environment belongs to.
     pub module: &'module_environment Module,
+
+    /// Vec for temporarily storing arguments for calls.
+    call_arg_vec: &'param_vec mut Vec<ir::Value>,
 
     pub main_memory_base: Option<ir::GlobalValue>,
 
@@ -225,7 +245,7 @@ pub struct FuncEnvironment<'module_environment> {
     pub globals_base: Option<ir::GlobalValue>,
 
     /// The list of globals that hold table bases and bounds.
-    pub tables: Vec<Option<ir::Table>>,
+    pub tables: &'param_vec mut Vec<Option<ir::Table>>,
     /// The base of tables.
     pub tables_base: Option<ir::GlobalValue>,
 
@@ -238,18 +258,21 @@ pub struct FuncEnvironment<'module_environment> {
     pub debug_addr_extfunc: Option<FuncRef>,
 }
 
-impl<'module_environment> FuncEnvironment<'module_environment> {
+impl<'module_environment, 'param_vec> FuncEnvironment<'module_environment, 'param_vec> {
     fn new(
         flags: &'module_environment settings::Flags,
         module: &'module_environment Module,
+        call_arg_vec: &'param_vec mut Vec<ir::Value>,
+        table_vec: &'param_vec mut Vec<Option<ir::Table>>,
     ) -> Self {
         Self {
             settings_flags: flags,
             module,
+            call_arg_vec,
             main_memory_base: None,
             memory_base: None,
             globals_base: None,
-            tables: vec![None; module.tables.len()],
+            tables: table_vec,
             tables_base: None,
             current_memory_extfunc: None,
             grow_memory_extfunc: None,
@@ -259,11 +282,12 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
 
     /// Transform the call argument list in preparation for making a call.
     /// This pushes the VMContext into the args list.
-    fn get_real_call_args(func: &Function, call_args: &[ir::Value]) -> Vec<ir::Value> {
-        let mut real_call_args = Vec::with_capacity(call_args.len() + 1);
+    fn get_real_call_args(&mut self, func: &Function, call_args: &[ir::Value]) -> &[ir::Value] {
+        let real_call_args = &mut self.call_arg_vec;
+        real_call_args.clear();
         real_call_args.extend_from_slice(call_args);
         real_call_args.push(func.special_param(ArgumentPurpose::VMContext).unwrap());
-        real_call_args
+        &real_call_args[..]
     }
 
     fn ptr_size(&self) -> usize {
@@ -312,7 +336,7 @@ impl<'module_environment> FuncEnvironment<'module_environment> {
     // }
 }
 
-impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'module_environment> {
+impl<'module_environment, 'param_vec> cranelift_wasm::FuncEnvironment for FuncEnvironment<'module_environment, 'param_vec> {
     fn flags(&self) -> &settings::Flags {
         &self.settings_flags
     }
@@ -494,7 +518,7 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
             ir::TrapCode::IndirectCallToNull,
         );
 
-        let real_call_args = FuncEnvironment::get_real_call_args(pos.func, call_args);
+        let real_call_args = self.get_real_call_args(pos.func, call_args);
         Ok(pos.ins().call_indirect(sig_ref, callee_func, &real_call_args))
     }
 
@@ -505,8 +529,6 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
         callee: ir::FuncRef,
         call_args: &[ir::Value],
     ) -> WasmResult<ir::Inst> {
-        let real_call_args = FuncEnvironment::get_real_call_args(pos.func, call_args);
-
         // Since imported functions are declared first,
         // this will be true if the callee is an imported function
         if callee_index < self.module.imported_funcs.len() { // external function
@@ -515,9 +537,13 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
             let callee_value = pos.ins()
                 .func_addr(self.pointer_type(), callee);
 
+            let real_call_args = self.get_real_call_args(pos.func, call_args);
+
             Ok(pos.ins()
                 .call_indirect(sig_ref, callee_value, &real_call_args))
         } else { // internal function
+
+            let real_call_args = self.get_real_call_args(pos.func, call_args);
             Ok(pos.ins()
                 .call(callee, &real_call_args))
         }
@@ -764,8 +790,8 @@ pub struct ModuleTranslation<'data, 'flags> {
 
 /// Convenience functions for the user to be called after execution for debug purposes.
 impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
-    fn func_env(&self) -> FuncEnvironment {
-        FuncEnvironment::new(&self.flags, &self.module)
+    fn func_env<'a, 'b>(&'a self, call_arg_vec: &'b mut Vec<ir::Value>, table_vec: &'b mut Vec<Option<ir::Table>>) -> FuncEnvironment<'a, 'b> {
+        FuncEnvironment::new(&self.flags, &self.module, call_arg_vec, table_vec)
     }
 
     /// Compile the module, producing a compilation result with associated
@@ -775,6 +801,9 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
         isa: &isa::TargetIsa,
     ) -> Result<(Compilation, Module, Vec<DataInitializer>), nabi::Error> {
         let mut compiler = Compiler::with_capacity(isa, self.lazy.function_body_inputs.len());
+        let mut call_arg_vec = Vec::new(); // used for storing the args for calls without reallocating all the time
+        let mut table_vec = vec![None; self.module.tables.len()];
+
         for (func_index, input) in self.lazy.function_body_inputs.iter().enumerate() {
             let mut context = cranelift_codegen::Context::new();
             context.func.name = get_func_name(func_index);
@@ -783,13 +812,18 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
 
             let mut trans = FuncTranslator::new();
             let reader = wasmparser::BinaryReader::new(input);
-            trans.translate_from_reader(reader, &mut context.func, &mut self.func_env())
+            trans.translate_from_reader(reader, &mut context.func, &mut self.func_env(&mut call_arg_vec, &mut table_vec))
                 .map_err(|err| {
                     println!("{:#?}", err);
                     nabi::internal_error!()
                 })?;
 
             compiler.define_function(context)?;
+
+            // clear table vector
+            for item in &mut table_vec {
+                *item = None;
+            }
         }
 
         let compilation = compiler.compile(&self.module)?;
