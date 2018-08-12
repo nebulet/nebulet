@@ -119,10 +119,3 @@ features = ["core"]
 version = "0.17.2"
 default_features = false
 features = ["core"]
-
-# [replace]
-# "hashmap_core:0.1.8" = { git = "https://github.com/lachlansneff/hashmap_core" }
-# "cranelift-codegen:0.13.0" = { git = "https://github.com/nebulet/cranelift", branch = "broken-no_std"}
-# "cranelift-native:0.13.0" = { git = "https://github.com/nebulet/cranelift", branch = "broken-no_std" }
-# "raw-cpuid:4.0.0" = { path = "../rust-cpuid" }
-# "hashmap_core:0.1.7" = { path = "../hashmap_core" }
