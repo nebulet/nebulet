@@ -89,3 +89,13 @@ erms_memset:
     rep stosb
     mov rax, r9
     ret
+
+# Coroutine context switch
+# This assumes that all the live registers
+# are saved by the caller.
+# rdi <- pointer to next coroutine stack
+# rax -> pointer to previous coroutine stack
+coroutine_context_switch:
+    mov rax, rsp
+    mov rsp, rdi
+    ret
