@@ -270,7 +270,7 @@ mod sys {
             SeqCst => SeqCst,
             Acquire => Acquire,
             AcqRel => Acquire,
-            __Nonexhaustive => __Nonexhaustive,
+            _ => panic!("invalid memory ordering"),
         }
     }
 
@@ -282,7 +282,7 @@ mod sys {
             SeqCst => intrinsics::atomic_store(dst, val),
             Acquire => panic!("there is no such thing as an acquire store"),
             AcqRel => panic!("there is no such thing as an acquire/release store"),
-            __Nonexhaustive => panic!("invalid memory ordering"),
+            _ => panic!("invalid memory ordering"),
         }
     }
 
@@ -294,7 +294,7 @@ mod sys {
             SeqCst => intrinsics::atomic_load(dst),
             Release => panic!("there is no such thing as a release load"),
             AcqRel => panic!("there is no such thing as an acquire/release load"),
-            __Nonexhaustive => panic!("invalid memory ordering"),
+            _ => panic!("invalid memory ordering"),
         }
     }
 
@@ -306,7 +306,7 @@ mod sys {
             AcqRel => intrinsics::atomic_xchg_acqrel(dst, val),
             Relaxed => intrinsics::atomic_xchg_relaxed(dst, val),
             SeqCst => intrinsics::atomic_xchg(dst, val),
-            __Nonexhaustive => panic!("invalid memory ordering"),
+            _ => panic!("invalid memory ordering"),
         }
     }
 
@@ -319,7 +319,7 @@ mod sys {
             AcqRel => intrinsics::atomic_xadd_acqrel(dst, val),
             Relaxed => intrinsics::atomic_xadd_relaxed(dst, val),
             SeqCst => intrinsics::atomic_xadd(dst, val),
-            __Nonexhaustive => panic!("invalid memory ordering"),
+            _ => panic!("invalid memory ordering"),
         }
     }
 
@@ -332,7 +332,7 @@ mod sys {
             AcqRel => intrinsics::atomic_xsub_acqrel(dst, val),
             Relaxed => intrinsics::atomic_xsub_relaxed(dst, val),
             SeqCst => intrinsics::atomic_xsub(dst, val),
-            __Nonexhaustive => panic!("invalid memory ordering"),
+            _ => panic!("invalid memory ordering"),
         }
     }
 
@@ -353,8 +353,8 @@ mod sys {
             (AcqRel, Relaxed) => intrinsics::atomic_cxchg_acqrel_failrelaxed(dst, old, new),
             (SeqCst, Relaxed) => intrinsics::atomic_cxchg_failrelaxed(dst, old, new),
             (SeqCst, Acquire) => intrinsics::atomic_cxchg_failacq(dst, old, new),
-            (__Nonexhaustive, _) => panic!("invalid memory ordering"),
-            (_, __Nonexhaustive) => panic!("invalid memory ordering"),
+            // (__Nonexhaustive, _) => panic!("invalid memory ordering"),
+            // (_, __Nonexhaustive) => panic!("invalid memory ordering"),
             (_, AcqRel) => panic!("there is no such thing as an acquire/release failure ordering"),
             (_, Release) => panic!("there is no such thing as a release failure ordering"),
             _ => panic!("a failure ordering can't be stronger than a success ordering"),
@@ -379,8 +379,8 @@ mod sys {
             (AcqRel, Relaxed) => intrinsics::atomic_cxchgweak_acqrel_failrelaxed(dst, old, new),
             (SeqCst, Relaxed) => intrinsics::atomic_cxchgweak_failrelaxed(dst, old, new),
             (SeqCst, Acquire) => intrinsics::atomic_cxchgweak_failacq(dst, old, new),
-            (__Nonexhaustive, _) => panic!("invalid memory ordering"),
-            (_, __Nonexhaustive) => panic!("invalid memory ordering"),
+            // (__Nonexhaustive, _) => panic!("invalid memory ordering"),
+            // (_, __Nonexhaustive) => panic!("invalid memory ordering"),
             (_, AcqRel) => panic!("there is no such thing as an acquire/release failure ordering"),
             (_, Release) => panic!("there is no such thing as a release failure ordering"),
             _ => panic!("a failure ordering can't be stronger than a success ordering"),
@@ -396,7 +396,7 @@ mod sys {
             AcqRel => intrinsics::atomic_and_acqrel(dst, val),
             Relaxed => intrinsics::atomic_and_relaxed(dst, val),
             SeqCst => intrinsics::atomic_and(dst, val),
-            __Nonexhaustive => panic!("invalid memory ordering"),
+            _ => panic!("invalid memory ordering"),
         }
     }
 
@@ -408,7 +408,7 @@ mod sys {
             AcqRel => intrinsics::atomic_nand_acqrel(dst, val),
             Relaxed => intrinsics::atomic_nand_relaxed(dst, val),
             SeqCst => intrinsics::atomic_nand(dst, val),
-            __Nonexhaustive => panic!("invalid memory ordering"),
+            _ => panic!("invalid memory ordering"),
         }
     }
 
@@ -420,7 +420,7 @@ mod sys {
             AcqRel => intrinsics::atomic_or_acqrel(dst, val),
             Relaxed => intrinsics::atomic_or_relaxed(dst, val),
             SeqCst => intrinsics::atomic_or(dst, val),
-            __Nonexhaustive => panic!("invalid memory ordering"),
+            _ => panic!("invalid memory ordering"),
         }
     }
 
@@ -432,7 +432,7 @@ mod sys {
             AcqRel => intrinsics::atomic_xor_acqrel(dst, val),
             Relaxed => intrinsics::atomic_xor_relaxed(dst, val),
             SeqCst => intrinsics::atomic_xor(dst, val),
-            __Nonexhaustive => panic!("invalid memory ordering"),
+            _ => panic!("invalid memory ordering"),
         }
     }
 }
