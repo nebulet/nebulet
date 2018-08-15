@@ -1,4 +1,3 @@
-
 #![no_std]
 #![feature(
     lang_items,
@@ -31,6 +30,7 @@
     alloc_error_handler,
     use_extern_macros,
     const_fn_union,
+    future_atomic_orderings,
 )]
 
 #![no_main]
