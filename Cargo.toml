@@ -60,7 +60,7 @@ rdrand_entropy = []
 # the actual bootloader
 bootloader = { git = "https://github.com/nebulet/bootloader" }
 # regular dependencies
-spin = "0.4.6"
+spin = "0.4.9"
 bitflags = "1.0"
 bit_field = "0.9.0"
 x86_64 = { git = "https://github.com/nebulet/x86_64" }
