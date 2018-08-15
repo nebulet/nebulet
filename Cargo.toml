@@ -58,7 +58,7 @@ rdrand_entropy = []
 
 [dependencies]
 # the actual bootloader
-bootloader = { git = "https://github.com/nebulet/bootloader" }
+bootloader = { git = "https://github.com/nebulet/bootloader", branch = "compile_fix" }
 # regular dependencies
 spin = "0.4.9"
 bitflags = "1.0"
