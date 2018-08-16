@@ -1,6 +1,7 @@
 # Nebulet
 
-[![Join the chat at https://gitter.im/nebulet/nebulet](https://badges.gitter.im/nebulet/nebulet.svg)](https://gitter.im/nebulet/nebulet?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/nebulet/nebulet](https://badges.gitter.im/nebulet/nebulet.svg)](https://gitter.im/nebulet/nebulet?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnebulet%2Fnebulet.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnebulet%2Fnebulet?ref=badge_shield)
+
 [![Build Status](https://travis-ci.org/nebulet/nebulet.svg?branch=master)](https://travis-ci.org/nebulet/nebulet)
 
 ## What is Nebulet?
@@ -38,3 +39,7 @@ $> bootimage build --release
 # compile and run the kernel in qemu
 $> bootimage run --release -- -serial stdio
 ```
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fnebulet%2Fnebulet.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fnebulet%2Fnebulet?ref=badge_large)
