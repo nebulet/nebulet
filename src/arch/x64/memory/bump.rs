@@ -3,7 +3,7 @@
 
 use x86_64::PhysAddr;
 use x86_64::structures::paging::{PhysFrame, Size4KiB, PhysFrameRange};
-use os_bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
+use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 
 use super::FrameAllocator;
 

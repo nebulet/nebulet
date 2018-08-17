@@ -1,7 +1,7 @@
 //! Blanket module for memory things
 //! Allocator, paging (although there isn't much), etc
 
-use os_bootinfo::BootInfo;
+use bootloader::bootinfo::BootInfo;
 use x86_64::structures::paging::{PhysFrame, Size4KiB, FrameAllocator as PhysFrameAllocator, FrameDeallocator as PhysFrameDeallocator};
 
 use arch::lock::IrqLock;
@@ -13,7 +13,7 @@ mod cache;
 
 pub static FRAME_ALLOCATOR: IrqLock<Option<FrameCache<BumpAllocator>>> = IrqLock::new(None);
 
-pub fn init(boot_info: &'static mut BootInfo) {
+pub fn init(boot_info: &'static BootInfo) {
     *FRAME_ALLOCATOR.lock() = Some(FrameCache::new(BumpAllocator::new(&boot_info.memory_map)));
 }
 

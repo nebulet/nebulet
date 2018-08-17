@@ -36,11 +36,11 @@
 #![deny(warnings)]
 
 #[macro_use]
+extern crate bootloader;
+#[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate bitflags;
-extern crate os_bootinfo;
-extern crate x86_64;
 extern crate spin;
 extern crate bit_field;
 #[macro_use]
@@ -58,6 +58,8 @@ extern crate cranelift_codegen;
 extern crate target_lexicon;
 extern crate wasmparser;
 extern crate nebulet_derive;
+
+pub use bootloader::x86_64;
 
 pub mod nil;
 #[macro_use]
