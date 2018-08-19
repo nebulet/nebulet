@@ -26,4 +26,6 @@ pub mod context;
 
 pub mod memory;
 
+pub mod pci;
+
 global_asm!(include_str!("routines.asm"));

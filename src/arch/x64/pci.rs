@@ -1,0 +1,76 @@
+use x86_64::instructions::port::Port;
+
+pub struct PciBus(u32);
+
+impl PciBus {
+    pub fn new(bus: u8) -> PciBus {
+        PciBus(bus as u32)
+    }
+
+    pub fn scan<F>(&self, f: F) -> usize
+        where F: Fn(PciDevice)
+    {
+        let mut count = 0;
+        
+        for slot_num in 0..32 {
+            let slot = PciSlot {
+                bus: self.0,
+                slot: slot_num,
+            };
+
+            if let Some(device) = slot.get_device() {
+                count += 1;
+                f(device);
+            }
+        }
+
+        count
+    }
+}
+
+#[derive(Debug)]
+pub struct PciDevice {
+    pub vendor: u16,
+    pub device: u16,
+}
+
+pub struct PciSlot {
+    bus: u32,
+    slot: u32,
+}
+
+impl PciSlot {
+    fn config_read(&self, func: u8, offset: u8) -> u16 {
+        let address = (self.bus << 16)
+        | (self.slot << 11)
+        | ((func as u32) << 8)
+        | ((offset as u32) & 0xfc)
+        | 0x80000000u32;
+
+        let mut addr_port: Port<u32> = Port::new(0xcf8);
+        let config_port: Port<u32> = Port::new(0xcfc);
+
+        unsafe {
+            addr_port.write(address);
+
+            ((config_port.read() >> ((offset & 2) * 8)) & 0xffff) as u16
+        }
+    }
+
+    pub fn get_device(&self) -> Option<PciDevice> {
+        let vendor = self.config_read(0, 0);
+
+        match vendor {
+            0xffff => None,
+            _ => {
+                let device = self.config_read(0, 2);
+
+                Some(PciDevice {
+                    vendor,
+                    device,
+                })
+            },
+        }
+    }
+}
+
