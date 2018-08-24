@@ -30,10 +30,25 @@ impl PciBus {
 
 #[derive(Debug)]
 pub struct PciDevice {
+    slot: PciSlot,
     pub vendor: u16,
     pub device: u16,
 }
 
+impl PciDevice {
+    pub fn base_address(&self) -> u32 {
+        let bar_low = self.slot.config_read(0x00, 0x10);
+        let bar_high = self.slot.config_read(0x00, 0x12);
+
+        (bar_high as u32) << 16 | bar_low as u32
+    }
+
+    pub fn header_type(&self) -> u8 {
+        self.slot.config_read(0x00, 0xc + 0x2) as u8
+    }
+}
+
+#[derive(Debug)]
 pub struct PciSlot {
     bus: u32,
     slot: u32,
@@ -66,6 +81,7 @@ impl PciSlot {
                 let device = self.config_read(0, 2);
 
                 Some(PciDevice {
+                    slot: PciSlot { ..*self },
                     vendor,
                     device,
                 })

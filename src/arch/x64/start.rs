@@ -46,7 +46,9 @@ fn find_pci_devices() {
     for bus in 0..=255 {
         let bus = pci::PciBus::new(bus);
         bus.scan(|device| {
-            if device.vendor == 0x8086 {
+            if device.vendor == 0x8086 && device.device == 0x100e {
+                println!("device bar: {:#x}", device.base_address());
+                println!("header: {:#x}", device.header_type());
                 println!("{:#x?}", device);
             }
         });
