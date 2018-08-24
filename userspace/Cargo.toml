@@ -2,6 +2,7 @@
 members = [
     "drivers/ps2",
     "drivers/vga",
+    "drivers/e1000",
 
     "sipinit",
 ]

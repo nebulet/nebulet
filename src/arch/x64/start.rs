@@ -1,6 +1,6 @@
 use bootloader::bootinfo::BootInfo;
 use arch::memory;
-use arch::{idt, interrupt, devices, paging, cpu};
+use arch::{idt, interrupt, devices, paging, cpu, pci};
 
 /// Test of zero values in BSS.
 static BSS_TEST_ZERO: usize = 0x0;
@@ -17,7 +17,7 @@ fn arch_start(boot_info: &'static BootInfo) -> ! {
     unsafe {
         interrupt::disable();
         
-        memory::init(boot_info);
+        memory::init(boot_info, 4 * 1024 * 1024 /* 4 MB */);
 
         // Initialize paging
         paging::init();
@@ -35,7 +35,20 @@ fn arch_start(boot_info: &'static BootInfo) -> ! {
         devices::init_noncore();
     }
 
+    find_pci_devices();
+
     ::kmain(&boot_info.package);
 }
 
 entry_point!(arch_start);
+
+fn find_pci_devices() {
+    for bus in 0..=255 {
+        let bus = pci::PciBus::new(bus);
+        bus.scan(|device| {
+            if device.vendor == 0x8086 {
+                println!("{:#x?}", device);
+            }
+        });
+    }
+}

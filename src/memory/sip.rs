@@ -3,7 +3,6 @@ use x86_64::VirtAddr;
 
 use core::ops::{Deref, DerefMut};
 use core::mem;
-use core::cell::UnsafeCell;
 
 use memory::{LazyRegion, Region, MemFlags};
 
@@ -75,7 +74,7 @@ impl SipAllocator {
             self.bump += allocated_size;
 
             Some(WasmMemory {
-                region: UnsafeCell::new(region),
+                region: region,
                 total_size: WasmMemory::DEFAULT_SIZE,
                 pre_region,
             })
@@ -123,7 +122,7 @@ impl SipAllocator {
 /// will be unmapped.
 #[derive(Debug)]
 pub struct WasmMemory {
-    region: UnsafeCell<LazyRegion>,
+    region: LazyRegion,
     total_size: usize,
     pub pre_region: Option<Region>,
 }
@@ -141,8 +140,8 @@ impl WasmMemory {
     }
 
     #[inline]
-    pub fn region(&self) -> &mut LazyRegion {
-        unsafe { &mut *self.region.get() }
+    pub fn region(&self) -> &LazyRegion {
+        &self.region
     }
 
     /// Map virtual memory to physical memory by 
@@ -161,7 +160,7 @@ impl WasmMemory {
         if new_size > self.total_size {
             Err(internal_error!())
         } else {
-            self.region().resize(new_size)?;
+            self.region.resize(new_size)?;
             Ok(old_count)
         }
     }
@@ -174,8 +173,18 @@ impl WasmMemory {
         let old_count = self.page_count();
 
         let expand_by = count * Self::WASM_PAGE_SIZE;
-        self.region().grow_from_phys_addr(expand_by, phys_addr as _)
+        self.region.grow_from_phys_addr(expand_by, phys_addr as _)
             .map(|_| old_count * Self::WASM_PAGE_SIZE)
+    }
+
+    /// Request a physically continuous memory region
+    pub fn physical_alloc(&self, page_count: usize) -> Result<(u64, u32)> {
+        let old_count = self.page_count();
+
+        let expand_by = page_count * Self::WASM_PAGE_SIZE;
+
+        self.region.grow_physically_contiguous(expand_by)
+            .map(|phys_addr| (phys_addr.as_u64(), (old_count * Self::WASM_PAGE_SIZE) as u32))
     }
 
     pub fn carve_slice(&self, offset: u32, size: u32) -> Option<&[u8]> {
@@ -237,7 +246,7 @@ impl WasmMemory {
     }
 
     pub fn start(&self) -> VirtAddr {
-        self.region().start()
+        self.region.start()
     }
 
     pub fn unmapped_size(&self) -> usize {
@@ -245,7 +254,7 @@ impl WasmMemory {
     }
 
     pub fn mapped_size(&self) -> usize {
-        self.region().size()
+        self.region.size()
     }
 
     /// Returns the number of `WASM_PAGE_SIZE` pages
@@ -274,20 +283,20 @@ impl WasmMemory {
         let start_addr = start + start_offset;
         let end_addr = start + end_offset;
 
-        self.region().map_range(start_addr as _, end_addr as _)
+        self.region.map_range(start_addr as _, end_addr as _)
     }
 }
 
 impl Deref for WasmMemory {
     type Target = [u8];
     fn deref(&self) -> &[u8] {
-        &*self.region()
+        &*self.region
     }
 }
 
 impl DerefMut for WasmMemory {
     fn deref_mut(&mut self) -> &mut [u8] {
-        &mut *self.region()
+        &mut *self.region
     }
 }
 

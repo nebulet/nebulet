@@ -1,4 +1,4 @@
-use sip;
+use sip::driver;
 
 pub const HEIGHT: usize = 25;
 pub const WIDTH: usize = 80;
@@ -9,7 +9,7 @@ pub struct Vga {
 
 impl Vga {
     pub fn open() -> Vga {
-        let buffer = sip::physical_map::<Buffer>(0xb8000).unwrap();
+        let buffer = unsafe { &mut *driver::physical_map::<Buffer>(0xb8000).unwrap() };
         Vga {
             writer: Writer {
                 col: 0,

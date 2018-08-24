@@ -4,11 +4,13 @@ use x86_64::structures::paging::{Page, PhysFrame, PageSize, Size4KiB,
     PageTableFlags, PageRangeInclusive, MapToError, UnmapError};
 
 use arch::paging::PageMapper;
+use arch::memory;
 
 use core::ops::{Deref, DerefMut};
 use core::slice;
+use sync::atomic::{Atomic, Ordering};
 
-use nabi::Result;
+use nabi::{Error, Result};
 
 extern "C" {
     fn erms_memset(dest: *mut u8, value: u8, size: usize);
@@ -224,7 +226,7 @@ impl Drop for Region {
 #[derive(Debug)]
 pub struct LazyRegion {
     start: VirtAddr,
-    size: usize,
+    size: Atomic<usize>,
     flags: PageTableFlags,
 }
 
@@ -232,7 +234,7 @@ impl LazyRegion {
     pub fn new(start: VirtAddr, size: usize, flags: MemFlags) -> Result<Self> {
         Ok(LazyRegion {
             start,
-            size,
+            size: Atomic::new(size),
             flags: flags.into(),
         })
     }
@@ -240,13 +242,13 @@ impl LazyRegion {
     #[inline]
     pub fn contains(&self, addr: *const ()) -> bool {
         let start = self.start.as_ptr::<u8>() as usize;
-        let end = start + self.size;
+        let end = start + self.size.load(Ordering::Relaxed);
 
         (start..end).contains(&(addr as _))
     }
 
     /// Map a single 4096 byte page.
-    pub fn map_page(&mut self, addr: *const ()) -> Result<()> {
+    pub fn map_page(&self, addr: *const ()) -> Result<()> {
         let mut mapper = unsafe { PageMapper::new() };
         
         let page = Page::containing_address(VirtAddr::new(addr as _));
@@ -265,7 +267,7 @@ impl LazyRegion {
         Ok(())
     }
 
-    pub fn map_range(&mut self, start: *const (), end: *const ()) -> Result<()> {
+    pub fn map_range(&self, start: *const (), end: *const ()) -> Result<()> {
         let start_page = Page::containing_address(VirtAddr::new(start as _));
         let end_page = Page::containing_address(VirtAddr::new(end as _));
 
@@ -290,19 +292,37 @@ impl LazyRegion {
         Ok(())
     }
 
-    pub fn resize(&mut self, new_size: usize) -> Result<()> {
-        self.size = new_size;
+    pub fn unmap_range(&self, start: *const(), end: *const ()) -> Result<()> {
+        let start_page = Page::containing_address(VirtAddr::new(start as _));
+        let end_page = Page::containing_address(VirtAddr::new(end as _));
+
+        let mut mapper = unsafe { PageMapper::new() };
+
+        for page in Page::range_inclusive(start_page, end_page) {
+            match mapper.unmap(page) {
+                Ok(mf) => mf.flush(),
+                Err(_) => return Err(internal_error!()),
+            }
+        }
 
         Ok(())
     }
 
-    pub fn grow_from_phys_addr(&mut self, by: usize, phys_addr: usize) -> Result<()> {
+    pub fn resize(&self, new_size: usize) -> Result<()> {
+        self.size.store(new_size, Ordering::SeqCst);
+
+        Ok(())
+    }
+
+    pub fn grow_from_phys_addr(&self, by: usize, phys_addr: usize) -> Result<()> {
         let mut mapper = unsafe { PageMapper::new() };
+
+        let size = self.size.fetch_add(by, Ordering::SeqCst) as u64;
 
         let phys_addr = PhysAddr::new(phys_addr as u64);
 
-        let start_page = Page::containing_address(self.start + self.size as u64);
-        let end_page = Page::containing_address(self.start + self.size as u64 + by as u64);
+        let start_page = Page::containing_address(self.start + size);
+        let end_page = Page::containing_address(self.start + size + by as u64);
         let start_frame = PhysFrame::containing_address(phys_addr);
         let end_frame = PhysFrame::containing_address(phys_addr + by as u64);
 
@@ -318,13 +338,39 @@ impl LazyRegion {
         Ok(())
     }
 
+    pub fn grow_physically_contiguous(&self, by: usize) -> Result<PhysAddr> {
+        let mut mapper = unsafe { PageMapper::new() };
+
+        let range = memory::allocate_contiguous(by)
+            .ok_or(Error::NO_RESOURCES)?;
+
+        let physical_start = range.start.start_address();
+
+        let size = self.size.fetch_add(by, Ordering::SeqCst) as u64;
+
+        let start_page = Page::containing_address(self.start + size);
+        let end_page = Page::containing_address(self.start + size + by as u64);
+
+        let iter = Page::range(start_page, end_page)
+            .zip(range);
+
+        for (page, frame) in iter {
+            mapper.map_to(page, frame, self.flags)
+                .map_err(|_| internal_error!())?
+                .flush();
+        }
+
+        Ok(physical_start)
+    }
+
     fn pages(&self) -> PageRangeInclusive {
+        let size = self.size.load(Ordering::Relaxed) as u64;
         let start_page = Page::containing_address(self.start);
-        let end_page = Page::containing_address(self.start + self.size as u64 - 1 as u64);
+        let end_page = Page::containing_address(self.start + size - 1 as u64);
         Page::range_inclusive(start_page, end_page)
     }
 
-    fn unmap_all(&mut self) -> Result<()> {
+    fn unmap_all(&self) -> Result<()> {
         let mut mapper = unsafe { PageMapper::new() };
 
         for page in self.pages() {
@@ -338,7 +384,7 @@ impl LazyRegion {
     }
 
     pub fn size(&self) -> usize {
-        self.size
+        self.size.load(Ordering::Relaxed)
     }
 
     pub fn start(&self) -> VirtAddr {
@@ -350,16 +396,16 @@ impl Deref for LazyRegion {
     type Target = [u8];
     fn deref(&self) -> &[u8] {
         let start = self.start.as_u64() as usize;
-        let len = self.size;
-        unsafe { slice::from_raw_parts(start as *const u8, len) }
+        let size = self.size.load(Ordering::Relaxed);
+        unsafe { slice::from_raw_parts(start as *const u8, size) }
     }
 }
 
 impl DerefMut for LazyRegion {
     fn deref_mut(&mut self) -> &mut [u8] {
         let start = self.start.as_u64() as usize;
-        let len = self.size;
-        unsafe { slice::from_raw_parts_mut(start as *mut u8, len) }
+        let size = self.size.load(Ordering::Relaxed);
+        unsafe { slice::from_raw_parts_mut(start as *mut u8, size) }
     }
 }
 

@@ -88,6 +88,11 @@ abi_map! {
         returns: I64,
         abi::driver::physical_map,
     },
+    physical_alloc: {
+        params: [I32, I32],
+        returns: I64,
+        abi::driver::physical_alloc,
+    },
     read_port_u8: {
         params: [I32],
         returns: I32,
