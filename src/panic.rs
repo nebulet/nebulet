@@ -2,7 +2,7 @@ use core::panic::PanicInfo;
 use arch::cpu::IrqController;
 use arch::interrupt;
 
-#[panic_implementation]
+#[panic_handler]
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
