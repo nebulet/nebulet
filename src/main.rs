@@ -22,7 +22,7 @@
     fnbox,
     integer_atomics,
     platform_intrinsics,
-    panic_implementation,
+    panic_handler,
     range_contains,
     stmt_expr_attributes,
     get_type_id,
