@@ -1,8 +1,5 @@
+use arch::common::exception::{invalid_opcode_handler, page_fault_handler};
 use arch::macros::{interrupt_stack, interrupt_stack_err, interrupt_stack_page};
-use arch::common::exception::{
-    page_fault_handler,
-    invalid_opcode_handler,
-};
 
 interrupt_stack!(divide_by_zero, _stack, {
     println!("Divide by zero fault");
@@ -65,7 +62,10 @@ interrupt_stack_page!(page_fault, stack, error, {
 
     if !page_fault_handler(faulting_addr) {
         // Something serious has gone wrong here.
-        panic!("page fault at {:p} with {:?}: {:#?}", faulting_addr, error, stack);
+        panic!(
+            "page fault at {:p} with {:?}: {:#?}",
+            faulting_addr, error, stack
+        );
     }
 });
 

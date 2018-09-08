@@ -1,9 +1,9 @@
-pub mod serial;
-pub mod pic;
-pub mod rtc;
-pub mod pit;
 pub mod high_precision_timer;
+pub mod pic;
+pub mod pit;
 pub mod rand;
+pub mod rtc;
+pub mod serial;
 
 pub unsafe fn init() {
     pic::init();

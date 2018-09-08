@@ -1,12 +1,12 @@
-use sync::atomic::{Atomic, Ordering};
-use object::dispatcher::{Dispatch, Dispatcher};
-use object::channel::{Channel, Message};
 use alloc::vec::Vec;
-use time::Instant;
-use core::ops::Deref;
-use core::{slice, mem};
 use arch::interrupt;
-use nabi::{Result, Error};
+use core::ops::Deref;
+use core::{mem, slice};
+use nabi::{Error, Result};
+use object::channel::{Channel, Message};
+use object::dispatcher::{Dispatch, Dispatcher};
+use sync::atomic::{Atomic, Ordering};
+use time::Instant;
 
 bitflags! {
     pub struct InterruptFlags: u32 {
@@ -33,7 +33,12 @@ struct InterruptPacket {
 impl Deref for InterruptPacket {
     type Target = [u8];
     fn deref(&self) -> &[u8] {
-        unsafe { slice::from_raw_parts(self as *const _ as *const u8, mem::size_of::<InterruptPacket>()) }
+        unsafe {
+            slice::from_raw_parts(
+                self as *const _ as *const u8,
+                mem::size_of::<InterruptPacket>(),
+            )
+        }
     }
 }
 
@@ -45,7 +50,11 @@ pub struct Interrupt {
 }
 
 impl Interrupt {
-    pub fn new(channel: Dispatch<Channel>, flags: InterruptFlags, vector: u32) -> Dispatch<Interrupt> {
+    pub fn new(
+        channel: Dispatch<Channel>,
+        flags: InterruptFlags,
+        vector: u32,
+    ) -> Dispatch<Interrupt> {
         Dispatch::new(Interrupt {
             channel,
             state: Atomic::new(InterruptState::Idle),
@@ -109,13 +118,19 @@ impl Interrupt {
                     self.unmask();
                 }
                 Ok(())
-            },
+            }
             _ => unimplemented!(),
         }
     }
 
     pub fn register(&self) -> Result<()> {
-        if unsafe { interrupt::register_handler(self.vector, Self::interrupt_handler, self as *const _ as *const _) } {
+        if unsafe {
+            interrupt::register_handler(
+                self.vector,
+                Self::interrupt_handler,
+                self as *const _ as *const _,
+            )
+        } {
             Ok(())
         } else {
             Err(Error::INVALID_ARG)

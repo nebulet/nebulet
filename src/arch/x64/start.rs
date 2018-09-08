@@ -1,6 +1,6 @@
-use bootloader::bootinfo::BootInfo;
 use arch::memory;
-use arch::{idt, interrupt, devices, paging, cpu, pci};
+use arch::{cpu, devices, idt, interrupt, paging, pci};
+use bootloader::bootinfo::BootInfo;
 
 /// Test of zero values in BSS.
 static BSS_TEST_ZERO: usize = 0x0;
@@ -16,7 +16,7 @@ fn arch_start(boot_info: &'static BootInfo) -> ! {
 
     unsafe {
         interrupt::disable();
-        
+
         memory::init(boot_info, 4 * 1024 * 1024 /* 4 MB */);
 
         // Initialize paging
@@ -24,7 +24,7 @@ fn arch_start(boot_info: &'static BootInfo) -> ! {
 
         // Initialize the IDT
         idt::init();
-        
+
         // Initialize the cpu and cpu local structures
         cpu::init(0);
 

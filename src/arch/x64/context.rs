@@ -1,7 +1,7 @@
 use core::mem;
 use x86_64::registers::rflags::RFlags;
 
-extern {
+extern "C" {
     fn x86_64_context_switch(prev: *mut ThreadContext, next: *const ThreadContext);
 }
 
@@ -19,7 +19,7 @@ pub struct ThreadContext {
 }
 
 impl ThreadContext {
-    pub fn new(stack_top: *mut u8, entry: extern fn()) -> ThreadContext {
+    pub fn new(stack_top: *mut u8, entry: extern "C" fn()) -> ThreadContext {
         let mut ctx = ThreadContext {
             rflags: RFlags::INTERRUPT_FLAG.bits(),
             rbx: 0,

@@ -1,17 +1,24 @@
-use object::{Channel, Stream, Message, HandleRights, UserHandle};
-use wasm::UserData;
-use nabi::{Result, Error};
+use nabi::{Error, Result};
 use nebulet_derive::nebulet_abi;
+use object::{Channel, HandleRights, Message, Stream, UserHandle};
+use wasm::UserData;
 
 #[nebulet_abi]
-pub fn channel_create(handle_tx_offset: u32, handle_rx_offset: u32, user_data: &UserData) -> Result<u32> {
+pub fn channel_create(
+    handle_tx_offset: u32,
+    handle_rx_offset: u32,
+    user_data: &UserData,
+) -> Result<u32> {
     let (tx, rx) = Channel::new_pair();
-    
+
     let (handle_tx, handle_rx) = {
         let mut handle_table = user_data.process.handle_table().write();
-        
+
         (
-            handle_table.allocate(tx, HandleRights::all() ^ HandleRights::READ ^ HandleRights::DUPLICATE)?,
+            handle_table.allocate(
+                tx,
+                HandleRights::all() ^ HandleRights::READ ^ HandleRights::DUPLICATE,
+            )?,
             handle_table.allocate(rx, HandleRights::all() ^ HandleRights::WRITE)?,
         )
     };
@@ -32,15 +39,21 @@ pub fn channel_create(handle_tx_offset: u32, handle_rx_offset: u32, user_data: &
 
 /// Write a message to the specified channel.
 #[nebulet_abi]
-pub fn channel_send(channel_handle: UserHandle<Channel>, buffer_offset: u32, buffer_size: u32, user_data: &UserData) -> Result<u32> {
+pub fn channel_send(
+    channel_handle: UserHandle<Channel>,
+    buffer_offset: u32,
+    buffer_size: u32,
+    user_data: &UserData,
+) -> Result<u32> {
     let msg = {
         let instance = &user_data.instance;
         let wasm_memory = &instance.memories[0];
-        let data = wasm_memory.carve_slice(buffer_offset, buffer_size)
+        let data = wasm_memory
+            .carve_slice(buffer_offset, buffer_size)
             .ok_or(Error::INVALID_ARG)?;
         Message::new(data, vec![])?
     };
-    
+
     let handle_table = user_data.process.handle_table().read();
 
     handle_table
@@ -53,13 +66,18 @@ pub fn channel_send(channel_handle: UserHandle<Channel>, buffer_offset: u32, buf
 
 /// Read a message from the specified channel.
 #[nebulet_abi]
-pub fn channel_recv(channel_handle: UserHandle<Channel>, buffer_offset: u32, buffer_size: u32, msg_size_out: u32, user_data: &UserData) -> Result<u32> {
+pub fn channel_recv(
+    channel_handle: UserHandle<Channel>,
+    buffer_offset: u32,
+    buffer_size: u32,
+    msg_size_out: u32,
+    user_data: &UserData,
+) -> Result<u32> {
     let chan = {
         let handle_table = user_data.process.handle_table().read();
 
-        let handle = handle_table
-            .get(channel_handle)?;
-        
+        let handle = handle_table.get(channel_handle)?;
+
         handle.check_rights(HandleRights::READ)?;
 
         handle
@@ -72,14 +90,15 @@ pub fn channel_recv(channel_handle: UserHandle<Channel>, buffer_offset: u32, buf
 
     let msg_size = memory.carve_mut::<u32>(msg_size_out)?;
     *msg_size = first_msg_len as u32;
-    
+
     if first_msg_len > buffer_size as usize {
         return Err(Error::BUFFER_TOO_SMALL);
     }
 
     let msg = chan.recv()?;
 
-    let write_buf = memory.carve_slice_mut(buffer_offset, buffer_size)
+    let write_buf = memory
+        .carve_slice_mut(buffer_offset, buffer_size)
         .ok_or(Error::INVALID_ARG)?;
 
     if write_buf.len() < msg.data().len() {
@@ -92,14 +111,21 @@ pub fn channel_recv(channel_handle: UserHandle<Channel>, buffer_offset: u32, buf
 }
 
 #[nebulet_abi]
-pub fn stream_create(handle_tx_offset: u32, handle_rx_offset: u32, user_data: &UserData) -> Result<u32> {
+pub fn stream_create(
+    handle_tx_offset: u32,
+    handle_rx_offset: u32,
+    user_data: &UserData,
+) -> Result<u32> {
     let (tx, rx) = Stream::new_pair();
-    
+
     let (handle_tx, handle_rx) = {
         let mut handle_table = user_data.process.handle_table().write();
-        
+
         (
-            handle_table.allocate(tx, HandleRights::all() ^ HandleRights::READ ^ HandleRights::DUPLICATE)?,
+            handle_table.allocate(
+                tx,
+                HandleRights::all() ^ HandleRights::READ ^ HandleRights::DUPLICATE,
+            )?,
             handle_table.allocate(rx, HandleRights::all() ^ HandleRights::WRITE)?,
         )
     };
@@ -119,12 +145,19 @@ pub fn stream_create(handle_tx_offset: u32, handle_rx_offset: u32, user_data: &U
 }
 
 #[nebulet_abi]
-pub fn stream_write(stream_handle: UserHandle<Stream>, buffer_offset: u32, buffer_size: u32, written_size_out: u32, user_data: &UserData) -> Result<u32> {
+pub fn stream_write(
+    stream_handle: UserHandle<Stream>,
+    buffer_offset: u32,
+    buffer_size: u32,
+    written_size_out: u32,
+    user_data: &UserData,
+) -> Result<u32> {
     let instance = &user_data.instance;
     let mut memory = &instance.memories[0];
-    let data = memory.carve_slice(buffer_offset, buffer_size)
+    let data = memory
+        .carve_slice(buffer_offset, buffer_size)
         .ok_or(Error::INVALID_ARG)?;
-    
+
     let handle_table = user_data.process.handle_table().read();
 
     let stream = handle_table.get(stream_handle)?;
@@ -135,12 +168,18 @@ pub fn stream_write(stream_handle: UserHandle<Stream>, buffer_offset: u32, buffe
 
     let written_out = memory.carve_mut::<u32>(written_size_out)?;
     *written_out = written_len as u32;
-    
+
     Ok(0)
 }
 
 #[nebulet_abi]
-pub fn stream_read(stream_handle: UserHandle<Stream>, buffer_offset: u32, buffer_size: u32, read_size_out: u32, user_data: &UserData) -> Result<u32> {
+pub fn stream_read(
+    stream_handle: UserHandle<Stream>,
+    buffer_offset: u32,
+    buffer_size: u32,
+    read_size_out: u32,
+    user_data: &UserData,
+) -> Result<u32> {
     let handle_table = user_data.process.handle_table().read();
 
     let stream = handle_table.get(stream_handle)?;
@@ -150,7 +189,8 @@ pub fn stream_read(stream_handle: UserHandle<Stream>, buffer_offset: u32, buffer
     let instance = &user_data.instance;
     let mut memory = &instance.memories[0];
 
-    let mut data = memory.carve_slice_mut(buffer_offset, buffer_size)
+    let mut data = memory
+        .carve_slice_mut(buffer_offset, buffer_size)
         .ok_or(Error::INVALID_ARG)?;
 
     let read_size = stream.read(&mut data)?;

@@ -1,10 +1,10 @@
-use x86_64::structures::paging::{Size4KiB, PageSize};
+use x86_64::structures::paging::{PageSize, Size4KiB};
 use x86_64::VirtAddr;
 
-use core::ops::{Deref, DerefMut};
 use core::mem;
+use core::ops::{Deref, DerefMut};
 
-use memory::{LazyRegion, Region, MemFlags};
+use memory::{LazyRegion, MemFlags, Region};
 
 use nabi::Result;
 
@@ -20,10 +20,7 @@ pub struct SipAllocator {
 impl SipAllocator {
     /// Create a new `AvailableSIPMemory`.
     pub const fn new(start: usize, end: usize) -> SipAllocator {
-        SipAllocator {
-            end,
-            bump: start,
-        }
+        SipAllocator { end, bump: start }
     }
 
     /// Allocate a memory region of `size`.
@@ -109,9 +106,7 @@ impl SipAllocator {
             //     region.map_page(addr.as_ptr()).ok()?;
             // }
 
-            Some(WasmStack {
-                region,
-            })
+            Some(WasmStack { region })
         }
     }
 }
@@ -144,10 +139,10 @@ impl WasmMemory {
         &self.region
     }
 
-    /// Map virtual memory to physical memory by 
+    /// Map virtual memory to physical memory by
     /// multiples of `WasmMemory::WASM_PAGE_SIZE`.
     /// This starts at `mapped_end` and bump up.
-    /// 
+    ///
     /// Returns the number of pages before growing.
     pub fn grow(&self, count: usize) -> Result<usize> {
         let old_count = self.page_count();
@@ -156,7 +151,7 @@ impl WasmMemory {
             return Ok(old_count);
         }
 
-        let new_size = (old_count + count) * Self::WASM_PAGE_SIZE; 
+        let new_size = (old_count + count) * Self::WASM_PAGE_SIZE;
         if new_size > self.total_size {
             Err(internal_error!())
         } else {
@@ -167,13 +162,14 @@ impl WasmMemory {
 
     /// Map the specified region of physical memory to the next free part
     /// of the wasm linear memory.
-    /// 
+    ///
     /// Returns the offset of the mapped region in the wasm linear memory.
     pub fn physical_map(&self, phys_addr: u64, count: usize) -> Result<usize> {
         let old_count = self.page_count();
 
         let expand_by = count * Self::WASM_PAGE_SIZE;
-        self.region.grow_from_phys_addr(expand_by, phys_addr as _)
+        self.region
+            .grow_from_phys_addr(expand_by, phys_addr as _)
             .map(|_| old_count * Self::WASM_PAGE_SIZE)
     }
 
@@ -183,8 +179,14 @@ impl WasmMemory {
 
         let expand_by = page_count * Self::WASM_PAGE_SIZE;
 
-        self.region.grow_physically_contiguous(expand_by)
-            .map(|phys_addr| (phys_addr.as_u64(), (old_count * Self::WASM_PAGE_SIZE) as u32))
+        self.region
+            .grow_physically_contiguous(expand_by)
+            .map(|phys_addr| {
+                (
+                    phys_addr.as_u64(),
+                    (old_count * Self::WASM_PAGE_SIZE) as u32,
+                )
+            })
     }
 
     pub fn carve_slice(&self, offset: u32, size: u32) -> Option<&[u8]> {
@@ -238,7 +240,7 @@ impl WasmMemory {
             unsafe {
                 let start_ptr = self.start().as_mut_ptr::<u8>();
                 let ptr = start_ptr.add(offset as usize) as *mut T;
-                Some(&mut*ptr)
+                Some(&mut *ptr)
             }
         } else {
             None
@@ -311,9 +313,7 @@ impl WasmStack {
     }
 
     pub fn top(&self) -> *mut u8 {
-        unsafe {
-            self.start().add(self.size())
-        }
+        unsafe { self.start().add(self.size()) }
     }
 
     pub fn start(&self) -> *mut u8 {

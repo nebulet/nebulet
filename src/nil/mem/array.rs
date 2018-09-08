@@ -1,11 +1,11 @@
-use nabi::{Result, Error};
+use super::Bin;
 use alloc::alloc::{Global, Layout};
 use core::alloc::Alloc;
-use core::ptr::{self, NonNull};
 use core::mem;
 use core::ops::{Deref, DerefMut};
+use core::ptr::{self, NonNull};
 use core::slice;
-use super::Bin;
+use nabi::{Error, Result};
 
 pub struct Array<T> {
     backing: NonNull<T>,
@@ -29,15 +29,11 @@ impl<T> Array<T> {
         if capacity == 0 {
             Ok(Self::new())
         } else {
-            let layout = Layout::from_size_align(
-                capacity * mem::size_of::<T>(),
-                16
-            ).map_err(|_| Error::INTERNAL)?;
+            let layout = Layout::from_size_align(capacity * mem::size_of::<T>(), 16)
+                .map_err(|_| Error::INTERNAL)?;
 
-            let ptr = unsafe {
-                Global.alloc(layout)
-            }.map_err(|_| Error::NO_MEMORY)?;
-            
+            let ptr = unsafe { Global.alloc(layout) }.map_err(|_| Error::NO_MEMORY)?;
+
             Ok(Array {
                 backing: ptr.cast(),
                 len: 0,
@@ -53,9 +49,7 @@ impl<T> Array<T> {
         }
 
         unsafe {
-            self.backing.as_ptr()
-                .add(self.len)
-                .write(item);
+            self.backing.as_ptr().add(self.len).write(item);
         }
 
         self.len += 1;
@@ -69,9 +63,7 @@ impl<T> Array<T> {
             None
         } else {
             self.len -= 1;
-            unsafe {
-                Some(ptr::read(self.get_unchecked(self.len)))
-            }
+            unsafe { Some(ptr::read(self.get_unchecked(self.len))) }
         }
     }
 
@@ -86,21 +78,14 @@ impl<T> Array<T> {
             return Ok(());
         }
 
-        let layout = Layout::from_size_align(
-            self.capacity * mem::size_of::<T>(),
-            16
-        ).map_err(|_| Error::INTERNAL)?;
+        let layout = Layout::from_size_align(self.capacity * mem::size_of::<T>(), 16)
+            .map_err(|_| Error::INTERNAL)?;
 
         let new_size = self.capacity * 2 * mem::size_of::<T>();
 
-        let ptr = unsafe {
-            Global.realloc(
-                self.backing.cast(),
-                layout,
-                new_size
-            )
-        }.map_err(|_| Error::NO_MEMORY)?;
-        
+        let ptr = unsafe { Global.realloc(self.backing.cast(), layout, new_size) }
+            .map_err(|_| Error::NO_MEMORY)?;
+
         self.backing = ptr.cast();
         self.capacity = new_size;
 
@@ -135,17 +120,13 @@ impl<T> Drop for Array<T> {
 impl<T> Deref for Array<T> {
     type Target = [T];
     fn deref(&self) -> &[T] {
-        unsafe {
-            slice::from_raw_parts(self.backing.as_ptr(), self.len)
-        }
+        unsafe { slice::from_raw_parts(self.backing.as_ptr(), self.len) }
     }
 }
 
 impl<T> DerefMut for Array<T> {
     fn deref_mut(&mut self) -> &mut [T] {
-        unsafe {
-            slice::from_raw_parts_mut(self.backing.as_ptr(), self.len)
-        }
+        unsafe { slice::from_raw_parts_mut(self.backing.as_ptr(), self.len) }
     }
 }
 

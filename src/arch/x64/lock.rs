@@ -1,6 +1,6 @@
-use sync::atomic::{Atomic, Ordering};
 use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut, Drop};
+use sync::atomic::{Atomic, Ordering};
 
 use arch::cpu::IrqController;
 use arch::interrupt;
@@ -48,7 +48,7 @@ impl<T> Spinlock<T> {
         if self.lock.compare_and_swap(false, true, Ordering::Acquire) == false {
             Some(SpinGuard {
                 lock: &self.lock,
-                data: unsafe { &mut *self.data.get() }
+                data: unsafe { &mut *self.data.get() },
             })
         } else {
             None
@@ -124,7 +124,9 @@ impl<T> IrqLock<T> {
     pub fn lock(&self) -> IrqGuard<T> {
         let was_enabled = IrqController::enabled();
         if was_enabled {
-            unsafe { IrqController::disable(); }
+            unsafe {
+                IrqController::disable();
+            }
         }
 
         IrqGuard {
@@ -134,19 +136,19 @@ impl<T> IrqLock<T> {
     }
 
     pub fn lock_map<F, U>(&self, f: F) -> IrqGuard<U>
-        where F: FnOnce(&mut T) -> &mut U
+    where
+        F: FnOnce(&mut T) -> &mut U,
     {
         let was_enabled = IrqController::enabled();
         if was_enabled {
-            unsafe { IrqController::disable(); }
+            unsafe {
+                IrqController::disable();
+            }
         }
 
         let data = f(unsafe { &mut *self.data.get() });
 
-        IrqGuard {
-            data,
-            was_enabled,
-        }
+        IrqGuard { data, was_enabled }
     }
 }
 
@@ -177,7 +179,9 @@ impl<'a, T: ?Sized> DerefMut for IrqGuard<'a, T> {
 impl<'a, T: ?Sized> Drop for IrqGuard<'a, T> {
     fn drop(&mut self) {
         if self.was_enabled {
-            unsafe { IrqController::enable(); }
+            unsafe {
+                IrqController::enable();
+            }
         }
     }
 }
@@ -218,7 +222,9 @@ impl<T> IrqSpinlock<T> {
 
         let was_enabled = IrqController::enabled();
         if was_enabled {
-            unsafe { IrqController::disable(); }
+            unsafe {
+                IrqController::disable();
+            }
         }
 
         IrqSpinGuard {
@@ -232,12 +238,14 @@ impl<T> IrqSpinlock<T> {
         if self.lock.compare_and_swap(false, true, Ordering::Acquire) == false {
             let was_enabled = IrqController::enabled();
             if was_enabled {
-                unsafe { IrqController::disable(); }
+                unsafe {
+                    IrqController::disable();
+                }
             }
             Some(IrqSpinGuard {
                 lock: &self.lock,
                 was_enabled,
-                data: unsafe { &mut *self.data.get() }
+                data: unsafe { &mut *self.data.get() },
             })
         } else {
             None
@@ -273,7 +281,9 @@ impl<'a, T: ?Sized> Drop for IrqSpinGuard<'a, T> {
     fn drop(&mut self) {
         self.lock.store(false, Ordering::Release);
         if self.was_enabled {
-            unsafe { IrqController::enable(); }
+            unsafe {
+                IrqController::enable();
+            }
         }
     }
 }

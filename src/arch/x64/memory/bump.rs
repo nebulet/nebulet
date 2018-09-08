@@ -1,9 +1,9 @@
 //! Bump Frame allocator
 //! Much is borrowed from Redox OS and [Phil Opp's Blog](http://os.phil-opp.com/allocating-frames.html)
 
-use x86_64::PhysAddr;
-use x86_64::structures::paging::{PhysFrame, Size4KiB, PhysFrameRange};
 use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
+use x86_64::structures::paging::{PhysFrame, PhysFrameRange, Size4KiB};
+use x86_64::PhysAddr;
 
 use super::FrameAllocator;
 
@@ -35,16 +35,15 @@ impl BumpAllocator {
     }
 
     fn fill_physical_pool(&mut self, size: usize) {
-        if let Some(region) = self.regions.iter_mut().find(|region| region.range.end.start_address() - region.range.start.start_address() >= size as u64) {
+        if let Some(region) = self.regions.iter_mut().find(|region| {
+            region.range.end.start_address() - region.range.start.start_address() >= size as u64
+        }) {
             let frame_size = region.range.start.size();
 
             let new_region_end = region.range.start + (((size as u64) + frame_size) / frame_size);
 
             self.physical_pool = MemoryRegion {
-                range: PhysFrame::range(
-                    region.range.start,
-                    new_region_end,
-                ),
+                range: PhysFrame::range(region.range.start, new_region_end),
                 region_type: region.region_type,
             };
 
@@ -53,11 +52,13 @@ impl BumpAllocator {
     }
 
     fn choose_next_area(&mut self) {
-        self.current_region = self.regions.into_iter().find(|region| {
-            let range: PhysFrameRange = region.range.into();
-            region.region_type == MemoryRegionType::Usable
-                && range.end > self.next_free_frame
-        }).cloned();
+        self.current_region = self
+            .regions
+            .into_iter()
+            .find(|region| {
+                let range: PhysFrameRange = region.range.into();
+                region.region_type == MemoryRegionType::Usable && range.end > self.next_free_frame
+            }).cloned();
 
         if let Some(region) = self.current_region {
             let range: PhysFrameRange = region.range.into();
@@ -105,15 +106,12 @@ impl FrameAllocator for BumpAllocator {
 
             self.physical_pool.range.start += frame_count;
 
-            Some(PhysFrame::range(
-                old_start,
-                self.physical_pool.range.start,
-            ))
+            Some(PhysFrame::range(old_start, self.physical_pool.range.start))
         } else {
             None
         }
     }
-    
+
     #[inline]
     fn deallocate_contiguous(&mut self, _range: PhysFrameRange) {
         // do nothing

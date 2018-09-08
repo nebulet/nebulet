@@ -1,8 +1,4 @@
-#![feature(
-    proc_macro_span,
-    proc_macro_diagnostic,
-    iterator_find_map,
-)]
+#![feature(proc_macro_span, proc_macro_diagnostic, iterator_find_map,)]
 
 extern crate proc_macro;
 extern crate proc_macro2;
@@ -127,8 +123,7 @@ fn wrap_nebulet_abi(mut fn_item: syn::ItemFn) -> proc_macro2::TokenStream {
             } else {
                 None
             }
-        })
-        .collect::<syn::punctuated::Punctuated<syn::Pat, syn::token::Comma>>();
+        }).collect::<syn::punctuated::Punctuated<syn::Pat, syn::token::Comma>>();
     inner_inputs.pop();
     inner_inputs.push(syn::parse(quote!(user_data).into()).unwrap());
 
@@ -146,8 +141,7 @@ fn wrap_nebulet_abi(mut fn_item: syn::ItemFn) -> proc_macro2::TokenStream {
                 inner(#inner_inputs);
             }
         }
-    }
-    else {
+    } else {
         quote! {
             pub extern fn #outer_ident(#outer_inputs) -> u64 {
                 #[inline]

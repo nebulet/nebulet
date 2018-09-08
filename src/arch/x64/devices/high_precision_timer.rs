@@ -1,10 +1,10 @@
-use arch::x64::interrupt;
-use arch::x64::idt;
-use arch::macros::interrupt;
 use arch::devices::{pic, pit};
+use arch::macros::interrupt;
+use arch::x64::idt;
+use arch::x64::interrupt;
+use core::mem::transmute;
 use sync::atomic::{Atomic, Ordering};
 use x86_64::structures::idt::InterruptDescriptorTable;
-use core::mem::transmute;
 
 /// Cycles per second according to rdtsc (which is generally a maximum
 /// cpu frequency).
@@ -83,7 +83,7 @@ pub unsafe fn init() {
 /// Time from arbitrary epoch in nano seconds
 pub fn now() -> u64 {
     let cycle = rdtsc();
-    let rate = unsafe{ TSC_RATE };
+    let rate = unsafe { TSC_RATE };
 
     cycle.wrapping_mul(1_000_000_000) / rate
 }

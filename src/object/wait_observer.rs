@@ -1,6 +1,6 @@
-use super::dispatcher::{Dispatcher, StateObserver, ObserverResult};
-use object::Handle;
+use super::dispatcher::{Dispatcher, ObserverResult, StateObserver};
 use event::Event;
+use object::Handle;
 use signals::Signal;
 
 pub struct WaitObserver {

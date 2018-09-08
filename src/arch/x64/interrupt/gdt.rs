@@ -22,7 +22,7 @@ impl Gdt {
                 let index = self.push(low);
                 self.push(high);
                 index
-            },
+            }
         };
         SegmentSelector::new(index as u16, PrivilegeLevel::Ring0)
     }
@@ -39,8 +39,8 @@ impl Gdt {
     }
 
     pub fn load(&'static self) {
-        use x86_64::instructions::tables::{lgdt, DescriptorTablePointer};
         use core::mem::size_of;
+        use x86_64::instructions::tables::{lgdt, DescriptorTablePointer};
 
         let ptr = DescriptorTablePointer {
             base: self.table.as_ptr() as u64,
@@ -60,17 +60,19 @@ pub enum Descriptor {
 
 impl Descriptor {
     pub fn kernel_code_segment() -> Descriptor {
-        let flags = DescriptorFlags::USER_SEGMENT | DescriptorFlags::PRESENT
-            | DescriptorFlags::EXECUTABLE | DescriptorFlags::LONG_MODE;
+        let flags = DescriptorFlags::USER_SEGMENT
+            | DescriptorFlags::PRESENT
+            | DescriptorFlags::EXECUTABLE
+            | DescriptorFlags::LONG_MODE;
         Descriptor::UserSegment(flags.bits())
     }
 
     pub fn tss_segment(tss: &'static TaskStateSegment) -> Descriptor {
-        use core::mem::size_of;
         use bit_field::BitField;
-        
+        use core::mem::size_of;
+
         let ptr = tss as *const _ as u64;
-        
+
         let mut low = DescriptorFlags::PRESENT.bits();
         // base
         low.set_bits(16..40, ptr.get_bits(0..24));

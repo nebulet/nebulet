@@ -1,7 +1,7 @@
-use alloc::vec::{Vec, Drain};
+use alloc::vec::{Drain, Vec};
 use core::iter::FilterMap;
-use core::ops::{Index, IndexMut, RangeBounds};
 use core::marker::PhantomData;
+use core::ops::{Index, IndexMut, RangeBounds};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[repr(transparent)]
@@ -29,21 +29,15 @@ pub struct Entry<'table, T: 'table> {
 
 impl<'table, T: 'table> Entry<'table, T> {
     pub fn remove(self) -> T {
-        unsafe {
-            (*self.table).free(self.slot).unwrap()
-        }
+        unsafe { (*self.table).free(self.slot).unwrap() }
     }
 
     pub fn get(&self) -> &T {
-        unsafe {
-            (*self.table).get(self.slot).unwrap()
-        }
+        unsafe { (*self.table).get(self.slot).unwrap() }
     }
 
     pub fn get_mut(&mut self) -> &mut T {
-        unsafe {
-            (*self.table).get_mut(self.slot).unwrap()
-        }
+        unsafe { (*self.table).get_mut(self.slot).unwrap() }
     }
 }
 
@@ -110,17 +104,21 @@ impl<T> Table<T> {
         self.objects.get_mut(slot.0).and_then(|item| item.as_mut())
     }
 
-    pub fn drain<R>(&mut self, range: R) -> FilterMap<Drain<Option<T>>, impl FnMut(Option<T>) -> Option<T>>
-        where R: RangeBounds<usize>
+    pub fn drain<R>(
+        &mut self,
+        range: R,
+    ) -> FilterMap<Drain<Option<T>>, impl FnMut(Option<T>) -> Option<T>>
+    where
+        R: RangeBounds<usize>,
     {
         self.objects.drain(range).filter_map(|item| item)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item=&T> {
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.objects.iter().filter_map(|item| item.as_ref())
     }
 
-    pub fn slot_iter(&self) -> impl Iterator<Item=TableSlot> + '_ {
+    pub fn slot_iter(&self) -> impl Iterator<Item = TableSlot> + '_ {
         self.objects.iter().enumerate().filter_map(|(index, item)| {
             if item.is_some() {
                 Some(TableSlot(index))
@@ -130,19 +128,22 @@ impl<T> Table<T> {
         })
     }
 
-    pub fn entries<'a>(&'a mut self) -> impl Iterator<Item=Entry<T>> + 'a {
+    pub fn entries<'a>(&'a mut self) -> impl Iterator<Item = Entry<T>> + 'a {
         let table = self as *mut _;
-        self.objects.iter().enumerate().filter_map(move |(index, item)| {
-            if item.is_some() {
-                Some(Entry {
-                    table,
-                    slot: TableSlot(index),
-                    _phantom: PhantomData,
-                })
-            } else {
-                None
-            }
-        })
+        self.objects
+            .iter()
+            .enumerate()
+            .filter_map(move |(index, item)| {
+                if item.is_some() {
+                    Some(Entry {
+                        table,
+                        slot: TableSlot(index),
+                        _phantom: PhantomData,
+                    })
+                } else {
+                    None
+                }
+            })
     }
 }
 
@@ -155,7 +156,7 @@ impl<T> Index<TableSlot> for Table<T> {
 }
 
 impl<T> IndexMut<TableSlot> for Table<T> {
-    fn index_mut(&mut self, slot: TableSlot) -> &mut T { 
+    fn index_mut(&mut self, slot: TableSlot) -> &mut T {
         self.get_mut(slot).unwrap()
     }
 }

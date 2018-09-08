@@ -1,11 +1,15 @@
-use object::{Process, Wasm, Channel, HandleRights, UserHandle};
-use nabi::{Result, Error};
+use nabi::{Error, Result};
 use nebulet_derive::nebulet_abi;
+use object::{Channel, HandleRights, Process, UserHandle, Wasm};
 use wasm::UserData;
 
 /// Create a process with the specified compiled code.
 #[nebulet_abi]
-pub fn process_create(code_handle: UserHandle<Wasm>, channel_handle: UserHandle<Channel>, user_data: &UserData) -> Result<u32> {
+pub fn process_create(
+    code_handle: UserHandle<Wasm>,
+    channel_handle: UserHandle<Channel>,
+    user_data: &UserData,
+) -> Result<u32> {
     let handle_table = user_data.process.handle_table();
 
     let (code, chan) = {
@@ -41,7 +45,8 @@ pub fn process_create(code_handle: UserHandle<Wasm>, channel_handle: UserHandle<
 
         let rights = HandleRights::READ | HandleRights::WRITE | HandleRights::TRANSFER;
 
-        handle_table.allocate(new_proc, rights)
+        handle_table
+            .allocate(new_proc, rights)
             .map(|handle| handle.inner())
     }
 }
@@ -54,9 +59,7 @@ pub fn process_start(proc_handle: UserHandle<Process>, user_data: &UserData) -> 
     let handle_table = handle_table.read();
     let proc_ref = handle_table.get(proc_handle)?;
 
-    proc_ref
-        .check_rights(HandleRights::WRITE)?
-        .start()?;
+    proc_ref.check_rights(HandleRights::WRITE)?.start()?;
 
     Ok(0)
 }
@@ -66,7 +69,8 @@ pub fn process_start(proc_handle: UserHandle<Process>, user_data: &UserData) -> 
 pub fn wasm_compile(buffer_offset: u32, buffer_size: u32, user_data: &UserData) -> Result<u32> {
     let code_ref = {
         let wasm_memory = &user_data.instance.memories[0];
-        let wasm_bytecode = wasm_memory.carve_slice(buffer_offset, buffer_size)
+        let wasm_bytecode = wasm_memory
+            .carve_slice(buffer_offset, buffer_size)
             .ok_or(Error::INVALID_ARG)?;
 
         // copy the wasm to avoid aliasing from other threads
@@ -80,7 +84,8 @@ pub fn wasm_compile(buffer_offset: u32, buffer_size: u32, user_data: &UserData) 
         let mut handle_table = user_data.process.handle_table().write();
         let rights = HandleRights::READ | HandleRights::TRANSFER;
 
-        handle_table.allocate(code_ref, rights)
+        handle_table
+            .allocate(code_ref, rights)
             .map(|handle| handle.inner())
     }
 }

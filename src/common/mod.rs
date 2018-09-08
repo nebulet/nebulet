@@ -1,6 +1,6 @@
-pub mod devices;
 pub mod bitarray;
-pub mod table;
-pub mod util;
+pub mod devices;
 pub mod slice;
+pub mod table;
 pub mod tar;
+pub mod util;

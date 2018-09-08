@@ -1,5 +1,5 @@
-use object::Thread;
 use cranelift_codegen::ir::TrapCode;
+use object::Thread;
 
 #[inline]
 pub fn page_fault_handler(faulting_addr: *const ()) -> bool {
@@ -19,7 +19,7 @@ pub fn page_fault_handler(faulting_addr: *const ()) -> bool {
     if let Some(process) = current_thread.parent() {
         let instance = process.initial_instance();
         let memory = &instance.memories[0];
-        
+
         if likely!(memory.in_mapped_bounds(faulting_addr)) {
             // this path should be as low-latency as possible.
             // just map in the offending page

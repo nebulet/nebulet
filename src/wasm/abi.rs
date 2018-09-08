@@ -1,5 +1,5 @@
-use abi;
 pub use super::abi_types::AbiFunction;
+use abi;
 use hashmap_core::HashMap;
 
 // TODO: Verify function signatures so we don't

@@ -13,9 +13,8 @@
 
 //! Expose `rdrand` instructions.
 
-use raw_cpuid::CpuId;
 use rand_core;
-
+use raw_cpuid::CpuId;
 
 extern "platform-intrinsic" {
     fn x86_rdrand32_step() -> (u32, i32);
@@ -26,9 +25,11 @@ macro_rules! loop_rand {
     ($f:ident) => {
         loop {
             let (val, succ) = ($f)();
-            if succ != 0 { return val; }
+            if succ != 0 {
+                return val;
+            }
         }
-    }
+    };
 }
 
 fn has_rdrand() -> bool {
@@ -50,7 +51,6 @@ unsafe fn rdrand_next_u64() -> u64 {
     loop_rand!(x86_rdrand64_step);
 }
 
-
 #[derive(Debug)]
 pub struct RdRand(());
 
@@ -66,14 +66,10 @@ impl RdRand {
 
 impl rand_core::RngCore for RdRand {
     fn next_u32(&mut self) -> u32 {
-        unsafe {
-            rdrand_next_u32()
-        }
+        unsafe { rdrand_next_u32() }
     }
     fn next_u64(&mut self) -> u64 {
-        unsafe {
-            rdrand_next_u64()
-        }
+        unsafe { rdrand_next_u64() }
     }
     fn fill_bytes(&mut self, dest: &mut [u8]) {
         rand_core::impls::fill_bytes_via_next(self, dest)
@@ -82,4 +78,3 @@ impl rand_core::RngCore for RdRand {
         Ok(self.fill_bytes(dest))
     }
 }
-

@@ -1,8 +1,8 @@
 //! Interrupt helpers
 
 pub mod exception;
-pub mod irq;
 pub mod gdt;
+pub mod irq;
 use arch::devices::pic;
 use arch::idt;
 

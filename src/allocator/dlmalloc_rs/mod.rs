@@ -1,4 +1,4 @@
-use alloc::alloc::{GlobalAlloc, Layout, AllocErr};
+use alloc::alloc::{AllocErr, GlobalAlloc, Layout};
 use core::alloc::Alloc;
 use core::cmp;
 use core::ptr::{self, NonNull};
@@ -45,11 +45,13 @@ impl Dlmalloc {
     }
 
     #[inline]
-    pub unsafe fn realloc(&mut self,
-                          ptr: *mut u8,
-                          old_size: usize,
-                          old_align: usize,
-                          new_size: usize) -> *mut u8 {
+    pub unsafe fn realloc(
+        &mut self,
+        ptr: *mut u8,
+        old_size: usize,
+        old_align: usize,
+        new_size: usize,
+    ) -> *mut u8 {
         if old_align <= self.0.malloc_alignment() {
             self.0.realloc(ptr, new_size)
         } else {
@@ -81,9 +83,7 @@ unsafe impl<'a> Alloc for &'a Allocator {
     }
 
     #[inline]
-    unsafe fn alloc_zeroed(&mut self, layout: Layout)
-        -> Result<NonNull<u8>, AllocErr>
-    {
+    unsafe fn alloc_zeroed(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
         let mut heap = HEAP.lock();
         let ptr = <Dlmalloc>::calloc(&mut heap, layout.size(), layout.align());
         if ptr.is_null() {
@@ -100,10 +100,12 @@ unsafe impl<'a> Alloc for &'a Allocator {
     }
 
     #[inline]
-    unsafe fn realloc(&mut self,
-                      ptr: NonNull<u8>,
-                      old_layout: Layout,
-                      new_size: usize) -> Result<NonNull<u8>, AllocErr> {
+    unsafe fn realloc(
+        &mut self,
+        ptr: NonNull<u8>,
+        old_layout: Layout,
+        new_size: usize,
+    ) -> Result<NonNull<u8>, AllocErr> {
         let mut heap = HEAP.lock();
         let ptr = <Dlmalloc>::realloc(
             &mut heap,
@@ -112,7 +114,6 @@ unsafe impl<'a> Alloc for &'a Allocator {
             old_layout.align(),
             new_size,
         );
-
 
         if ptr.is_null() {
             Err(AllocErr)
@@ -135,13 +136,7 @@ unsafe impl GlobalAlloc for Allocator {
 
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         let mut heap = HEAP.lock();
-        <Dlmalloc>::realloc(
-            &mut heap,
-            ptr as _,
-            layout.size(),
-            layout.align(),
-            new_size,
-        ) as _
+        <Dlmalloc>::realloc(&mut heap, ptr as _, layout.size(), layout.align(), new_size) as _
     }
 }
 

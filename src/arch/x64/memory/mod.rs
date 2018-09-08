@@ -2,11 +2,14 @@
 //! Allocator, paging (although there isn't much), etc
 
 use bootloader::bootinfo::BootInfo;
-use x86_64::structures::paging::{PhysFrame, PhysFrameRange, Size4KiB, FrameAllocator as PhysFrameAllocator, FrameDeallocator as PhysFrameDeallocator};
+use x86_64::structures::paging::{
+    FrameAllocator as PhysFrameAllocator, FrameDeallocator as PhysFrameDeallocator, PhysFrame,
+    PhysFrameRange, Size4KiB,
+};
 
-use arch::lock::IrqLock;
 use self::bump::BumpAllocator;
 use self::cache::FrameCache;
+use arch::lock::IrqLock;
 
 mod bump;
 mod cache;
@@ -14,7 +17,10 @@ mod cache;
 pub static FRAME_ALLOCATOR: IrqLock<Option<FrameCache<BumpAllocator>>> = IrqLock::new(None);
 
 pub fn init(boot_info: &'static BootInfo, physical_pool_size: usize) {
-    *FRAME_ALLOCATOR.lock() = Some(FrameCache::new(BumpAllocator::new(&boot_info.memory_map, physical_pool_size)));
+    *FRAME_ALLOCATOR.lock() = Some(FrameCache::new(BumpAllocator::new(
+        &boot_info.memory_map,
+        physical_pool_size,
+    )));
 }
 
 pub fn allocate_frame() -> Option<PhysFrame> {

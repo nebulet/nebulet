@@ -1,10 +1,10 @@
 extern crate tar;
 extern crate walkdir;
 
-use walkdir::WalkDir;
-use std::process::Command;
 use std::fs::File;
 use std::io;
+use std::process::Command;
+use walkdir::WalkDir;
 
 fn main() -> io::Result<()> {
     println!("Building userspace");
@@ -12,11 +12,12 @@ fn main() -> io::Result<()> {
     Command::new("cargo")
         .args(&[
             "build",
-            "--manifest-path", "userspace/Cargo.toml",
+            "--manifest-path",
+            "userspace/Cargo.toml",
             "--release",
-            "--target", "wasm32-unknown-unknown"
-        ])
-        .status()
+            "--target",
+            "wasm32-unknown-unknown",
+        ]).status()
         .expect("Failed to build userspace");
 
     println!("Building initfs.tar");
@@ -34,9 +35,10 @@ fn main() -> io::Result<()> {
     }
 
     for entry in WalkDir::new("userspace/target/wasm32-unknown-unknown/release/")
-                        .max_depth(1)
-                         .into_iter()
-                         .filter_map(|e| e.ok()) {
+        .max_depth(1)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
         if is_wasm(&entry) {
             assert!(entry.file_type().is_file());
             let name = entry.file_name().to_str().unwrap();
@@ -49,7 +51,8 @@ fn main() -> io::Result<()> {
 }
 
 fn is_wasm(entry: &walkdir::DirEntry) -> bool {
-    entry.file_name()
+    entry
+        .file_name()
         .to_str()
         .map(|s| s.ends_with(".wasm"))
         .unwrap_or(false)

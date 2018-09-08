@@ -8,10 +8,11 @@ impl PciBus {
     }
 
     pub fn scan<F>(&self, f: F) -> usize
-        where F: Fn(PciDevice)
+    where
+        F: Fn(PciDevice),
     {
         let mut count = 0;
-        
+
         for slot_num in 0..32 {
             let slot = PciSlot {
                 bus: self.0,
@@ -57,10 +58,10 @@ pub struct PciSlot {
 impl PciSlot {
     fn config_read(&self, func: u8, offset: u8) -> u16 {
         let address = (self.bus << 16)
-        | (self.slot << 11)
-        | ((func as u32) << 8)
-        | ((offset as u32) & 0xfc)
-        | 0x80000000u32;
+            | (self.slot << 11)
+            | ((func as u32) << 8)
+            | ((offset as u32) & 0xfc)
+            | 0x80000000u32;
 
         let mut addr_port: Port<u32> = Port::new(0xcf8);
         let config_port: Port<u32> = Port::new(0xcfc);
@@ -85,8 +86,7 @@ impl PciSlot {
                     vendor,
                     device,
                 })
-            },
+            }
         }
     }
 }
-

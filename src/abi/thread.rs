@@ -1,7 +1,7 @@
-use object::Thread;
 use common::table::TableSlot;
-use nabi::{Result, Error};
+use nabi::{Error, Result};
 use nebulet_derive::nebulet_abi;
+use object::Thread;
 use wasm::UserData;
 
 #[nebulet_abi]
@@ -11,7 +11,12 @@ pub fn thread_yield(_: &UserData) {
 
 #[nebulet_abi]
 pub fn thread_join(id: u32, user_data: &UserData) -> Result<u32> {
-    if let Some(thread) = user_data.process.thread_list().write().free(TableSlot::from_usize(id as usize)) {
+    if let Some(thread) = user_data
+        .process
+        .thread_list()
+        .write()
+        .free(TableSlot::from_usize(id as usize))
+    {
         thread.join()?;
     }
 
@@ -19,34 +24,33 @@ pub fn thread_join(id: u32, user_data: &UserData) -> Result<u32> {
 }
 
 #[nebulet_abi]
-pub fn thread_spawn(func_table_index: u32, arg: u32, new_stack_offset: u32, user_data: &UserData) -> Result<u32> {
+pub fn thread_spawn(
+    func_table_index: u32,
+    arg: u32,
+    new_stack_offset: u32,
+    user_data: &UserData,
+) -> Result<u32> {
     let func_addr = {
         let table = user_data.instance.tables[0].write();
         *table
             .get(func_table_index as usize)
-            .ok_or(Error::NOT_FOUND)?
-            as *const ()
+            .ok_or(Error::NOT_FOUND)? as *const ()
     };
 
     let code = user_data.process.code();
 
-    let module_func_index = code
-        .lookup_func_index(func_addr)
-        .ok_or(Error::NOT_FOUND)?;
-    
+    let module_func_index = code.lookup_func_index(func_addr).ok_or(Error::NOT_FOUND)?;
+
     let module = code.module();
     let sig_index = *module
         .functions
         .get(module.imported_funcs.len() + module_func_index)
         .ok_or(Error::NOT_FOUND)?;
-    
-    let signature = module
-        .signatures
-        .get(sig_index)
-        .ok_or(Error::NOT_FOUND)?;
+
+    let signature = module.signatures.get(sig_index).ok_or(Error::NOT_FOUND)?;
 
     use cranelift_codegen::ir::{types, ArgumentPurpose};
-    
+
     if signature.params.len() == 2
         && signature.params[0].value_type == types::I32
         && signature.params[1].purpose == ArgumentPurpose::VMContext
@@ -57,7 +61,7 @@ pub fn thread_spawn(func_table_index: u32, arg: u32, new_stack_offset: u32, user
         let current_thread = Thread::current();
         if let Some(current_process) = current_thread.parent() {
             let thread_id = current_process.create_thread(func_addr, arg, new_stack_offset)?;
-       
+
             Ok(thread_id)
         } else {
             panic!("added thread from intrinsic thread!")

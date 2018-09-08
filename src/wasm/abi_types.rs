@@ -1,4 +1,4 @@
-use cranelift_codegen::ir::{ArgumentPurpose, Type, Signature};
+use cranelift_codegen::ir::{ArgumentPurpose, Signature, Type};
 use cranelift_codegen::settings::CallConv;
 
 #[derive(Debug)]

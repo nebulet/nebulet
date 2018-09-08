@@ -1,11 +1,11 @@
-use nabi::{Result, Error};
+use nabi::{Error, Result};
 use nebulet_derive::nebulet_abi;
 use wasm::UserData;
 
 // /// Tests that abi functionality is working.
 // pub extern fn output_test(arg: usize, _vmctx: &VmCtx) {
 //     println!("wasm supplied arg = {}", arg);
-    
+
 //     // println!("calling process name: \"{}\"", vmctx.process.name());
 // }
 

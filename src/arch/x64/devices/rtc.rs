@@ -37,9 +37,9 @@ impl Rtc {
         // while self.read(0xA) & 0x80 == 0x80 {}
     }
 
-   /// Get Time
-   pub fn time(&mut self) -> u64 {
-       let mut second;
+    /// Get Time
+    pub fn time(&mut self) -> u64 {
+        let mut second;
         let mut minute;
         let mut hour;
         let mut day;
@@ -122,5 +122,5 @@ impl Rtc {
         secs += second as u64;
 
         secs
-   }
+    }
 }

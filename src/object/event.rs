@@ -18,5 +18,7 @@ impl Dispatcher for EventDispatcher {
         Signal::USER_ALL | Signal::EVENT_SIGNALED
     }
 
-    fn allows_observers(&self) -> bool { true }
+    fn allows_observers(&self) -> bool {
+        true
+    }
 }

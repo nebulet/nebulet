@@ -10,7 +10,7 @@ pub static mut SLAVE: Pic = Pic::new(0xA0);
 pub unsafe fn init() {
     let mut wait_port: Port<u8> = Port::new(0x80);
     let mut wait = || wait_port.write(0);
-    
+
     let mut master_mask = MASTER.data.read();
     let slave_mask = SLAVE.data.read();
 

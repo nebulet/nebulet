@@ -1,16 +1,16 @@
+use core::ptr::NonNull;
 use x86_64::registers::model_specific::Msr;
 use x86_64::registers::rflags::RFlags;
-use core::ptr::NonNull;
 
-use arch::interrupt;
 use arch::asm::read_gs_offset64;
+use arch::interrupt;
 
+use object::thread::{State, Thread};
 use task::scheduler::Scheduler;
-use object::thread::{Thread, State};
 
 use alloc::boxed::Box;
 use event::{Event, EventVariant};
-use sync::mpsc::{Mpsc, IntrusiveMpsc};
+use sync::mpsc::{IntrusiveMpsc, Mpsc};
 
 // static GLOBAL: Once<Global> = Once::new();
 
@@ -52,16 +52,13 @@ impl IrqController {
 }
 
 pub unsafe fn init(cpu_id: u32) {
-    let cpu = Box::new(Cpu {
-        cpu_id,
-    });
+    let cpu = Box::new(Cpu { cpu_id });
 
     let mut cpu_local = Box::new(Local::new(Box::leak(cpu)));
 
     cpu_local.direct = (&*cpu_local).into();
 
-    Msr::new(0xC0000101)
-        .write(Box::into_raw(cpu_local) as u64);
+    Msr::new(0xC0000101).write(Box::into_raw(cpu_local) as u64);
 }
 
 // /// Global system data
@@ -93,10 +90,8 @@ pub struct Local {
 
 impl Local {
     unsafe fn new(cpu: *const Cpu) -> Local {
-        let idle_thread = Thread::new(4096, || {
-            loop {
-                ::arch::interrupt::halt();
-            }
+        let idle_thread = Thread::new(4096, || loop {
+            ::arch::interrupt::halt();
         }).unwrap();
 
         let kernel_thread = Thread::new(4096, || {}).unwrap();
@@ -121,16 +116,12 @@ impl Local {
     }
 
     pub fn current() -> &'static mut Local {
-        unsafe {
-            &mut *(read_gs_offset64!(0x0) as *mut Local)
-        }
+        unsafe { &mut *(read_gs_offset64!(0x0) as *mut Local) }
     }
 
     #[inline]
     pub fn current_thread() -> *mut Thread {
-        unsafe {
-            read_gs_offset64!(offset_of!(Local, current_thread)) as *mut Thread
-        }
+        unsafe { read_gs_offset64!(offset_of!(Local, current_thread)) as *mut Thread }
     }
 
     #[inline]
@@ -171,11 +162,14 @@ impl Dpc {
             }
         }).expect("Enable to create dpc thread");
 
-        (dpc_thread, Dpc {
-            runqueue: Mpsc::new(),
-            thread_cleanup_queue: IntrusiveMpsc::new(),
-            event: Event::new(EventVariant::AutoUnsignal),
-        })
+        (
+            dpc_thread,
+            Dpc {
+                runqueue: Mpsc::new(),
+                thread_cleanup_queue: IntrusiveMpsc::new(),
+                event: Event::new(EventVariant::AutoUnsignal),
+            },
+        )
     }
 
     pub fn queue(arg: usize, f: fn(usize)) {

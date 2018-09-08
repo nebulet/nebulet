@@ -1,9 +1,9 @@
-use std::process::{Command, ExitStatus, exit};
-use std::path::{Path, PathBuf};
-use std::io;
 use std::fs;
+use std::io;
+use std::path::{Path, PathBuf};
+use std::process::{exit, Command, ExitStatus};
 
-fn build_wat(wat_file: &Path, wasm_file: &Path) -> io::Result<ExitStatus>  {
+fn build_wat(wat_file: &Path, wasm_file: &Path) -> io::Result<ExitStatus> {
     Command::new("wat2wasm")
         .arg(wat_file)
         .arg("-o")
@@ -22,7 +22,7 @@ fn main() {
         if !r.success() {
             match r.code() {
                 Some(x) => eprintln!("wat2wasm exited with status {}", x),
-                None => eprintln!("wat2wasm terminated by signal")
+                None => eprintln!("wat2wasm terminated by signal"),
             };
             exit(1);
         }

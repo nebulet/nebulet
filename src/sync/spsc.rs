@@ -1,15 +1,9 @@
-use core::ptr;
 pub use super::mpsc::IntrusiveNode;
+use core::ptr;
 
-unsafe impl<T> Send for IntrusiveSpsc<T>
-where
-    T: IntrusiveNode + Send
-{}
+unsafe impl<T> Send for IntrusiveSpsc<T> where T: IntrusiveNode + Send {}
 
-unsafe impl<T> Sync for IntrusiveSpsc<T>
-where
-    T: IntrusiveNode + Sync
-{}
+unsafe impl<T> Sync for IntrusiveSpsc<T> where T: IntrusiveNode + Sync {}
 
 pub struct IntrusiveSpsc<T: IntrusiveNode> {
     pushlist: *mut T,

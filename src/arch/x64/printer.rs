@@ -1,4 +1,4 @@
-use core::fmt::{Write, Result};
+use core::fmt::{Result, Write};
 use core::ptr;
 
 use arch::lock::Spinlock;
@@ -14,9 +14,7 @@ pub struct Printer {
 
 impl Printer {
     pub const fn new() -> Printer {
-        Printer {
-            index: 0,
-        }
+        Printer { index: 0 }
     }
 
     #[inline]

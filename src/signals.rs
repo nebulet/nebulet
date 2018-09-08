@@ -1,4 +1,3 @@
-
 bitflags! {
     pub struct Signal: u32 {
         const READABLE = 1 << 0;
@@ -18,7 +17,7 @@ bitflags! {
         const USER_6 =          1 << 30;
         const USER_7 =          1 << 31;
 
-        const USER_ALL = 
+        const USER_ALL =
               Self::USER_0.bits
             | Self::USER_1.bits
             | Self::USER_2.bits
@@ -26,6 +25,6 @@ bitflags! {
             | Self::USER_4.bits
             | Self::USER_5.bits
             | Self::USER_6.bits
-            | Self::USER_7.bits;        
+            | Self::USER_7.bits;
     }
 }

@@ -1,11 +1,11 @@
-use object::thread::{Thread, State};
-use wasm::VmCtx;
+use object::thread::{State, Thread};
 use sync::atomic::{Atomic, Ordering};
 use sync::mpsc::IntrusiveMpsc;
+use wasm::VmCtx;
 
 /// This will crash the process when the value_offset doesn't point to committed memory.
 /// While somewhat extreme, it is safe.
-pub extern fn pfex_acquire(lock_offset: u32, vmctx: &VmCtx) {
+pub extern "C" fn pfex_acquire(lock_offset: u32, vmctx: &VmCtx) {
     let user_data = &vmctx.data().user_data;
     let lock_ptr: *const Atomic<u32> = vmctx.fastpath_offset_ptr(lock_offset);
     let lock = unsafe { &*lock_ptr };
@@ -18,13 +18,13 @@ pub extern fn pfex_acquire(lock_offset: u32, vmctx: &VmCtx) {
             lock.store(1, Ordering::Release);
             break;
         } else {
-            let queue = pfex_map
-                .entry(lock_offset)
-                .or_insert(IntrusiveMpsc::new());
+            let queue = pfex_map.entry(lock_offset).or_insert(IntrusiveMpsc::new());
 
             let current_thread = Thread::current();
 
-            unsafe { queue.push(current_thread); } // this must be first
+            unsafe {
+                queue.push(current_thread);
+            } // this must be first
             current_thread.set_state(State::Blocked);
 
             // drop the lock on the pfex_map to avoid deadlocks
@@ -38,7 +38,7 @@ pub extern fn pfex_acquire(lock_offset: u32, vmctx: &VmCtx) {
 
 /// This will crash the process when the value_offset doesn't point to committed memory.
 /// While somewhat extreme, it is safe.
-pub extern fn pfex_release(lock_offset: u32, vmctx: &VmCtx) {
+pub extern "C" fn pfex_release(lock_offset: u32, vmctx: &VmCtx) {
     let lock_ptr: *const Atomic<u32> = vmctx.fastpath_offset_ptr(lock_offset);
     let lock = unsafe { &*lock_ptr };
 

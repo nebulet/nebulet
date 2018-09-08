@@ -1,6 +1,5 @@
-
-use core::mem;
 use alloc::vec::Vec;
+use core::mem;
 
 use core::ops::Range;
 
@@ -29,14 +28,17 @@ impl BitArray {
             let bits = mem::size_of::<u64>() * 8;
             let w = index / bits;
             let b = index % bits;
-            self.storage.get(w).map(|&block|
-                (block & (1 << b)) != 0
-            )
+            self.storage.get(w).map(|&block| (block & (1 << b)) != 0)
         }
     }
 
     pub fn set(&mut self, index: usize, v: bool) {
-        assert!(index < self.nbits, "index out of bounds: {} >= {}", index, self.nbits);
+        assert!(
+            index < self.nbits,
+            "index out of bounds: {} >= {}",
+            index,
+            self.nbits
+        );
 
         let bits = mem::size_of::<u64>() * 8;
         let w = index / bits;

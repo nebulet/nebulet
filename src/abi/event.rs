@@ -1,7 +1,7 @@
-use object::{EventDispatcher, HandleRights};
-use nabi::{Result, Error};
-use wasm::UserData;
+use nabi::{Error, Result};
 use nebulet_derive::nebulet_abi;
+use object::{EventDispatcher, HandleRights};
+use wasm::UserData;
 
 #[nebulet_abi]
 pub fn event_create(user_data: &UserData) -> Result<u32> {

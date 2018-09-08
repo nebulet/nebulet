@@ -3,12 +3,13 @@
 //!
 //! Literally just copied from https://github.com/sunfishcode/wasmstandalone
 
-use cranelift_wasm::{FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
-                SignatureIndex};
 use cranelift_codegen::ir;
+use cranelift_wasm::{
+    FunctionIndex, Global, GlobalIndex, Memory, MemoryIndex, SignatureIndex, Table, TableIndex,
+};
 
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 use hashmap_core::HashMap;
 
 /// Possible values for a WebAssembly table element.

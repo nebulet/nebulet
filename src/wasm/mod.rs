@@ -5,33 +5,39 @@
 //!
 //! Pretty much just taken from https://github.com/sunfishcode/wasmstandalone
 
-pub mod module;
-pub mod instance;
 pub mod compilation;
+pub mod instance;
+pub mod module;
 #[macro_use]
 mod abi_types;
 mod abi;
 
-
-pub use self::module::Module;
 pub use self::compilation::{Compilation, Compiler};
-pub use self::instance::{Instance, VmCtx, UserData};
+pub use self::instance::{Instance, UserData, VmCtx};
+pub use self::module::Module;
 
-use cranelift_wasm::{self, FuncEnvironment as FuncEnvironmentTrait, FunctionIndex, GlobalIndex, TableIndex, MemoryIndex, Global, Table, Memory,
-                GlobalVariable, SignatureIndex, FuncTranslator, WasmResult};
-use cranelift_codegen::ir::{self, InstBuilder, FuncRef, ExtFuncData, ExternalName, Signature, AbiParam,
-                   ArgumentPurpose, ArgumentLoc, ArgumentExtension, Function};
-use cranelift_codegen::ir::types::*;
-use cranelift_codegen::settings::CallConv;
 use cranelift_codegen::cursor::FuncCursor;
-use cranelift_codegen::{self, isa, settings, binemit};
-use target_lexicon::{Triple, Architecture, Vendor, OperatingSystem, Environment, BinaryFormat, PointerWidth};
+use cranelift_codegen::ir::types::*;
+use cranelift_codegen::ir::{
+    self, AbiParam, ArgumentExtension, ArgumentLoc, ArgumentPurpose, ExtFuncData, ExternalName,
+    FuncRef, Function, InstBuilder, Signature,
+};
+use cranelift_codegen::settings::CallConv;
+use cranelift_codegen::{self, binemit, isa, settings};
+use cranelift_wasm::{
+    self, FuncEnvironment as FuncEnvironmentTrait, FuncTranslator, FunctionIndex, Global,
+    GlobalIndex, GlobalVariable, Memory, MemoryIndex, SignatureIndex, Table, TableIndex,
+    WasmResult,
+};
+use target_lexicon::{
+    Architecture, BinaryFormat, Environment, OperatingSystem, PointerWidth, Triple, Vendor,
+};
 use wasmparser;
 
 use nabi;
 
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Compute a `ir::ExternalName` for a given wasm function index.
 pub fn get_func_name(func_index: FunctionIndex) -> cranelift_codegen::ir::ExternalName {
@@ -80,35 +86,28 @@ impl binemit::RelocSink for RelocSink {
                 namespace: 0,
                 index,
             } => {
-                self.func_relocs.push(
-                    (
-                        Relocation {
-                            reloc,
-                            offset,
-                            addend,
-                        },
-                        RelocationType::Normal(index as _),
-                    )
-                );
-            },
-            ExternalName::TestCase {
-                length,
-                ascii,
-            } => {
+                self.func_relocs.push((
+                    Relocation {
+                        reloc,
+                        offset,
+                        addend,
+                    },
+                    RelocationType::Normal(index as _),
+                ));
+            }
+            ExternalName::TestCase { length, ascii } => {
                 let (slice, _) = ascii.split_at(length as usize);
                 let name = String::from_utf8(slice.to_vec()).unwrap();
 
-                self.func_relocs.push(
-                    (
-                        Relocation {
-                            reloc,
-                            offset,
-                            addend,
-                        },
-                        RelocationType::Intrinsic(name),
-                    )
-                );
-            },
+                self.func_relocs.push((
+                    Relocation {
+                        reloc,
+                        offset,
+                        addend,
+                    },
+                    RelocationType::Intrinsic(name),
+                ));
+            }
             _ => {
                 unimplemented!();
             }
@@ -234,7 +233,7 @@ pub struct FuncEnvironment<'module_environment> {
 
     /// The external function declaration for implementing wasm's `grow_memory`.
     pub grow_memory_extfunc: Option<FuncRef>,
-    
+
     pub debug_addr_extfunc: Option<FuncRef>,
 }
 
@@ -358,9 +357,8 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
         use memory::WasmMemory;
         if index == 0 {
             let heap_base = self.main_memory_base.unwrap_or_else(|| {
-                let new_base = func.create_global_value(ir::GlobalValueData::VMContext {
-                    offset: 0.into(),
-                });
+                let new_base =
+                    func.create_global_value(ir::GlobalValueData::VMContext { offset: 0.into() });
                 self.main_memory_base = Some(new_base);
                 new_base
             });
@@ -454,7 +452,11 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
         let signature = func.import_signature(self.module.signatures[sigidx].clone());
         let name = get_func_name(index);
         // TODO(gmorenz): Can colocated be true?
-        func.import_function(ir::ExtFuncData { name, signature, colocated: false })
+        func.import_function(ir::ExtFuncData {
+            name,
+            signature,
+            colocated: false,
+        })
     }
 
     fn translate_call_indirect(
@@ -475,27 +477,19 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
             callee
         };
 
-        let entry_addr = pos.ins().table_addr(
-            self.pointer_type(),
-            table,
-            callee,
-            0,
-        );
+        let entry_addr = pos.ins().table_addr(self.pointer_type(), table, callee, 0);
 
-        let callee_func = pos.ins().load(
-            self.pointer_type(),
-            ir::MemFlags::new(),
-            entry_addr,
-            0,
-        );
+        let callee_func = pos
+            .ins()
+            .load(self.pointer_type(), ir::MemFlags::new(), entry_addr, 0);
 
-        pos.ins().trapz(
-            callee_func,
-            ir::TrapCode::IndirectCallToNull,
-        );
+        pos.ins()
+            .trapz(callee_func, ir::TrapCode::IndirectCallToNull);
 
         let real_call_args = FuncEnvironment::get_real_call_args(pos.func, call_args);
-        Ok(pos.ins().call_indirect(sig_ref, callee_func, &real_call_args))
+        Ok(pos
+            .ins()
+            .call_indirect(sig_ref, callee_func, &real_call_args))
     }
 
     fn translate_call(
@@ -509,17 +503,18 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
 
         // Since imported functions are declared first,
         // this will be true if the callee is an imported function
-        if callee_index < self.module.imported_funcs.len() { // external function
+        if callee_index < self.module.imported_funcs.len() {
+            // external function
             let sig_ref = pos.func.dfg.ext_funcs[callee].signature;
             // convert callee into value needed for `call_indirect`
-            let callee_value = pos.ins()
-                .func_addr(self.pointer_type(), callee);
+            let callee_value = pos.ins().func_addr(self.pointer_type(), callee);
 
-            Ok(pos.ins()
+            Ok(pos
+                .ins()
                 .call_indirect(sig_ref, callee_value, &real_call_args))
-        } else { // internal function
-            Ok(pos.ins()
-                .call(callee, &real_call_args))
+        } else {
+            // internal function
+            Ok(pos.ins().call(callee, &real_call_args))
         }
     }
 
@@ -535,7 +530,10 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
             let sig_ref = pos.func.import_signature(Signature {
                 call_conv: CallConv::SystemV,
                 argument_bytes: None,
-                params: vec![AbiParam::new(I32), AbiParam::special(I64, ArgumentPurpose::VMContext)],
+                params: vec![
+                    AbiParam::new(I32),
+                    AbiParam::special(I64, ArgumentPurpose::VMContext),
+                ],
                 returns: vec![AbiParam::new(I32)],
             });
             // FIXME: Use a real ExternalName system.
@@ -624,10 +622,9 @@ impl<'data, 'flags> cranelift_wasm::ModuleEnvironment<'data> for ModuleEnvironme
         );
         self.module.functions.push(sig_index);
 
-        self.module.imported_funcs.push((
-            String::from(module),
-            String::from(field),
-        ));
+        self.module
+            .imported_funcs
+            .push((String::from(module), String::from(field)));
     }
 
     fn get_num_func_imports(&self) -> usize {
@@ -691,31 +688,27 @@ impl<'data, 'flags> cranelift_wasm::ModuleEnvironment<'data> for ModuleEnvironme
     }
 
     fn declare_func_export(&mut self, func_index: FunctionIndex, name: &str) {
-        self.module.exports.insert(
-            String::from(name),
-            module::Export::Function(func_index),
-        );
+        self.module
+            .exports
+            .insert(String::from(name), module::Export::Function(func_index));
     }
 
     fn declare_table_export(&mut self, table_index: TableIndex, name: &str) {
-        self.module.exports.insert(
-            String::from(name),
-            module::Export::Table(table_index),
-        );
+        self.module
+            .exports
+            .insert(String::from(name), module::Export::Table(table_index));
     }
 
     fn declare_memory_export(&mut self, memory_index: MemoryIndex, name: &str) {
-        self.module.exports.insert(
-            String::from(name),
-            module::Export::Memory(memory_index),
-        );
+        self.module
+            .exports
+            .insert(String::from(name), module::Export::Memory(memory_index));
     }
 
     fn declare_global_export(&mut self, global_index: GlobalIndex, name: &str) {
-        self.module.exports.insert(
-            String::from(name),
-            module::Export::Global(global_index),
-        );
+        self.module
+            .exports
+            .insert(String::from(name), module::Export::Global(global_index));
     }
 
     fn declare_start_func(&mut self, func_index: FunctionIndex) {
@@ -779,11 +772,13 @@ impl<'data, 'flags> ModuleTranslation<'data, 'flags> {
             let mut context = cranelift_codegen::Context::new();
             context.func.name = get_func_name(func_index);
             let num_imported = self.module.imported_funcs.len();
-            context.func.signature = self.module.signatures[self.module.functions[num_imported + func_index]].clone();
+            context.func.signature =
+                self.module.signatures[self.module.functions[num_imported + func_index]].clone();
 
             let mut trans = FuncTranslator::new();
             let reader = wasmparser::BinaryReader::new(input);
-            trans.translate_from_reader(reader, &mut context.func, &mut self.func_env())
+            trans
+                .translate_from_reader(reader, &mut context.func, &mut self.func_env())
                 .map_err(|err| {
                     println!("{:#?}", err);
                     nabi::internal_error!()

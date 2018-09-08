@@ -1,6 +1,6 @@
-use core::panic::PanicInfo;
 use arch::cpu::IrqController;
 use arch::interrupt;
+use core::panic::PanicInfo;
 
 #[panic_handler]
 #[no_mangle]
@@ -15,5 +15,5 @@ pub fn panic(info: &PanicInfo) -> ! {
     }
 }
 
-
-#[lang = "eh_personality"] extern fn eh_personality() {}
+#[lang = "eh_personality"]
+extern "C" fn eh_personality() {}

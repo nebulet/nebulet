@@ -1,8 +1,7 @@
-/// Caches deallocated frames
-
-use x86_64::structures::paging::{PhysFrame, PhysFrameRange};
-use alloc::vec::Vec;
 use super::FrameAllocator;
+use alloc::vec::Vec;
+/// Caches deallocated frames
+use x86_64::structures::paging::{PhysFrame, PhysFrameRange};
 
 pub struct FrameCache<T: FrameAllocator> {
     inner: T,
@@ -35,15 +34,18 @@ impl<T: FrameAllocator> FrameAllocator for FrameCache<T> {
 
     #[inline]
     fn allocate_contiguous(&mut self, size: usize) -> Option<PhysFrameRange> {
-        self.physical_pool.iter_mut().enumerate().find_map(|(i, region)| {
-            if region.end.start_address() - region.start.start_address() >= size as u64 {
-                Some(i)
-            } else {
-                None
-            }
-        }).map(|index| self.physical_pool.swap_remove(index))
+        self.physical_pool
+            .iter_mut()
+            .enumerate()
+            .find_map(|(i, region)| {
+                if region.end.start_address() - region.start.start_address() >= size as u64 {
+                    Some(i)
+                } else {
+                    None
+                }
+            }).map(|index| self.physical_pool.swap_remove(index))
     }
-    
+
     #[inline]
     fn deallocate_contiguous(&mut self, range: PhysFrameRange) {
         self.physical_pool.push(range);

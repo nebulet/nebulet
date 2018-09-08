@@ -58,9 +58,7 @@ impl SerialPort {
     }
 
     fn line_sts(&self) -> LineStsFlags {
-        unsafe {
-            LineStsFlags::from_bits_truncate(self.line_sts.read())
-        }
+        unsafe { LineStsFlags::from_bits_truncate(self.line_sts.read()) }
     }
 
     pub fn receive(&mut self) {
@@ -79,7 +77,7 @@ impl SerialPort {
                     self.data.write(b' ');
                     while !self.line_sts().contains(LineStsFlags::OUTPUT_EMPTY) {}
                     self.data.write(8)
-                },
+                }
                 _ => {
                     while !self.line_sts().contains(LineStsFlags::OUTPUT_EMPTY) {}
                     self.data.write(data);

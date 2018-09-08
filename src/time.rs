@@ -1,13 +1,13 @@
-pub use core::time::Duration;
-use core::ops::{Add, AddAssign, Sub, SubAssign};
 use arch::devices::high_precision_timer;
+use core::ops::{Add, AddAssign, Sub, SubAssign};
+pub use core::time::Duration;
 
 /// Kernel start time, measured in (seconds, nanoseconds) since Unix epoch
 pub static mut START: (u64, u32) = (0, 0);
 
 /// Return the start time of the kernel
 pub fn start() -> SystemTime {
-    let (secs, nanos) = unsafe{ START };
+    let (secs, nanos) = unsafe { START };
     SystemTime(Duration::new(secs, nanos))
 }
 
@@ -21,7 +21,7 @@ pub fn monotonic() -> u64 {
 #[inline]
 pub fn realtime() -> (u64, u32) {
     let offset = monotonic();
-    let start = unsafe{ START };
+    let start = unsafe { START };
     let sum = start.1 as u64 + offset;
     (start.0 + sum / 1_000_000_000, (sum % 1_000_000_000) as u32)
 }
@@ -36,7 +36,10 @@ impl Instant {
     pub const EPOCH: Instant = Instant(Duration::from_secs(0));
     pub fn now() -> Instant {
         let nanos = monotonic();
-        Instant(Duration::new(nanos / 1_000_000_000, (nanos % 1_000_000_000) as u32))
+        Instant(Duration::new(
+            nanos / 1_000_000_000,
+            (nanos % 1_000_000_000) as u32,
+        ))
     }
 
     pub fn duration_since(&self, earlier: Instant) -> Duration {

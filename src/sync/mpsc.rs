@@ -1,7 +1,7 @@
-use sync::atomic::{Atomic, Ordering};
+use alloc::boxed::Box;
 use core::cell::Cell;
 use core::ptr;
-use alloc::boxed::Box;
+use sync::atomic::{Atomic, Ordering};
 
 unsafe impl<T: Sized> Sync for Mpsc<T> {}
 unsafe impl<T: Sized> Send for Mpsc<T> {}
@@ -29,9 +29,7 @@ impl<T: Sized> Mpsc<T> {
     }
 
     pub fn get_sender(&self) -> Sender<T> {
-        Sender {
-            mpsc: self,
-        }
+        Sender { mpsc: self }
     }
 
     #[inline]
@@ -45,7 +43,11 @@ impl<T: Sized> Mpsc<T> {
 
         let node_ptr = Box::into_raw(node);
 
-        while self.pushlist.compare_exchange_weak(old_head, node_ptr, Ordering::Release, Ordering::Relaxed).is_err() {}
+        while self
+            .pushlist
+            .compare_exchange_weak(old_head, node_ptr, Ordering::Release, Ordering::Relaxed)
+            .is_err()
+        {}
     }
 
     #[inline]
@@ -129,7 +131,11 @@ impl<T: IntrusiveNode> IntrusiveMpsc<T> {
 
         item_ptr.set_next(old_head);
 
-        while self.pushlist.compare_exchange_weak(old_head, item_ptr, Ordering::Release, Ordering::Relaxed).is_err() {}
+        while self
+            .pushlist
+            .compare_exchange_weak(old_head, item_ptr, Ordering::Release, Ordering::Relaxed)
+            .is_err()
+        {}
     }
 
     #[inline]

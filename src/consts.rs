@@ -32,7 +32,7 @@ pub const KERNEL_HEAP_SIZE: usize = 20 * 1024 * 1024; // 1MB
 /// Offset of the SIP heaps
 /// The SIP Heap allocator starts here
 /// and bumps up.
-/// 
+///
 /// This starts at 2 GiB.
 // pub const SIP_MEM_OFFSET: usize = KERNEL_HEAP_OFFSET - PML4_SIZE;
 pub const SIP_MEM_OFFSET: usize = 1 << 31;

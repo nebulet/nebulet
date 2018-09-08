@@ -1,16 +1,16 @@
-use object::{HandleTable, Wasm, Thread};
-use wasm::{Instance, VmCtx};
+use super::dispatcher::{Dispatch, Dispatcher};
+use alloc::boxed::Box;
+use arch::lock::Spinlock;
+use common::table::Table;
+use core::{mem, slice};
 use cranelift_codegen::ir::TrapCode;
+use hashmap_core::HashMap;
 use nabi::Result;
 use nil::mem::Bin;
+use object::{HandleTable, Thread, Wasm};
 use spin::RwLock;
-use common::table::Table;
-use hashmap_core::HashMap;
-use core::{mem, slice};
 use sync::mpsc::IntrusiveMpsc;
-use arch::lock::Spinlock;
-use alloc::boxed::Box;
-use super::dispatcher::{Dispatch, Dispatcher};
+use wasm::{Instance, VmCtx};
 
 /// Represents a process.
 #[allow(dead_code)]
@@ -45,15 +45,25 @@ impl Process {
         }))
     }
 
-    pub fn create_thread(self: &Dispatch<Self>, func_addr: *const (), arg: u32, stack_ptr: u32) -> Result<u32> {
+    pub fn create_thread(
+        self: &Dispatch<Self>,
+        func_addr: *const (),
+        arg: u32,
+        stack_ptr: u32,
+    ) -> Result<u32> {
         let process = self.copy_ref();
 
-        let entry_point: extern fn(u32, &VmCtx) = unsafe { mem::transmute(func_addr) };
+        let entry_point: extern "C" fn(u32, &VmCtx) = unsafe { mem::transmute(func_addr) };
 
         let mut instance = self.initial_instance.clone();
 
         // assume that the first global is the simulated stack pointer
-        let globals = unsafe { slice::from_raw_parts_mut(instance.globals.as_mut_ptr() as *mut usize, instance.globals.len() / mem::size_of::<usize>()) };
+        let globals = unsafe {
+            slice::from_raw_parts_mut(
+                instance.globals.as_mut_ptr() as *mut usize,
+                instance.globals.len() / mem::size_of::<usize>(),
+            )
+        };
         globals[0] = stack_ptr as usize;
 
         let mut thread_list = self.thread_list.write();
@@ -62,7 +72,7 @@ impl Process {
 
         let mut thread = Thread::new_with_parent(self.copy_ref(), id, 1024 * 1024, move || {
             let mut vmctx_gen = instance.generate_vmctx_backing();
-            
+
             let vmctx = vmctx_gen.vmctx(process, instance);
             entry_point(arg, vmctx);
         })?;
@@ -89,13 +99,14 @@ impl Process {
 
         debug_assert!(thread_id.inner() == 0);
 
-        let mut thread = Thread::new_with_parent(self.copy_ref(), thread_id, 1024 * 1024, move || {
-            let entry_point = process.code.start_func();
+        let mut thread =
+            Thread::new_with_parent(self.copy_ref(), thread_id, 1024 * 1024, move || {
+                let entry_point = process.code.start_func();
 
-            let mut vmctx_gen = instance.generate_vmctx_backing();
-            let vmctx = vmctx_gen.vmctx(process, instance);
-            entry_point(vmctx);
-        })?;
+                let mut vmctx_gen = instance.generate_vmctx_backing();
+                let vmctx = vmctx_gen.vmctx(process, instance);
+                entry_point(vmctx);
+            })?;
 
         thread.start();
 
@@ -103,7 +114,7 @@ impl Process {
 
         debug_assert!(id == thread_id);
         debug_assert!(id.inner() == 0);
-        
+
         Ok(())
     }
 
@@ -113,10 +124,8 @@ impl Process {
         // here, we need to kill all the threads in the process
         // except the current thread.
         {
-            let mut thread_list = self
-                .thread_list
-                .write();
-            
+            let mut thread_list = self.thread_list.write();
+
             thread_list
                 .drain(..)
                 .filter(|thread| current_thread as *const Thread != &**thread as *const Thread)
@@ -131,7 +140,7 @@ impl Process {
     }
 
     /// You just activated my trap card!
-    /// 
+    ///
     /// Being serious, almost all types of traps
     /// entail a process shutdown. Cranelift does
     /// support resumable traps, but they're not

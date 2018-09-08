@@ -1,20 +1,22 @@
-use object::{Dispatcher, UserHandle};
+use event::{Event, EventVariant};
+use nabi::{Error, Result};
+use nebulet_derive::nebulet_abi;
 use object::dispatcher::LocalObserver;
 use object::wait_observer::WaitObserver;
-use event::{Event, EventVariant};
+use object::{Dispatcher, UserHandle};
 use signals::Signal;
-use nabi::{Result, Error};
 use wasm::UserData;
-use nebulet_derive::nebulet_abi;
 
 #[nebulet_abi]
-pub fn object_wait_one(object_handle: UserHandle<Dispatcher>, signals: Signal, user_data: &UserData) -> Result<u32> {
+pub fn object_wait_one(
+    object_handle: UserHandle<Dispatcher>,
+    signals: Signal,
+    user_data: &UserData,
+) -> Result<u32> {
     let mut object = {
         let handle_table = user_data.process.handle_table().read();
 
-        let handle = handle_table
-            .get_uncasted(object_handle)?
-            .copy_ref();
+        let handle = handle_table.get_uncasted(object_handle)?.copy_ref();
         handle
     };
 
@@ -43,17 +45,23 @@ pub fn object_wait_one(object_handle: UserHandle<Dispatcher>, signals: Signal, u
 }
 
 #[nebulet_abi]
-pub fn object_signal(object_handle: UserHandle<Dispatcher>, assert_signals: Signal, deassert_signals: Signal, user_data: &UserData) -> Result<u32> {
+pub fn object_signal(
+    object_handle: UserHandle<Dispatcher>,
+    assert_signals: Signal,
+    deassert_signals: Signal,
+    user_data: &UserData,
+) -> Result<u32> {
     let object = {
         let handle_table = user_data.process.handle_table().read();
 
-        let handle = handle_table
-            .get_uncasted(object_handle)?
-            .copy_ref();
+        let handle = handle_table.get_uncasted(object_handle)?.copy_ref();
         handle
     };
 
-    if !object.allowed_user_signals().contains(assert_signals | deassert_signals) {
+    if !object
+        .allowed_user_signals()
+        .contains(assert_signals | deassert_signals)
+    {
         return Err(Error::INVALID_ARG);
     }
 

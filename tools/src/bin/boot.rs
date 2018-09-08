@@ -1,6 +1,6 @@
-use std::process::Command;
-use std::io::{self, Read};
 use std::fs::File;
+use std::io::{self, Read};
+use std::process::Command;
 
 fn main() -> io::Result<()> {
     // let exit_status = build_image()?;

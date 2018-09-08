@@ -1,14 +1,14 @@
 use super::dispatcher::{Dispatch, Dispatcher};
-use signals::Signal;
-use nabi::{Result, Error};
-use object::Handle;
-use alloc::vec::Vec;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::sync::Arc;
+use alloc::vec::Vec;
 use arch::lock::Spinlock;
+use nabi::{Error, Result};
+use object::Handle;
+use signals::Signal;
 
-pub const MAX_MSGS: usize       = 1000;
-pub const MAX_MSG_SIZE: usize   = 64 * 1024; // 64 KiB
+pub const MAX_MSGS: usize = 1000;
+pub const MAX_MSG_SIZE: usize = 64 * 1024; // 64 KiB
 
 pub struct Message {
     data: Vec<u8>,
@@ -129,7 +129,8 @@ impl Channel {
     pub fn first_msg_len(&self) -> Result<usize> {
         let shared = self.shared.lock();
 
-        shared.msgs
+        shared
+            .msgs
             .front()
             .map(|msg| msg.data().len())
             .ok_or_else(|| {
@@ -144,13 +145,12 @@ impl Channel {
 
 impl Dispatcher for Channel {
     fn allowed_user_signals(&self) -> Signal {
-        Signal::READABLE
-        | Signal::WRITABLE 
-        | Signal::PEER_CLOSED
-        | Signal::PEER_SIGNALED
+        Signal::READABLE | Signal::WRITABLE | Signal::PEER_CLOSED | Signal::PEER_SIGNALED
     }
 
-    fn allows_observers(&self) -> bool { true }
+    fn allows_observers(&self) -> bool {
+        true
+    }
 
     fn on_zero_handles(&self) {
         if let Some(peer) = self.peer() {

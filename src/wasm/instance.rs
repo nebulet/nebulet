@@ -2,21 +2,25 @@
 //!
 //! Literally taken from https://github.com/sunfishcode/wasmstandalone
 
-use cranelift_wasm::{GlobalInit};
 use super::module::Module;
 use super::{DataInitializer, FunctionIndex};
+use cranelift_wasm::GlobalInit;
 
-use memory::WasmMemory;
-use object::{Dispatch, Process};
-use nabi::Result;
-use core::marker::PhantomData;
-use core::{slice, mem};
-use alloc::vec::Vec;
 use alloc::sync::Arc;
-use spin::RwLock;
+use alloc::vec::Vec;
 use common::slice::{BoundedSlice, UncheckedSlice};
+use core::marker::PhantomData;
+use core::{mem, slice};
+use memory::WasmMemory;
+use nabi::Result;
+use object::{Dispatch, Process};
+use spin::RwLock;
 
-pub fn get_function_addr(base: *const (), functions: &[usize], func_index: FunctionIndex) -> *const () {
+pub fn get_function_addr(
+    base: *const (),
+    functions: &[usize],
+    func_index: FunctionIndex,
+) -> *const () {
     let offset = functions[func_index];
     (base as usize + offset) as _
 }
@@ -29,25 +33,23 @@ pub struct VmCtxGenerator {
 
 impl VmCtxGenerator {
     pub fn vmctx(&mut self, process: Dispatch<Process>, instance: Instance) -> &VmCtx {
-        assert!(self.memories.len() >= 1, "modules must have at least one memory");
+        assert!(
+            self.memories.len() >= 1,
+            "modules must have at least one memory"
+        );
         // the first memory has a space of `mem::size_of::<VmCtxData>()` rounded
         // up to the 4KiB before it. We write the VmCtxData into that.
         let data = VmCtxData {
             globals: self.globals,
             memories: self.memories[1..].into(),
             tables: self.tables[..].into(),
-            user_data: UserData {
-                process,
-                instance,
-            },
+            user_data: UserData { process, instance },
             phantom: PhantomData,
         };
 
         let main_heap_ptr = self.memories[0].as_mut_ptr() as *mut VmCtxData;
         unsafe {
-            main_heap_ptr
-                .sub(1)
-                .write(data);
+            main_heap_ptr.sub(1).write(data);
             &*(main_heap_ptr as *const VmCtx)
         }
     }
@@ -59,18 +61,14 @@ pub enum VmCtx {}
 impl VmCtx {
     pub fn data(&self) -> &VmCtxData {
         let heap_ptr = self as *const _ as *const VmCtxData;
-        unsafe {
-            &*heap_ptr.sub(1)
-        }
+        unsafe { &*heap_ptr.sub(1) }
     }
 
     /// This is safe because the offset is 32 bits and thus
     /// cannot extend out of the guarded wasm memory.
     pub fn fastpath_offset_ptr<T>(&self, offset: u32) -> *const T {
         let heap_ptr = self as *const _ as *const u8;
-        unsafe {
-            heap_ptr.add(offset as usize) as *const T
-        }
+        unsafe { heap_ptr.add(offset as usize) as *const T }
     }
 }
 
@@ -96,7 +94,12 @@ struct InstanceBuilder {
 }
 
 impl InstanceBuilder {
-    pub fn new(module: &Module, data_initializers: &[DataInitializer], code_base: *const (), functions: &[usize]) -> InstanceBuilder {
+    pub fn new(
+        module: &Module,
+        data_initializers: &[DataInitializer],
+        code_base: *const (),
+        functions: &[usize],
+    ) -> InstanceBuilder {
         let mut builder = InstanceBuilder {
             tables: Vec::new(),
             memories: Vec::new(),
@@ -123,7 +126,10 @@ impl InstanceBuilder {
         }
         // instantiate tables
         for table_element in &module.table_elements {
-            assert!(table_element.base.is_none(), "globalvalue base not supported yet.");
+            assert!(
+                table_element.base.is_none(),
+                "globalvalue base not supported yet."
+            );
             let base = 0;
 
             let table = &mut self.tables[table_element.table_index];
@@ -145,14 +151,14 @@ impl InstanceBuilder {
         self.memories.reserve_exact(module.memories.len());
 
         for (i, memory) in module.memories.iter().enumerate() {
-            let pre_space = if i == 0 { // first memory
+            let pre_space = if i == 0 {
+                // first memory
                 mem::size_of::<VmCtxData>()
             } else {
                 0
             };
 
-            let heap = WasmMemory::allocate(pre_space)
-                .expect("Could not allocate wasm memory");
+            let heap = WasmMemory::allocate(pre_space).expect("Could not allocate wasm memory");
             heap.grow(memory.pages_count)
                 .expect("Could not grow wasm heap to initial size");
             self.memories.push(heap);
@@ -183,7 +189,9 @@ impl InstanceBuilder {
         self.globals.resize(globals_data_size, 0);
 
         // cast the self.globals slice to a slice of i64.
-        let globals_data = unsafe { slice::from_raw_parts_mut(self.globals.as_mut_ptr() as *mut i64, globals_count) };
+        let globals_data = unsafe {
+            slice::from_raw_parts_mut(self.globals.as_mut_ptr() as *mut i64, globals_count)
+        };
         for (i, global) in module.globals.iter().enumerate() {
             let value: i64 = match global.initializer {
                 GlobalInit::I32Const(n) => n as _,
@@ -192,7 +200,7 @@ impl InstanceBuilder {
                 GlobalInit::F64Const(f) => unsafe { mem::transmute(f) },
                 _ => unimplemented!(),
             };
-            
+
             globals_data[i] = value;
         }
     }
@@ -213,25 +221,36 @@ pub struct Instance {
 
 impl Instance {
     /// Create a new `Instance`.
-    pub fn build(module: &Module, data_initializers: &[DataInitializer], code_base: *const (), functions: &[usize]) -> Result<Instance> {
+    pub fn build(
+        module: &Module,
+        data_initializers: &[DataInitializer],
+        code_base: *const (),
+        functions: &[usize],
+    ) -> Result<Instance> {
         let builder = InstanceBuilder::new(module, data_initializers, code_base, functions);
 
         Ok(Instance {
-            tables: Arc::new(builder.tables.into_iter().map(|table| RwLock::new(table)).collect()),
+            tables: Arc::new(
+                builder
+                    .tables
+                    .into_iter()
+                    .map(|table| RwLock::new(table))
+                    .collect(),
+            ),
             memories: Arc::new(builder.memories.into_iter().collect()),
             globals: builder.globals,
         })
     }
 
     pub fn generate_vmctx_backing(&mut self) -> VmCtxGenerator {
-        let memories = self.memories.iter()
-            .map(|mem| mem[..].into())
-            .collect();
+        let memories = self.memories.iter().map(|mem| mem[..].into()).collect();
 
-        let tables = self.tables.iter()
+        let tables = self
+            .tables
+            .iter()
             .map(|table| table.write()[..].into())
             .collect();
-        
+
         VmCtxGenerator {
             globals: self.globals[..].into(),
             memories,

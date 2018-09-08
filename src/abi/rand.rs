@@ -1,7 +1,7 @@
-use nabi::{Result, Error};
-use nebulet_derive::nebulet_abi;
 use arch::x64::devices::rand::rdrand::RdRand;
 use arch::x64::devices::rand::seeded;
+use nabi::{Error, Result};
+use nebulet_derive::nebulet_abi;
 use rand_core::RngCore;
 use wasm::UserData;
 
@@ -9,7 +9,7 @@ fn get_rdrand() -> Result<RdRand> {
     RdRand::new().ok_or(Error::UNAVAILABLE)
 }
 
-static mut RDRAND : Option<Result<RdRand>> = None;
+static mut RDRAND: Option<Result<RdRand>> = None;
 
 /// Provides random bytes
 /// No guarantee is made that the random bytes are of cryptographic
@@ -26,11 +26,12 @@ pub fn random_fill(buffer_offset: u32, buffer_size: u32, user_data: &UserData) -
         Ok(ref mut v) => {
             let instance = &user_data.instance;
             let memory = &instance.memories[0];
-            let buffer = memory.carve_slice_mut(buffer_offset, buffer_size)
+            let buffer = memory
+                .carve_slice_mut(buffer_offset, buffer_size)
                 .ok_or(Error::INVALID_ARG)?;
             v.fill_bytes(buffer);
             Ok(0)
-        },
+        }
         Err(ref e) => Err(e.clone()),
     }
 }
@@ -42,13 +43,12 @@ pub fn random_fill(buffer_offset: u32, buffer_size: u32, user_data: &UserData) -
 /// To provide good performance, this should be used to seed a prng
 /// local to the WASM process.
 #[nebulet_abi]
-pub fn cprng_fill(buffer_offset: u32, buffer_size: u32, user_data: &UserData) -> Result<u32>
-{
+pub fn cprng_fill(buffer_offset: u32, buffer_size: u32, user_data: &UserData) -> Result<u32> {
     let instance = &user_data.instance;
     let mut memory = &instance.memories[0];
-    let buffer = memory.carve_slice_mut(buffer_offset, buffer_size)
+    let buffer = memory
+        .carve_slice_mut(buffer_offset, buffer_size)
         .ok_or(Error::INVALID_ARG)?;
     seeded::with_global_rng(|rng| rng.fill_bytes(buffer))?;
     Ok(0)
 }
-

@@ -1,7 +1,7 @@
-use nabi::{Result, Error, HandleRights};
 use super::dispatcher::{Dispatch, Dispatcher};
 use core::marker::PhantomData;
 use core::ops::Deref;
+use nabi::{Error, HandleRights, Result};
 
 /// A Handle represents an atomically reference-counted object with specfic rights.
 /// Handles can be duplicated if they have the `HandleRights::DUPLICATE` right.
@@ -12,15 +12,11 @@ pub struct Handle<T: Dispatcher + ?Sized> {
     rights: HandleRights,
 }
 
-impl<T: Dispatcher + ?Sized> Handle<T>
-{
+impl<T: Dispatcher + ?Sized> Handle<T> {
     pub fn new(dispatch: Dispatch<T>, rights: HandleRights) -> Handle<T> {
-        Handle {
-            dispatch,
-            rights,
-        }
+        Handle { dispatch, rights }
     }
-    
+
     pub fn duplicate(&self, new_rights: HandleRights) -> Option<Self> {
         if self.rights.contains(new_rights | HandleRights::DUPLICATE) {
             Some(Handle {
@@ -51,7 +47,7 @@ impl<T: Dispatcher + ?Sized> Handle<T>
 
 impl<T> Handle<T>
 where
-    T: Dispatcher + Sized
+    T: Dispatcher + Sized,
 {
     pub fn upcast(self) -> Handle<Dispatcher> {
         Handle {
@@ -74,7 +70,7 @@ impl Handle<Dispatcher> {
 
 impl<T> Deref for Handle<T>
 where
-    T: Dispatcher + ?Sized
+    T: Dispatcher + ?Sized,
 {
     type Target = Dispatch<T>;
     fn deref(&self) -> &Dispatch<T> {
@@ -87,7 +83,7 @@ pub struct UserHandle<T: Dispatcher + ?Sized>(u32, PhantomData<T>);
 
 impl<T> UserHandle<T>
 where
-    T: Dispatcher + ?Sized
+    T: Dispatcher + ?Sized,
 {
     #[inline]
     pub fn new(index: u32) -> UserHandle<T> {

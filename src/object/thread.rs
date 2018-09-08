@@ -1,16 +1,16 @@
-use object::Process;
-use event::{Event, EventVariant};
-use common::table::TableSlot;
-use arch::cpu::Local;
-use nabi::{Result, Error};
-use sync::atomic::{Atomic, Ordering};
-use sync::mpsc::IntrusiveNode;
-use core::ptr;
-use arch::cpu::Dpc;
-use memory::sip::WasmStack;
+use super::dispatcher::Dispatch;
 use alloc::boxed::Box;
 use arch::context::ThreadContext;
-use super::dispatcher::Dispatch;
+use arch::cpu::Dpc;
+use arch::cpu::Local;
+use common::table::TableSlot;
+use core::ptr;
+use event::{Event, EventVariant};
+use memory::sip::WasmStack;
+use nabi::{Error, Result};
+use object::Process;
+use sync::atomic::{Atomic, Ordering};
+use sync::mpsc::IntrusiveNode;
 
 impl IntrusiveNode for Thread {
     #[inline]
@@ -73,10 +73,10 @@ pub struct Thread {
 
 impl Thread {
     pub fn new<F>(stack_size: usize, f: F) -> Result<Box<Thread>>
-        where F: FnOnce() + Send + Sync
+    where
+        F: FnOnce() + Send + Sync,
     {
-        let stack = WasmStack::allocate(stack_size)
-            .ok_or(Error::NO_MEMORY)?;
+        let stack = WasmStack::allocate(stack_size).ok_or(Error::NO_MEMORY)?;
 
         let exit_event = Event::new(EventVariant::Normal);
 
@@ -92,12 +92,17 @@ impl Thread {
         }))
     }
 
-    pub fn new_with_parent<F>(parent: Dispatch<Process>, local_id: TableSlot, stack_size: usize, f: F) -> Result<Box<Thread>>
-        where F: FnOnce() + Send + Sync
+    pub fn new_with_parent<F>(
+        parent: Dispatch<Process>,
+        local_id: TableSlot,
+        stack_size: usize,
+        f: F,
+    ) -> Result<Box<Thread>>
+    where
+        F: FnOnce() + Send + Sync,
     {
-        let stack = WasmStack::allocate(stack_size)
-            .ok_or(Error::NO_MEMORY)?;
-        
+        let stack = WasmStack::allocate(stack_size).ok_or(Error::NO_MEMORY)?;
+
         let exit_event = Event::new(EventVariant::Normal);
 
         Ok(Box::new(Thread {
@@ -113,7 +118,9 @@ impl Thread {
     }
 
     pub fn start(&mut self) {
-        let old_state = self.state.compare_and_swap(State::Initial, State::Ready, Ordering::SeqCst);
+        let old_state = self
+            .state
+            .compare_and_swap(State::Initial, State::Ready, Ordering::SeqCst);
 
         debug_assert!(old_state == State::Initial);
 
@@ -127,7 +134,7 @@ impl Thread {
     pub fn set_state(&self, state: State) {
         self.state.store(state, Ordering::Relaxed);
     }
-    
+
     pub fn current<'a>() -> &'a mut Thread {
         unsafe { &mut *Local::current_thread() }
     }
@@ -146,11 +153,11 @@ impl Thread {
     pub fn resume(&self) {
         debug_assert!({
             let state = self.state();
-            state == State::Blocked || state == State::Suspended 
+            state == State::Blocked || state == State::Suspended
         });
-        
+
         self.set_state(State::Ready);
-        
+
         Local::schedule_thread(self as *const _ as *mut _);
     }
 
@@ -212,8 +219,9 @@ impl Thread {
     }
 }
 
-extern fn common_thread_entry<F>()
-    where F: FnOnce() + Send + Sync
+extern "C" fn common_thread_entry<F>()
+where
+    F: FnOnce() + Send + Sync,
 {
     let current_thread = Thread::current();
 

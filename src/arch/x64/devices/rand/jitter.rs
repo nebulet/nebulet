@@ -1,9 +1,9 @@
 //! Expose randomness based on CPU jitter
 
-use rand_core::RngCore;
-use rand::jitter::JitterRng;
 use arch::devices::high_precision_timer;
-use nabi::{Result, Error};
+use nabi::{Error, Result};
+use rand::jitter::JitterRng;
+use rand_core::RngCore;
 
 pub fn build_jitter() -> Result<JitterRng> {
     let mut rng = JitterRng::new_with_timer(high_precision_timer::now);

@@ -1,6 +1,6 @@
-pub use core::sync::atomic::Ordering;
 use core::cell::UnsafeCell;
 use core::mem::size_of;
+pub use core::sync::atomic::Ordering;
 
 union Transmute<T: Copy, U: Copy> {
     from: T,
@@ -37,7 +37,7 @@ pub struct Atomic<T> {
 
 impl<T> Atomic<T>
 where
-    T: Copy
+    T: Copy,
 {
     #[inline]
     pub const fn new(val: T) -> Atomic<T> {
@@ -48,9 +48,7 @@ where
 
     #[inline]
     pub fn get_mut(&mut self) -> &mut T {
-        unsafe {
-            &mut *self.data.get()
-        }
+        unsafe { &mut *self.data.get() }
     }
 
     #[inline]
@@ -75,17 +73,49 @@ where
 
     #[inline]
     pub fn compare_and_swap(&self, current: T, new: T, order: Ordering) -> T {
-        call_atomic!(atomic_compare_and_swap, self.data.get(), current, new, order)   
+        call_atomic!(
+            atomic_compare_and_swap,
+            self.data.get(),
+            current,
+            new,
+            order
+        )
     }
 
     #[inline]
-    pub fn compare_exchange(&self, current: T, new: T, success: Ordering, failure: Ordering) -> Result<T, T> {
-        call_atomic!(atomic_compare_exchange, self.data.get(), current, new, success, failure)
+    pub fn compare_exchange(
+        &self,
+        current: T,
+        new: T,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<T, T> {
+        call_atomic!(
+            atomic_compare_exchange,
+            self.data.get(),
+            current,
+            new,
+            success,
+            failure
+        )
     }
 
     #[inline]
-    pub fn compare_exchange_weak(&self, current: T, new: T, success: Ordering, failure: Ordering) -> Result<T, T> {
-        call_atomic!(atomic_compare_exchange_weak, self.data.get(), current, new, success, failure)
+    pub fn compare_exchange_weak(
+        &self,
+        current: T,
+        new: T,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<T, T> {
+        call_atomic!(
+            atomic_compare_exchange_weak,
+            self.data.get(),
+            current,
+            new,
+            success,
+            failure
+        )
     }
 }
 
@@ -146,12 +176,12 @@ macro_rules! atomic_integer_ops {
         }
     )*);
 }
-    
+
 atomic_integer_ops! { u8, i8, u16, i16, u32, i32, u64, i64, usize, isize }
 
 impl<T> From<T> for Atomic<T>
 where
-    T: Copy
+    T: Copy,
 {
     fn from(val: T) -> Self {
         Self::new(val)
@@ -160,7 +190,7 @@ where
 
 impl<T> Default for Atomic<T>
 where
-    T: Default + Copy
+    T: Default + Copy,
 {
     fn default() -> Self {
         Self::new(T::default())
@@ -169,47 +199,82 @@ where
 
 #[inline]
 fn atomic_load<T: Copy, U: Copy>(dst: *mut T, order: Ordering) -> T {
-    unsafe {
-        transmute_const(sys::atomic_load(dst as *mut U, order))
-    }
+    unsafe { transmute_const(sys::atomic_load(dst as *mut U, order)) }
 }
 
 #[inline]
 fn atomic_store<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) {
     unsafe {
-        transmute_const(sys::atomic_store(dst as *mut U, transmute_const(val), order))
+        transmute_const(sys::atomic_store(
+            dst as *mut U,
+            transmute_const(val),
+            order,
+        ))
     }
 }
 
 #[inline]
 fn atomic_swap<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
-    unsafe {
-        transmute_const(sys::atomic_swap(dst as *mut U, transmute_const(val), order))
-    }
+    unsafe { transmute_const(sys::atomic_swap(dst as *mut U, transmute_const(val), order)) }
 }
 
 #[inline]
-fn atomic_compare_and_swap<T: Copy, U: Copy>(dst: *mut T, current: T, new: T, order: Ordering) -> T {
-    match atomic_compare_exchange::<T, U>(dst, current, new, order, sys::strongest_failure_ordering(order)) {
+fn atomic_compare_and_swap<T: Copy, U: Copy>(
+    dst: *mut T,
+    current: T,
+    new: T,
+    order: Ordering,
+) -> T {
+    match atomic_compare_exchange::<T, U>(
+        dst,
+        current,
+        new,
+        order,
+        sys::strongest_failure_ordering(order),
+    ) {
         Ok(x) => x,
         Err(x) => x,
     }
 }
 
 #[inline]
-fn atomic_compare_exchange<T: Copy, U: Copy>(dst: *mut T, current: T, new: T, success: Ordering, failure: Ordering) -> Result<T, T> {
+fn atomic_compare_exchange<T: Copy, U: Copy>(
+    dst: *mut T,
+    current: T,
+    new: T,
+    success: Ordering,
+    failure: Ordering,
+) -> Result<T, T> {
     unsafe {
-        match sys::atomic_compare_exchange(dst as *mut U, transmute_const(current), transmute_const(new), success, failure) {
+        match sys::atomic_compare_exchange(
+            dst as *mut U,
+            transmute_const(current),
+            transmute_const(new),
+            success,
+            failure,
+        ) {
             Ok(x) => Ok(transmute_const(x)),
-            Err(x) => Err(transmute_const(x))
+            Err(x) => Err(transmute_const(x)),
         }
     }
 }
 
 #[inline]
-fn atomic_compare_exchange_weak<T: Copy, U: Copy>(dst: *mut T, current: T, new: T, success: Ordering, failure: Ordering) -> Result<T, T> {
+fn atomic_compare_exchange_weak<T: Copy, U: Copy>(
+    dst: *mut T,
+    current: T,
+    new: T,
+    success: Ordering,
+    failure: Ordering,
+) -> Result<T, T> {
     unsafe {
-        match sys::atomic_compare_exchange_weak(dst as *mut U, transmute_const(current), transmute_const(new), success, failure) {
+        match sys::atomic_compare_exchange_weak(
+            dst as *mut U,
+            transmute_const(current),
+            transmute_const(new),
+            success,
+            failure,
+        ) {
             Ok(x) => Ok(transmute_const(x)),
             Err(x) => Err(transmute_const(x)),
         }
@@ -218,44 +283,32 @@ fn atomic_compare_exchange_weak<T: Copy, U: Copy>(dst: *mut T, current: T, new: 
 
 #[inline]
 fn atomic_fetch_add<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
-    unsafe {
-        transmute_const(sys::atomic_add(dst as *mut U, transmute_const(val), order))
-    }
+    unsafe { transmute_const(sys::atomic_add(dst as *mut U, transmute_const(val), order)) }
 }
 
 #[inline]
 fn atomic_fetch_sub<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
-    unsafe {
-        transmute_const(sys::atomic_sub(dst as *mut U, transmute_const(val), order))
-    }
+    unsafe { transmute_const(sys::atomic_sub(dst as *mut U, transmute_const(val), order)) }
 }
 
 #[inline]
 fn atomic_and<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
-    unsafe {
-        transmute_const(sys::atomic_and(dst as *mut U, transmute_const(val), order))
-    }
+    unsafe { transmute_const(sys::atomic_and(dst as *mut U, transmute_const(val), order)) }
 }
 
 #[inline]
 fn atomic_nand<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
-    unsafe {
-        transmute_const(sys::atomic_nand(dst as *mut U, transmute_const(val), order))
-    }
+    unsafe { transmute_const(sys::atomic_nand(dst as *mut U, transmute_const(val), order)) }
 }
 
 #[inline]
 fn atomic_or<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
-    unsafe {
-        transmute_const(sys::atomic_or(dst as *mut U, transmute_const(val), order))
-    }
+    unsafe { transmute_const(sys::atomic_or(dst as *mut U, transmute_const(val), order)) }
 }
 
 #[inline]
 fn atomic_xor<T: Copy, U: Copy>(dst: *mut T, val: T, order: Ordering) -> T {
-    unsafe {
-        transmute_const(sys::atomic_xor(dst as *mut U, transmute_const(val), order))
-    }
+    unsafe { transmute_const(sys::atomic_xor(dst as *mut U, transmute_const(val), order)) }
 }
 
 mod sys {
@@ -337,12 +390,13 @@ mod sys {
     }
 
     #[inline]
-    pub unsafe fn atomic_compare_exchange<T>(dst: *mut T,
-                                        old: T,
-                                        new: T,
-                                        success: Ordering,
-                                        failure: Ordering)
-                                        -> Result<T, T> {
+    pub unsafe fn atomic_compare_exchange<T>(
+        dst: *mut T,
+        old: T,
+        new: T,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<T, T> {
         let (val, ok) = match (success, failure) {
             (Acquire, Acquire) => intrinsics::atomic_cxchg_acq(dst, old, new),
             (Release, Relaxed) => intrinsics::atomic_cxchg_rel(dst, old, new),
@@ -359,16 +413,21 @@ mod sys {
             (_, Release) => panic!("there is no such thing as a release failure ordering"),
             _ => panic!("a failure ordering can't be stronger than a success ordering"),
         };
-        if ok { Ok(val) } else { Err(val) }
+        if ok {
+            Ok(val)
+        } else {
+            Err(val)
+        }
     }
 
     #[inline]
-    pub unsafe fn atomic_compare_exchange_weak<T>(dst: *mut T,
-                                            old: T,
-                                            new: T,
-                                            success: Ordering,
-                                            failure: Ordering)
-                                            -> Result<T, T> {
+    pub unsafe fn atomic_compare_exchange_weak<T>(
+        dst: *mut T,
+        old: T,
+        new: T,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<T, T> {
         let (val, ok) = match (success, failure) {
             (Acquire, Acquire) => intrinsics::atomic_cxchgweak_acq(dst, old, new),
             (Release, Relaxed) => intrinsics::atomic_cxchgweak_rel(dst, old, new),
@@ -385,7 +444,11 @@ mod sys {
             (_, Release) => panic!("there is no such thing as a release failure ordering"),
             _ => panic!("a failure ordering can't be stronger than a success ordering"),
         };
-        if ok { Ok(val) } else { Err(val) }
+        if ok {
+            Ok(val)
+        } else {
+            Err(val)
+        }
     }
 
     #[inline]

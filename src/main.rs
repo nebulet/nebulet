@@ -29,7 +29,6 @@
     alloc_error_handler,
     const_fn_union,
 )]
-
 #![no_main]
 #![deny(warnings)]
 
@@ -39,55 +38,55 @@ extern crate bootloader;
 extern crate lazy_static;
 #[macro_use]
 extern crate bitflags;
-extern crate spin;
 extern crate bit_field;
+extern crate spin;
 #[macro_use]
 extern crate alloc;
 extern crate hashmap_core;
 #[macro_use]
 extern crate nabi;
-extern crate raw_cpuid;
-extern crate rand_core;
 extern crate rand;
+extern crate rand_core;
+extern crate raw_cpuid;
 
-extern crate cranelift_wasm;
-extern crate cranelift_native;
 extern crate cranelift_codegen;
+extern crate cranelift_native;
+extern crate cranelift_wasm;
+extern crate nebulet_derive;
 extern crate target_lexicon;
 extern crate wasmparser;
-extern crate nebulet_derive;
 
 pub use bootloader::x86_64;
 
 pub mod nil;
 #[macro_use]
 pub mod arch;
-pub mod panic;
-pub mod memory;
-pub mod time;
-pub mod common;
-pub mod allocator;
-pub mod consts;
 pub mod abi;
-pub mod object;
-pub mod task;
-pub mod wasm;
-pub mod externs;
-pub mod sync;
-pub mod signals;
+pub mod allocator;
+pub mod common;
+pub mod consts;
 pub mod event;
+pub mod externs;
+pub mod memory;
+pub mod object;
+pub mod panic;
+pub mod signals;
+pub mod sync;
+pub mod task;
+pub mod time;
+pub mod wasm;
 
 pub use consts::*;
 
-use object::{Thread, Process, Wasm, Channel, HandleRights, Dispatcher};
-use object::channel;
+use alloc::vec::Vec;
+use common::tar::Tar;
 use event::{Event, EventVariant};
+use nabi::Error;
+use object::channel;
 use object::dispatcher::LocalObserver;
 use object::wait_observer::WaitObserver;
+use object::{Channel, Dispatcher, HandleRights, Process, Thread, Wasm};
 use signals::Signal;
-use common::tar::Tar;
-use alloc::vec::Vec;
-use nabi::Error;
 
 #[global_allocator]
 pub static ALLOCATOR: allocator::Allocator = allocator::Allocator;
@@ -112,26 +111,24 @@ pub fn kmain(init_fs: &[u8]) -> ! {
 fn first_thread(init_fs: &[u8]) {
     let tar = Tar::load(init_fs);
 
-    let wasm = tar.iter().find(|file| {
-        file.path == "sipinit.wasm"
-    }).unwrap();
+    let wasm = tar.iter().find(|file| file.path == "sipinit.wasm").unwrap();
 
-    let code = Wasm::compile(wasm.data)
-        .unwrap();
+    let code = Wasm::compile(wasm.data).unwrap();
 
-    let process = Process::create(code.copy_ref())
-        .unwrap();
+    let process = Process::create(code.copy_ref()).unwrap();
 
     let (tx, rx) = Channel::new_pair();
 
     {
         let mut handle_table = process.handle_table().write();
-        let handle = handle_table.allocate(rx, HandleRights::READ | HandleRights::TRANSFER).unwrap();
+        let handle = handle_table
+            .allocate(rx, HandleRights::READ | HandleRights::TRANSFER)
+            .unwrap();
         assert!(handle.inner() == 0);
     }
 
     process.start().unwrap();
-    
+
     let event = Event::new(EventVariant::AutoUnsignal);
     let mut waiter = WaitObserver::new(event, Signal::WRITABLE);
 
@@ -141,11 +138,13 @@ fn first_thread(init_fs: &[u8]) {
             match tx.send(msg) {
                 Ok(_) => break,
                 Err(Error::SHOULD_WAIT) => {
-                    if let Some(observer) = LocalObserver::new(&mut waiter, &mut tx.copy_ref().upcast()) {
+                    if let Some(observer) =
+                        LocalObserver::new(&mut waiter, &mut tx.copy_ref().upcast())
+                    {
                         observer.wait();
                         drop(observer);
                     }
-                },
+                }
                 Err(e) => panic!("initfs channel err: {:?}", e),
             }
         }

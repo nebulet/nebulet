@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use core::{mem, str, slice, cmp};
+use core::{cmp, mem, slice, str};
 
 pub struct Tar<'a> {
     data: &'a [u8],
@@ -7,9 +7,7 @@ pub struct Tar<'a> {
 
 impl<'a> Tar<'a> {
     pub fn load(data: &'a [u8]) -> Tar<'a> {
-        Tar {
-            data,
-        }
+        Tar { data }
     }
 
     pub fn iter(&self) -> Iter<'a> {
@@ -56,13 +54,12 @@ impl<'a> Iterator for Iter<'a> {
 
         self.remaining -= header_size;
 
-        let first_null = header.size.iter().enumerate().find_map(|(i, &byte)| {
-            if byte == 0 {
-                Some(i)
-            } else {
-                None
-            }
-        }).unwrap_or(header.size.len());
+        let first_null = header
+            .size
+            .iter()
+            .enumerate()
+            .find_map(|(i, &byte)| if byte == 0 { Some(i) } else { None })
+            .unwrap_or(header.size.len());
 
         let size_str = str::from_utf8(&header.size[..first_null]).ok()?.trim();
         // println!("debug: {}:{}", file!(), line!());
@@ -75,24 +72,21 @@ impl<'a> Iterator for Iter<'a> {
         };
         self.remaining -= rounded_file_size;
 
-        let data = unsafe { slice::from_raw_parts(self.ptr.add(header_size) as *const u8, file_size) };
+        let data =
+            unsafe { slice::from_raw_parts(self.ptr.add(header_size) as *const u8, file_size) };
         self.ptr = unsafe { self.ptr.add(header_size + rounded_file_size) };
 
-        let first_null = header.name.iter().enumerate().find_map(|(i, &byte)| {
-            if byte == 0 {
-                Some(i)
-            } else {
-                None
-            }
-        }).unwrap_or(header.name.len());
+        let first_null = header
+            .name
+            .iter()
+            .enumerate()
+            .find_map(|(i, &byte)| if byte == 0 { Some(i) } else { None })
+            .unwrap_or(header.name.len());
         // println!("debug: {}:{}", file!(), line!());
         let path = str::from_utf8(&header.name[..first_null]).ok()?;
         // println!("debug: {}:{}", file!(), line!());
 
-        let file = File {
-            path,
-            data,
-        };
+        let file = File { path, data };
 
         Some(file)
     }
@@ -120,8 +114,12 @@ struct Header {
 
 impl PartialEq for Header {
     fn eq(&self, other: &Header) -> bool {
-        let self_slice = unsafe { slice::from_raw_parts(self as *const _ as *const u8, mem::size_of::<Header>()) };
-        let other_slice = unsafe { slice::from_raw_parts(other as *const _ as *const u8, mem::size_of::<Header>()) };
+        let self_slice = unsafe {
+            slice::from_raw_parts(self as *const _ as *const u8, mem::size_of::<Header>())
+        };
+        let other_slice = unsafe {
+            slice::from_raw_parts(other as *const _ as *const u8, mem::size_of::<Header>())
+        };
         self_slice == other_slice
     }
 }

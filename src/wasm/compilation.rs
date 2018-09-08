@@ -1,20 +1,25 @@
 //! A `Compilation` contains the compiled function bodies for a WebAssembly
 //! module
 
-use super::module::{Module, Export};
-use super::{Relocation, Relocations, RelocationType, DataInitializer};
-use cranelift_codegen::{self, isa::TargetIsa, binemit::{self, Reloc}, ir::{Signature, TrapCode, SourceLoc}};
-use cranelift_wasm::FunctionIndex;
-use super::RelocSink;
 use super::abi::{ABI_MAP, INTRINSIC_MAP};
+use super::module::{Export, Module};
+use super::RelocSink;
+use super::{DataInitializer, Relocation, RelocationType, Relocations};
+use cranelift_codegen::{
+    self,
+    binemit::{self, Reloc},
+    ir::{Signature, SourceLoc, TrapCode},
+    isa::TargetIsa,
+};
+use cranelift_wasm::FunctionIndex;
 
 use memory::Region;
-use object::Wasm;
 use object::Dispatch;
+use object::Wasm;
 
-use nabi::{Result, Error};
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
+use nabi::{Error, Result};
 
 pub fn get_abi_func(name: &str, sig: &Signature) -> Result<*const ()> {
     let abi_func = ABI_MAP.get(name).ok_or_else(|| internal_error!())?;
@@ -26,7 +31,7 @@ pub fn get_abi_func(name: &str, sig: &Signature) -> Result<*const ()> {
     }
 }
 
-fn get_abi_intrinsic(name: &str) -> Result<*const()> {
+fn get_abi_intrinsic(name: &str) -> Result<*const ()> {
     let func = INTRINSIC_MAP.get(name)?;
 
     Ok(func.ptr)
@@ -34,14 +39,8 @@ fn get_abi_intrinsic(name: &str) -> Result<*const()> {
 
 #[derive(Debug, Clone)]
 pub enum FunctionType {
-    Local {
-        offset: usize,
-        size: usize,
-    },
-    External {
-        module: String,
-        name: String,
-    }
+    Local { offset: usize, size: usize },
+    External { module: String, name: String },
 }
 
 pub struct Compilation {
@@ -62,11 +61,16 @@ pub struct Compilation {
 
 impl Compilation {
     /// Allocates the runtime data structures with the given flags
-    fn new(region: Region, functions: Vec<FunctionType>, relocations: Relocations, traps: Vec<TrapData>) -> Self {
+    fn new(
+        region: Region,
+        functions: Vec<FunctionType>,
+        relocations: Relocations,
+        traps: Vec<TrapData>,
+    ) -> Self {
         let first_local_function = functions
             .iter()
             .position(|f| match f {
-                FunctionType::Local {..} => true,
+                FunctionType::Local { .. } => true,
                 _ => false,
             }).unwrap();
 
@@ -79,17 +83,21 @@ impl Compilation {
         }
     }
 
-    fn relocate_function(&self, module: &Module, reloc_num: usize, r: &Relocation, target_func_addr: *const ()) -> Result<()> {
+    fn relocate_function(
+        &self,
+        module: &Module,
+        reloc_num: usize,
+        r: &Relocation,
+        target_func_addr: *const (),
+    ) -> Result<()> {
         let body_addr = self.get_function_addr(module, reloc_num + self.first_local_function)?;
         let reloc_addr = unsafe { (body_addr as *const u8).offset(r.offset as isize) };
 
         match r.reloc {
-            Reloc::Abs8 => {
-                unsafe {
-                    (reloc_addr as *mut usize).write(target_func_addr as usize);
-                }
-            }
-            _ => unimplemented!()
+            Reloc::Abs8 => unsafe {
+                (reloc_addr as *mut usize).write(target_func_addr as usize);
+            },
+            _ => unimplemented!(),
         }
 
         Ok(())
@@ -104,10 +112,8 @@ impl Compilation {
                 let target_func = match reloc_type {
                     RelocationType::Normal(func_index) => {
                         self.get_function_addr(module, *func_index)?
-                    },
-                    RelocationType::Intrinsic(name) => {
-                        get_abi_intrinsic(name)?
-                    },
+                    }
+                    RelocationType::Intrinsic(name) => get_abi_intrinsic(name)?,
                 };
 
                 self.relocate_function(module, i, reloc, target_func)?;
@@ -117,45 +123,44 @@ impl Compilation {
         Ok(())
     }
 
-    pub fn get_function_addr(&self, module_ref: &Module, func_index: FunctionIndex) -> Result<*const ()> {
+    pub fn get_function_addr(
+        &self,
+        module_ref: &Module,
+        func_index: FunctionIndex,
+    ) -> Result<*const ()> {
         match self.functions[func_index] {
-            FunctionType::Local {
-                offset,
-                size: _,
-            } => {
+            FunctionType::Local { offset, size: _ } => {
                 Ok((self.region.start().as_u64() as usize + offset) as _)
-            },
+            }
             FunctionType::External {
                 ref module,
                 ref name,
-            } => {
-                match module.as_str() {
-                    "abi" => {
-                        let sig_index = module_ref.functions[func_index];
-                        let imported_sig = &module_ref.signatures[sig_index];
+            } => match module.as_str() {
+                "abi" => {
+                    let sig_index = module_ref.functions[func_index];
+                    let imported_sig = &module_ref.signatures[sig_index];
 
-                        get_abi_func(name, imported_sig)
-                    },
-                    _ => {
-                        Err(internal_error!())
-                    }
+                    get_abi_func(name, imported_sig)
                 }
+                _ => Err(internal_error!()),
             },
         }
     }
 
     /// Emit a `Code` instance
-    pub fn emit(mut self, module: Module, data_initializers: Vec<DataInitializer>) -> Result<Dispatch<Wasm>> {
+    pub fn emit(
+        mut self,
+        module: Module,
+        data_initializers: Vec<DataInitializer>,
+    ) -> Result<Dispatch<Wasm>> {
         self.relocate(&module)?;
 
         let start_index;
         if let Some(index) = module.start_func {
             start_index = index;
-        }
-        else if let Some(&Export::Function(index)) = module.exports.get("main") {
+        } else if let Some(&Export::Function(index)) = module.exports.get("main") {
             start_index = index;
-        }
-        else {
+        } else {
             // TODO: We really need to handle this error nicely
             return Err(internal_error!());
         }
@@ -165,18 +170,19 @@ impl Compilation {
 
         let local_func_list = self.functions[module.imported_funcs.len()..]
             .iter()
-            .map(|func_type| {
-                match func_type {
-                    FunctionType::Local {
-                        offset,
-                        size: _,
-                    } => *offset,
-                    _ => unreachable!()
-                }
-            })
-            .collect();
+            .map(|func_type| match func_type {
+                FunctionType::Local { offset, size: _ } => *offset,
+                _ => unreachable!(),
+            }).collect();
 
-        Wasm::new(module, data_initializers, self.region, start_ptr, local_func_list, self.traps)
+        Wasm::new(
+            module,
+            data_initializers,
+            self.region,
+            start_ptr,
+            local_func_list,
+            self.traps,
+        )
     }
 }
 
@@ -205,11 +211,10 @@ impl<'isa> Compiler<'isa> {
 
     /// Define a function. This also compiles the function.
     pub fn define_function(&mut self, mut ctx: cranelift_codegen::Context) -> Result<()> {
-        let code_size = ctx.compile(self.isa)
-            .map_err(|e| {
-                println!("Compile error: {:?}", e);
-                internal_error!()
-            })? as usize;
+        let code_size = ctx.compile(self.isa).map_err(|e| {
+            println!("Compile error: {:?}", e);
+            internal_error!()
+        })? as usize;
 
         self.contexts.push((ctx, code_size));
 
@@ -225,8 +230,7 @@ impl<'isa> Compiler<'isa> {
     /// alignment, which is true on x86_64, but may not
     /// be true on other architectures.
     pub fn compile(self, module: &Module) -> Result<Compilation> {
-        let region = Region::allocate(self.total_size)
-            .ok_or(Error::NO_MEMORY)?;
+        let region = Region::allocate(self.total_size).ok_or(Error::NO_MEMORY)?;
 
         let mut functions = Vec::with_capacity(module.functions.len());
         let mut relocs = Vec::with_capacity(self.contexts.len());
@@ -236,10 +240,7 @@ impl<'isa> Compiler<'isa> {
         let region_start = region.start().as_u64() as usize;
 
         for (module, name) in module.imported_funcs.iter().cloned() {
-            functions.push(FunctionType::External {
-                module,
-                name,
-            });
+            functions.push(FunctionType::External { module, name });
         }
 
         // emit functions to memory
@@ -250,7 +251,12 @@ impl<'isa> Compiler<'isa> {
             // println!("{}", ctx.func.display(Some(self.isa)));
 
             unsafe {
-                ctx.emit_to_memory(self.isa, (region_start + offset) as *mut u8, &mut reloc_sink, &mut trap_sink);
+                ctx.emit_to_memory(
+                    self.isa,
+                    (region_start + offset) as *mut u8,
+                    &mut reloc_sink,
+                    &mut trap_sink,
+                );
             }
 
             functions.push(FunctionType::Local {

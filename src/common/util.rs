@@ -14,7 +14,8 @@ macro_rules! impl_parseable_num {
 }
 
 pub trait ParseableNum
-    where Self: Sized
+where
+    Self: Sized,
 {
     fn from_str_radix(s: &str, radix: u32) -> Option<Self>;
 }

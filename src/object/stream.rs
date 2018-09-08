@@ -1,10 +1,10 @@
 use super::dispatcher::{Dispatch, Dispatcher};
-use signals::Signal;
-use nabi::{Result, Error};
 use alloc::collections::vec_deque::VecDeque;
 use alloc::sync::Arc;
 use arch::lock::Spinlock;
 use core::cmp::min;
+use nabi::{Error, Result};
+use signals::Signal;
 
 pub const BUFFER_SIZE: usize = 64 * 1024; // 64 KiB
 
@@ -45,7 +45,7 @@ impl Stream {
     pub fn write(self: &Dispatch<Self>, data: &[u8]) -> Result<usize> {
         let mut shared = self.shared.lock();
 
-        let peer_guard = self.peer.lock();  
+        let peer_guard = self.peer.lock();
 
         if let Some(peer) = peer_guard.as_ref() {
             let len_to_write = min(BUFFER_SIZE - shared.data.len(), data.len());
@@ -93,11 +93,10 @@ impl Stream {
 
 impl Dispatcher for Stream {
     fn allowed_user_signals(&self) -> Signal {
-        Signal::READABLE
-        | Signal::WRITABLE 
-        | Signal::PEER_CLOSED
-        | Signal::PEER_SIGNALED
+        Signal::READABLE | Signal::WRITABLE | Signal::PEER_CLOSED | Signal::PEER_SIGNALED
     }
 
-    fn allows_observers(&self) -> bool { true }
+    fn allows_observers(&self) -> bool {
+        true
+    }
 }

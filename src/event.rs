@@ -1,6 +1,6 @@
-use object::thread::{Thread, State};
-use sync::spsc::IntrusiveSpsc;
 use arch::lock::Spinlock;
+use object::thread::{State, Thread};
+use sync::spsc::IntrusiveSpsc;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum EventVariant {
@@ -11,7 +11,7 @@ pub enum EventVariant {
 }
 
 struct EventInner {
-    // the thread will either be in 
+    // the thread will either be in
     // a wait queue or the scheduler run queue.
     queue: IntrusiveSpsc<Thread>,
     notified: bool,
@@ -55,7 +55,9 @@ impl Event {
             }
         } else {
             // unnotified, block here
-            unsafe { inner.queue.push(current_thread); }
+            unsafe {
+                inner.queue.push(current_thread);
+            }
             current_thread.set_state(State::Blocked);
             drop(inner);
             Thread::yield_now();
@@ -70,7 +72,7 @@ impl Event {
         let mut inner = self.inner.lock();
 
         let mut wake_count = 0;
-        
+
         if !inner.notified {
             if inner.variant == EventVariant::AutoUnsignal {
                 unsafe {

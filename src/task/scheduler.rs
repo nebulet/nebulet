@@ -1,7 +1,7 @@
-use object::thread::{Thread, State};
 use arch::cpu::Local;
-use sync::mpsc::{IntrusiveMpsc, IntrusiveNode};
 use arch::cpu::{Dpc, IrqController};
+use object::thread::{State, Thread};
+use sync::mpsc::{IntrusiveMpsc, IntrusiveNode};
 
 /// The Scheduler schedules threads to be run.
 /// Currently, it's a simple round-robin.
@@ -42,7 +42,8 @@ impl Scheduler {
                     (*next_thread).set_state(State::Dead);
                     Dpc::cleanup_thread(next_thread);
                 }
-            } else { // no threads in the run queue
+            } else {
+                // no threads in the run queue
                 if (*current_thread).state() == State::Running {
                     // One thread running in this scheduler,
                     // so no need to context switch.

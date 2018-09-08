@@ -180,9 +180,9 @@ impl Dlmalloc {
     }
 
     fn top_foot_size(&self) -> usize {
-        self.align_offset(unsafe { Chunk::to_mem(ptr::null_mut()) }) +
-            self.pad_request(mem::size_of::<Segment>()) +
-            self.min_chunk_size()
+        self.align_offset(unsafe { Chunk::to_mem(ptr::null_mut()) })
+            + self.pad_request(mem::size_of::<Segment>())
+            + self.min_chunk_size()
     }
 
     fn mmap_foot_pad(&self) -> usize {
@@ -192,8 +192,7 @@ impl Dlmalloc {
     fn align_as_chunk(&self, ptr: *mut u8) -> *mut Chunk {
         unsafe {
             let chunk = Chunk::to_mem(ptr as *mut Chunk);
-            ptr.offset(self.align_offset(chunk) as isize)
-                as *mut Chunk
+            ptr.offset(self.align_offset(chunk) as isize) as *mut Chunk
         }
     }
 
@@ -240,7 +239,7 @@ impl Dlmalloc {
                 Chunk::set_inuse_and_pinuse(p, smallsize);
                 let ret = Chunk::to_mem(p);
                 self.check_malloced_chunk(ret, nb);
-                return ret
+                return ret;
             }
 
             if nb > self.dvsize {
@@ -266,20 +265,19 @@ impl Dlmalloc {
                     }
                     let ret = Chunk::to_mem(p);
                     self.check_malloced_chunk(ret, nb);
-                    return ret
-
+                    return ret;
                 } else if self.treemap != 0 {
                     let mem = self.tmalloc_small(nb);
                     if !mem.is_null() {
                         self.check_malloced_chunk(mem, nb);
                         self.check_malloc_state();
-                        return mem
+                        return mem;
                     }
                 }
             }
         } else if size >= self.max_request() {
             // TODO: translate this to unsupported
-            return ptr::null_mut()
+            return ptr::null_mut();
         } else {
             nb = self.pad_request(size);
             if self.treemap != 0 {
@@ -287,7 +285,7 @@ impl Dlmalloc {
                 if !mem.is_null() {
                     self.check_malloced_chunk(mem, nb);
                     self.check_malloc_state();
-                    return mem
+                    return mem;
                 }
             }
         }
@@ -312,7 +310,7 @@ impl Dlmalloc {
             let ret = Chunk::to_mem(p);
             self.check_malloced_chunk(ret, nb);
             self.check_malloc_state();
-            return ret
+            return ret;
         }
 
         // Split the top node if we can
@@ -328,7 +326,7 @@ impl Dlmalloc {
             let ret = Chunk::to_mem(p);
             self.check_malloced_chunk(ret, nb);
             self.check_malloc_state();
-            return ret
+            return ret;
         }
 
         self.sys_alloc(nb)
@@ -336,12 +334,14 @@ impl Dlmalloc {
 
     unsafe fn sys_alloc(&mut self, size: usize) -> *mut u8 {
         self.check_malloc_state();
-        let asize = align_up(size + self.top_foot_size() + self.malloc_alignment(),
-                             DEFAULT_GRANULARITY);
+        let asize = align_up(
+            size + self.top_foot_size() + self.malloc_alignment(),
+            DEFAULT_GRANULARITY,
+        );
 
         let (tbase, tsize, flags) = sys::alloc(asize);
         if tbase.is_null() {
-            return tbase
+            return tbase;
         }
 
         self.footprint += tsize;
@@ -358,18 +358,18 @@ impl Dlmalloc {
             self.init_bins();
             let tsize = tsize - self.top_foot_size();
             self.init_top(tbase as *mut Chunk, tsize);
-            // let mn = Chunk::next(Chunk::from_mem(self as *mut _ as *mut u8));
-            // let top_foot_size = self.top_foot_size();
-            // self.init_top(mn, tbase as usize + tsize - mn as usize - top_foot_size);
+        // let mn = Chunk::next(Chunk::from_mem(self as *mut _ as *mut u8));
+        // let top_foot_size = self.top_foot_size();
+        // self.init_top(mn, tbase as usize + tsize - mn as usize - top_foot_size);
         } else {
             let mut sp = &mut self.seg as *mut Segment;
             while !sp.is_null() && tbase != Segment::top(sp) {
                 sp = (*sp).next;
             }
-            if !sp.is_null() &&
-                !Segment::is_extern(sp) &&
-                Segment::sys_flags(sp) == flags &&
-                Segment::holds(sp, self.top as *mut u8)
+            if !sp.is_null()
+                && !Segment::is_extern(sp)
+                && Segment::sys_flags(sp) == flags
+                && Segment::holds(sp, self.top as *mut u8)
             {
                 (*sp).size += tsize;
                 let ptr = self.top;
@@ -381,10 +381,7 @@ impl Dlmalloc {
                 while !sp.is_null() && (*sp).base != tbase.offset(tsize as isize) {
                     sp = (*sp).next;
                 }
-                if !sp.is_null() &&
-                    !Segment::is_extern(sp) &&
-                    Segment::sys_flags(sp) == flags
-                {
+                if !sp.is_null() && !Segment::is_extern(sp) && Segment::sys_flags(sp) == flags {
                     let oldbase = (*sp).base;
                     (*sp).base = tbase;
                     (*sp).size += tsize;
@@ -407,22 +404,22 @@ impl Dlmalloc {
             self.check_top_chunk(self.top);
             self.check_malloced_chunk(ret, size);
             self.check_malloc_state();
-            return ret
+            return ret;
         }
 
-        return ptr::null_mut()
+        return ptr::null_mut();
     }
 
     pub unsafe fn realloc(&mut self, oldmem: *mut u8, bytes: usize) -> *mut u8 {
         if bytes >= self.max_request() {
-            return ptr::null_mut()
+            return ptr::null_mut();
         }
         let nb = self.request2size(bytes);
         let oldp = Chunk::from_mem(oldmem);
         let newp = self.try_realloc_chunk(oldp, nb, true);
         if !newp.is_null() {
             self.check_inuse_chunk(newp);
-            return Chunk::to_mem(newp)
+            return Chunk::to_mem(newp);
         }
         let ptr = self.malloc(bytes);
         if !ptr.is_null() {
@@ -430,12 +427,10 @@ impl Dlmalloc {
             ptr::copy_nonoverlapping(oldmem, ptr, cmp::min(oc, bytes));
             self.free(oldmem);
         }
-        return ptr
+        return ptr;
     }
 
-    unsafe fn try_realloc_chunk(&mut self, p: *mut Chunk, nb: usize, can_move: bool)
-        -> *mut Chunk
-    {
+    unsafe fn try_realloc_chunk(&mut self, p: *mut Chunk, nb: usize, can_move: bool) -> *mut Chunk {
         let oldsize = Chunk::size(p);
         let next = Chunk::plus_offset(p, oldsize);
 
@@ -450,9 +445,10 @@ impl Dlmalloc {
                 self.dispose_chunk(r, rsize);
             }
             p
-        } else if next == self.top { // extend into top
+        } else if next == self.top {
+            // extend into top
             if oldsize + self.topsize <= nb {
-                return ptr::null_mut()
+                return ptr::null_mut();
             }
             let newsize = oldsize + self.topsize;
             let newtopsize = newsize - nb;
@@ -462,10 +458,11 @@ impl Dlmalloc {
             self.top = newtop;
             self.topsize = newtopsize;
             p
-        } else if next == self.dv { // extend into dv
+        } else if next == self.dv {
+            // extend into dv
             let dvs = self.dvsize;
             if oldsize + dvs < nb {
-                return ptr::null_mut()
+                return ptr::null_mut();
             }
             let dsize = oldsize + dvs - nb;
             if dsize >= self.min_chunk_size() {
@@ -476,17 +473,19 @@ impl Dlmalloc {
                 Chunk::clear_pinuse(n);
                 self.dvsize = dsize;
                 self.dv = r;
-            } else { // exhaust dv
+            } else {
+                // exhaust dv
                 let newsize = oldsize + dvs;
                 Chunk::set_inuse(p, newsize);
                 self.dvsize = 0;
                 self.dv = ptr::null_mut();
             }
-            return p
-        } else if !Chunk::cinuse(next) { // extend into the next free chunk
+            return p;
+        } else if !Chunk::cinuse(next) {
+            // extend into the next free chunk
             let nextsize = Chunk::size(next);
             if oldsize + nextsize < nb {
-                return ptr::null_mut()
+                return ptr::null_mut();
             }
             let rsize = oldsize + nextsize - nb;
             self.unlink_chunk(next, nextsize);
@@ -505,30 +504,28 @@ impl Dlmalloc {
         }
     }
 
-    unsafe fn mmap_resize(&mut self, oldp: *mut Chunk, nb: usize, can_move: bool)
-        -> *mut Chunk
-    {
+    unsafe fn mmap_resize(&mut self, oldp: *mut Chunk, nb: usize, can_move: bool) -> *mut Chunk {
         let oldsize = Chunk::size(oldp);
         // Can't shrink mmap regions below a small size
         if self.is_small(nb) {
-            return ptr::null_mut()
+            return ptr::null_mut();
         }
 
         // Keep the old chunk if it's big enough but not too big
-        if oldsize >= nb + mem::size_of::<usize>() &&
-            (oldsize - nb) <= (DEFAULT_GRANULARITY << 1)
-        {
-            return oldp
+        if oldsize >= nb + mem::size_of::<usize>() && (oldsize - nb) <= (DEFAULT_GRANULARITY << 1) {
+            return oldp;
         }
 
         let offset = (*oldp).prev_foot;
         let oldmmsize = oldsize + offset + self.mmap_foot_pad();
-        let newmmsize = self.mmap_align(nb + 6 * mem::size_of::<usize>() +
-                                        self.malloc_alignment() - 1);
-        let ptr = sys::remap((oldp as *mut u8).offset(-(offset as isize)),
-                             oldmmsize,
-                             newmmsize,
-                             can_move);
+        let newmmsize =
+            self.mmap_align(nb + 6 * mem::size_of::<usize>() + self.malloc_alignment() - 1);
+        let ptr = sys::remap(
+            (oldp as *mut u8).offset(-(offset as isize)),
+            oldmmsize,
+            newmmsize,
+            can_move,
+        );
         if ptr.is_null() {
             return ptr::null_mut();
         }
@@ -541,7 +538,7 @@ impl Dlmalloc {
         self.footprint = self.footprint + newmmsize - oldmmsize;
         self.max_footprint = cmp::max(self.max_footprint, self.footprint);
         self.check_mmapped_chunk(newp);
-        return newp
+        return newp;
     }
 
     fn mmap_align(&self, a: usize) -> usize {
@@ -550,20 +547,18 @@ impl Dlmalloc {
 
     // Only call this with power-of-two alignment and alignment >
     // `self.malloc_alignment()`
-    pub unsafe fn memalign(&mut self, mut alignment: usize, bytes: usize)
-        -> *mut u8
-    {
+    pub unsafe fn memalign(&mut self, mut alignment: usize, bytes: usize) -> *mut u8 {
         if alignment < self.min_chunk_size() {
             alignment = self.min_chunk_size();
         }
         if bytes >= self.max_request() - alignment {
-            return ptr::null_mut()
+            return ptr::null_mut();
         }
         let nb = self.request2size(bytes);
         let req = nb + alignment + self.min_chunk_size() - self.chunk_overhead();
         let mem = self.malloc(req);
         if mem.is_null() {
-            return mem
+            return mem;
         }
         let mut p = Chunk::from_mem(mem);
         if mem as usize & (alignment - 1) != 0 {
@@ -572,7 +567,8 @@ impl Dlmalloc {
             // if the first calculation places us at a spot with less than
             // `min_chunk_size` leader we can move to the next aligned spot.
             // we've allocated enough total room so that this is always possible
-            let br = Chunk::from_mem(((mem as usize + alignment - 1) & (!alignment + 1)) as *mut u8);
+            let br =
+                Chunk::from_mem(((mem as usize + alignment - 1) & (!alignment + 1)) as *mut u8);
             let pos = if (br as usize - p as usize) > self.min_chunk_size() {
                 br as *mut u8
             } else {
@@ -611,7 +607,7 @@ impl Dlmalloc {
         debug_assert!(Chunk::size(p) >= nb);
         debug_assert_eq!(align_up(mem as usize, alignment), mem as usize);
         self.check_inuse_chunk(p);
-        return mem
+        return mem;
     }
 
     // consolidate and bin a chunk, differs from exported versions of free
@@ -625,7 +621,7 @@ impl Dlmalloc {
                 if sys::free((p as *mut u8).offset(-(prevsize as isize)), psize) {
                     self.footprint -= psize;
                 }
-                return
+                return;
             }
             let prev = Chunk::minus_offset(p, prevsize);
             psize += prevsize;
@@ -635,11 +631,12 @@ impl Dlmalloc {
             } else if (*next).head & INUSE == INUSE {
                 self.dvsize = psize;
                 Chunk::set_free_with_pinuse(p, psize, next);
-                return
+                return;
             }
         }
 
-        if !Chunk::cinuse(next) { // consolidate forward
+        if !Chunk::cinuse(next) {
+            // consolidate forward
             if next == self.top {
                 self.topsize += psize;
                 let tsize = self.topsize;
@@ -649,13 +646,13 @@ impl Dlmalloc {
                     self.dv = ptr::null_mut();
                     self.dvsize = 0;
                 }
-                return
+                return;
             } else if next == self.dv {
                 self.dvsize += psize;
                 let dsize = self.dvsize;
                 self.dv = p;
                 Chunk::set_size_and_pinuse_of_free_chunk(p, dsize);
-                return
+                return;
             } else {
                 let nsize = Chunk::size(next);
                 psize += nsize;
@@ -663,7 +660,7 @@ impl Dlmalloc {
                 Chunk::set_size_and_pinuse_of_free_chunk(p, psize);
                 if p == self.dv {
                     self.dvsize = psize;
-                    return
+                    return;
                 }
             }
         } else {
@@ -692,10 +689,7 @@ impl Dlmalloc {
         }
     }
 
-    unsafe fn prepend_alloc(&mut self,
-                            newbase: *mut u8,
-                            oldbase: *mut u8,
-                            size: usize) -> *mut u8 {
+    unsafe fn prepend_alloc(&mut self, newbase: *mut u8, oldbase: *mut u8, size: usize) -> *mut u8 {
         let p = self.align_as_chunk(newbase);
         let mut oldfirst = self.align_as_chunk(oldbase);
         let psize = oldfirst as usize - p as usize;
@@ -707,11 +701,10 @@ impl Dlmalloc {
         debug_assert!(Chunk::pinuse(oldfirst));
         debug_assert!(qsize >= self.min_chunk_size());
 
-
         // consolidate the remainder with the first chunk of the old base
         if oldfirst == self.top {
             self.topsize += qsize;
-            let tsize = self.topsize ;
+            let tsize = self.topsize;
             self.top = q;
             (*q).head = tsize | PINUSE;
             self.check_top_chunk(q);
@@ -735,7 +728,7 @@ impl Dlmalloc {
         let ret = Chunk::to_mem(p);
         self.check_malloced_chunk(ret, size);
         self.check_malloc_state();
-        return ret
+        return ret;
     }
 
     // add a segment to hold a new noncontiguous region
@@ -783,7 +776,7 @@ impl Dlmalloc {
             if (&(*nextp).head as *const usize as *mut u8) < old_end {
                 p = nextp;
             } else {
-                break
+                break;
             }
         }
         debug_assert!(nfences >= 2);
@@ -805,7 +798,7 @@ impl Dlmalloc {
         let mut sp = &self.seg as *const Segment as *mut Segment;
         while !sp.is_null() {
             if (*sp).base <= ptr && ptr < Segment::top(sp) {
-                return sp
+                return sp;
             }
             sp = (*sp).next;
         }
@@ -822,7 +815,7 @@ impl Dlmalloc {
         loop {
             t = TreeChunk::leftmost_child(t);
             if t.is_null() {
-                break
+                break;
             }
             let trem = Chunk::size(TreeChunk::chunk(t)) - size;
             if trem < rsize {
@@ -862,8 +855,8 @@ impl Dlmalloc {
                 if csize >= size && csize - size < rsize {
                     v = t;
                     rsize = csize - size;
-                    if rsize == 0  {
-                        break
+                    if rsize == 0 {
+                        break;
                     }
                 }
                 let rt = (*t).child[1];
@@ -875,7 +868,7 @@ impl Dlmalloc {
                     // Reset `t` to the least subtree holding sizes greater than
                     // the `size` above, breaking out
                     t = rst;
-                    break
+                    break;
                 }
                 sizebits <<= 1;
             }
@@ -903,7 +896,7 @@ impl Dlmalloc {
 
         // If dv is a better fit, then return null so malloc will use it
         if v.is_null() || (self.dvsize >= size && !(rsize < self.dvsize - size)) {
-            return ptr::null_mut()
+            return ptr::null_mut();
         }
 
         let vc = TreeChunk::chunk(v);
@@ -922,8 +915,7 @@ impl Dlmalloc {
 
     unsafe fn smallbin_at(&mut self, idx: u32) -> *mut Chunk {
         debug_assert!(((idx * 2) as usize) < self.smallbins.len());
-        &mut *self.smallbins.get_unchecked_mut((idx as usize) * 2)
-            as *mut *mut Chunk as *mut Chunk
+        &mut *self.smallbins.get_unchecked_mut((idx as usize) * 2) as *mut *mut Chunk as *mut Chunk
     }
 
     unsafe fn treebin_at(&mut self, idx: u32) -> *mut *mut TreeChunk {
@@ -943,10 +935,7 @@ impl Dlmalloc {
         }
     }
 
-    unsafe fn unlink_first_small_chunk(&mut self,
-                                       head: *mut Chunk,
-                                       next: *mut Chunk,
-                                       idx: u32) {
+    unsafe fn unlink_first_small_chunk(&mut self, head: *mut Chunk, next: *mut Chunk, idx: u32) {
         let ptr = (*next).prev;
         debug_assert!(next != head);
         debug_assert!(next != ptr);
@@ -1022,7 +1011,7 @@ impl Dlmalloc {
                         (*chunk).parent = t;
                         (*chunkc).next = chunkc;
                         (*chunkc).prev = chunkc;
-                        break
+                        break;
                     }
                 } else {
                     let tc = TreeChunk::chunk(t);
@@ -1032,7 +1021,7 @@ impl Dlmalloc {
                     (*chunkc).prev = f;
                     (*chunkc).next = tc;
                     (*chunk).parent = ptr::null_mut();
-                    break
+                    break;
                 }
             }
         }
@@ -1106,7 +1095,7 @@ impl Dlmalloc {
                         cp = &mut (**rp).child[0];
                     }
                     if cp.is_null() {
-                        break
+                        break;
                     }
                     rp = cp;
                 }
@@ -1116,7 +1105,7 @@ impl Dlmalloc {
         }
 
         if xp.is_null() {
-            return
+            return;
         }
 
         let h = self.treebin_at((*chunk).index);
@@ -1162,7 +1151,7 @@ impl Dlmalloc {
                 if sys::free((p as *mut u8).offset(-(prevsize as isize)), psize) {
                     self.footprint -= psize;
                 }
-                return
+                return;
             }
 
             let prev = Chunk::minus_offset(p, prevsize);
@@ -1173,7 +1162,7 @@ impl Dlmalloc {
             } else if (*next).head & INUSE == INUSE {
                 self.dvsize = psize;
                 Chunk::set_free_with_pinuse(p, psize, next);
-                return
+                return;
             }
         }
 
@@ -1191,13 +1180,13 @@ impl Dlmalloc {
                 if self.should_trim(tsize) {
                     self.sys_trim(0);
                 }
-                return
+                return;
             } else if next == self.dv {
                 self.dvsize += psize;
                 let dsize = self.dvsize;
                 self.dv = p;
                 Chunk::set_size_and_pinuse_of_free_chunk(p, dsize);
-                return
+                return;
             } else {
                 let nsize = Chunk::size(next);
                 psize += nsize;
@@ -1205,7 +1194,7 @@ impl Dlmalloc {
                 Chunk::set_size_and_pinuse_of_free_chunk(p, psize);
                 if p == self.dv {
                     self.dvsize = psize;
-                    return
+                    return;
                 }
             }
         } else {
@@ -1274,7 +1263,7 @@ impl Dlmalloc {
         let mut sp = &self.seg as *const Segment as *mut Segment;
         while !sp.is_null() {
             if Segment::holds(ptr, sp as *mut u8) {
-                return true
+                return true;
             }
             sp = (*sp).next;
         }
@@ -1329,43 +1318,48 @@ impl Dlmalloc {
         } else {
             MAX_RELEASE_CHECK_RATE
         };
-        return released
+        return released;
     }
 
     // Sanity checks
 
     unsafe fn check_any_chunk(&self, p: *mut Chunk) {
         if !cfg!(debug_assertions) {
-            return
+            return;
         }
-        debug_assert!(self.is_aligned(Chunk::to_mem(p) as usize) ||
-                (*p).head == Chunk::fencepost_head());
+        debug_assert!(
+            self.is_aligned(Chunk::to_mem(p) as usize) || (*p).head == Chunk::fencepost_head()
+        );
         debug_assert!(p as *mut u8 >= self.least_addr);
     }
 
     unsafe fn check_top_chunk(&self, p: *mut Chunk) {
         if !cfg!(debug_assertions) {
-            return
+            return;
         }
         let sp = self.segment_holding(p as *mut u8);
         let sz = (*p).head & !INUSE;
         debug_assert!(!sp.is_null());
-        debug_assert!(self.is_aligned(Chunk::to_mem(p) as usize) ||
-                (*p).head == Chunk::fencepost_head());
+        debug_assert!(
+            self.is_aligned(Chunk::to_mem(p) as usize) || (*p).head == Chunk::fencepost_head()
+        );
         debug_assert!(p as *mut u8 >= self.least_addr);
         debug_assert_eq!(sz, self.topsize);
         debug_assert!(sz > 0);
-        debug_assert_eq!(sz, (*sp).base as usize + (*sp).size - p as usize - self.top_foot_size());
+        debug_assert_eq!(
+            sz,
+            (*sp).base as usize + (*sp).size - p as usize - self.top_foot_size()
+        );
         debug_assert!(Chunk::pinuse(p));
         debug_assert!(!Chunk::pinuse(Chunk::plus_offset(p, sz)));
     }
 
     unsafe fn check_malloced_chunk(&self, mem: *mut u8, s: usize) {
         if !cfg!(debug_assertions) {
-            return
+            return;
         }
         if mem.is_null() {
-            return
+            return;
         }
         let p = Chunk::from_mem(mem);
         let sz = (*p).head & !INUSE;
@@ -1380,8 +1374,7 @@ impl Dlmalloc {
         self.check_any_chunk(p);
         debug_assert!(Chunk::inuse(p));
         debug_assert!(Chunk::pinuse(Chunk::next(p)));
-        debug_assert!(Chunk::mmapped(p) || Chunk::pinuse(p) ||
-                Chunk::next(Chunk::prev(p)) == p);
+        debug_assert!(Chunk::mmapped(p) || Chunk::pinuse(p) || Chunk::next(Chunk::prev(p)) == p);
         if Chunk::mmapped(p) {
             self.check_mmapped_chunk(p);
         }
@@ -1389,23 +1382,27 @@ impl Dlmalloc {
 
     unsafe fn check_mmapped_chunk(&self, p: *mut Chunk) {
         if !cfg!(debug_assertions) {
-            return
+            return;
         }
         let sz = Chunk::size(p);
         let len = sz + (*p).prev_foot + self.mmap_foot_pad();
         debug_assert!(Chunk::mmapped(p));
-        debug_assert!(self.is_aligned(Chunk::to_mem(p) as usize) ||
-                (*p).head == Chunk::fencepost_head());
+        debug_assert!(
+            self.is_aligned(Chunk::to_mem(p) as usize) || (*p).head == Chunk::fencepost_head()
+        );
         debug_assert!(p as *mut u8 >= self.least_addr);
         debug_assert!(!self.is_small(sz));
         debug_assert_eq!(align_up(len, sys::page_size()), len);
         debug_assert_eq!((*Chunk::plus_offset(p, sz)).head, Chunk::fencepost_head());
-        debug_assert_eq!((*Chunk::plus_offset(p, sz + mem::size_of::<usize>())).head, 0);
+        debug_assert_eq!(
+            (*Chunk::plus_offset(p, sz + mem::size_of::<usize>())).head,
+            0
+        );
     }
 
     unsafe fn check_free_chunk(&self, p: *mut Chunk) {
         if !cfg!(debug_assertions) {
-            return
+            return;
         }
         let sz = Chunk::size(p);
         let next = Chunk::plus_offset(p, sz);
@@ -1430,7 +1427,7 @@ impl Dlmalloc {
 
     unsafe fn check_malloc_state(&mut self) {
         if !cfg!(debug_assertions) {
-            return
+            return;
         }
         for i in 0..NSMALLBINS {
             self.check_smallbin(i as u32);
@@ -1458,7 +1455,7 @@ impl Dlmalloc {
 
     unsafe fn check_smallbin(&mut self, idx: u32) {
         if !cfg!(debug_assertions) {
-            return
+            return;
         }
         let b = self.smallbin_at(idx);
         let mut p = (*b).next;
@@ -1471,8 +1468,7 @@ impl Dlmalloc {
                 let size = Chunk::size(p);
                 self.check_free_chunk(p);
                 debug_assert_eq!(self.small_index(size), idx);
-                debug_assert!((*p).next == b ||
-                        Chunk::size((*p).next) == Chunk::size(p));
+                debug_assert!((*p).next == b || Chunk::size((*p).next) == Chunk::size(p));
                 let q = Chunk::next(p);
                 if (*q).head != Chunk::fencepost_head() {
                     self.check_inuse_chunk(q);
@@ -1484,7 +1480,7 @@ impl Dlmalloc {
 
     unsafe fn check_treebin(&mut self, idx: u32) {
         if !cfg!(debug_assertions) {
-            return
+            return;
         }
         let tb = self.treebin_at(idx);
         let t = *tb;
@@ -1499,7 +1495,7 @@ impl Dlmalloc {
 
     unsafe fn check_tree(&mut self, t: *mut TreeChunk) {
         if !cfg!(debug_assertions) {
-            return
+            return;
         }
         let tc = TreeChunk::chunk(t);
         let tindex = (*t).index;
@@ -1508,8 +1504,7 @@ impl Dlmalloc {
         debug_assert_eq!(tindex, idx);
         debug_assert!(tsize >= self.min_large_size());
         debug_assert!(tsize >= self.min_size_for_tree_index(idx));
-        debug_assert!(idx == NTREEBINS as u32 - 1 ||
-                tsize < self.min_size_for_tree_index(idx + 1));
+        debug_assert!(idx == NTREEBINS as u32 - 1 || tsize < self.min_size_for_tree_index(idx + 1));
 
         let mut u = t;
         let mut head = ptr::null_mut::<TreeChunk>();
@@ -1531,9 +1526,11 @@ impl Dlmalloc {
                 debug_assert!(head.is_null());
                 head = u;
                 debug_assert!((*u).parent != u);
-                debug_assert!((*(*u).parent).child[0] == u ||
-                        (*(*u).parent).child[1] == u ||
-                        *((*u).parent as *mut *mut TreeChunk) == u);
+                debug_assert!(
+                    (*(*u).parent).child[0] == u
+                        || (*(*u).parent).child[1] == u
+                        || *((*u).parent as *mut *mut TreeChunk) == u
+                );
                 if !left.is_null() {
                     debug_assert_eq!((*left).parent, u);
                     debug_assert!(left != u);
@@ -1545,14 +1542,15 @@ impl Dlmalloc {
                     self.check_tree(right);
                 }
                 if !left.is_null() && !right.is_null() {
-                    debug_assert!(Chunk::size(TreeChunk::chunk(left)) <
-                            Chunk::size(TreeChunk::chunk(right)));
+                    debug_assert!(
+                        Chunk::size(TreeChunk::chunk(left)) < Chunk::size(TreeChunk::chunk(right))
+                    );
                 }
             }
 
             u = TreeChunk::prev(u);
             if u == t {
-                break
+                break;
             }
         }
         debug_assert!(!head.is_null());
@@ -1560,8 +1558,7 @@ impl Dlmalloc {
 
     fn min_size_for_tree_index(&self, idx: u32) -> usize {
         let idx = idx as usize;
-        (1 << ((idx >> 1) + TREEBIN_SHIFT)) |
-            ((idx & 1) << ((idx >> 1) + TREEBIN_SHIFT - 1))
+        (1 << ((idx >> 1) + TREEBIN_SHIFT)) | ((idx & 1) << ((idx >> 1) + TREEBIN_SHIFT - 1))
     }
 
     unsafe fn bin_find(&mut self, chunk: *mut Chunk) -> bool {
@@ -1570,22 +1567,22 @@ impl Dlmalloc {
             let sidx = self.small_index(size);
             let b = self.smallbin_at(sidx);
             if !self.smallmap_is_marked(sidx) {
-                return false
+                return false;
             }
             let mut p = b;
             loop {
                 if p == chunk {
-                    return true
+                    return true;
                 }
                 p = (*p).prev;
                 if p == b {
-                    return false
+                    return false;
                 }
             }
         } else {
             let tidx = self.compute_tree_index(size);
             if !self.treemap_is_marked(tidx) {
-                return false
+                return false;
             }
             let mut t = *self.treebin_at(tidx);
             let mut sizebits = size << leftshift_for_tree_index(tidx);
@@ -1594,21 +1591,20 @@ impl Dlmalloc {
                 sizebits <<= 1;
             }
             if t.is_null() {
-                return false
+                return false;
             }
             let mut u = t;
             let chunk = chunk as *mut TreeChunk;
             loop {
                 if u == chunk {
-                    return true
+                    return true;
                 }
                 u = TreeChunk::prev(u);
                 if u == t {
-                    return false
+                    return false;
                 }
             }
         }
-
     }
 
     unsafe fn traverse_and_check(&self) -> usize {

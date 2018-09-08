@@ -1,13 +1,13 @@
-use signals::Signal;
-use nabi::{Result, Error};
-use common::table::{Table, TableSlot};
-use alloc::sync::Arc;
-use spin::Mutex;
 use super::Handle;
-use sync::atomic::{Atomic, Ordering};
+use alloc::sync::Arc;
+use common::table::{Table, TableSlot};
 use core::any::{Any, TypeId};
 use core::ops::Deref;
+use nabi::{Error, Result};
 use object::wait_observer::WaitObserver;
+use signals::Signal;
+use spin::Mutex;
+use sync::atomic::{Atomic, Ordering};
 
 unsafe impl Send for Context {}
 unsafe impl Sync for Context {}
@@ -45,7 +45,7 @@ pub struct Dispatch<T: Dispatcher + ?Sized> {
 
 impl<T> Dispatch<T>
 where
-    T: Dispatcher
+    T: Dispatcher,
 {
     pub fn new(dispatcher: T) -> Dispatch<T> {
         Dispatch {
@@ -59,7 +59,7 @@ where
 
 impl<T> Dispatch<T>
 where
-    T: Dispatcher + ?Sized
+    T: Dispatcher + ?Sized,
 {
     pub unsafe fn add_observer(&self, observer: *mut (dyn StateObserver)) -> Option<TableSlot> {
         let initial_signals = self.ctx().signals();
@@ -123,7 +123,9 @@ where
         let mut observers = ctx.observers.lock();
 
         for mut entry in observers.entries() {
-            if ( unsafe { &mut **entry.get_mut() } ).on_state_change(new_signals) == ObserverResult::Remove {
+            if (unsafe { &mut **entry.get_mut() }).on_state_change(new_signals)
+                == ObserverResult::Remove
+            {
                 entry.remove();
             }
         }
@@ -150,15 +152,13 @@ impl Dispatch<Dispatcher> {
 impl<T: Dispatcher + Sized> Dispatch<T> {
     pub fn upcast(self) -> Dispatch<Dispatcher> {
         let inner = self.inner as Arc<DispatchInner<Dispatcher>>;
-        Dispatch {
-            inner,
-        }
+        Dispatch { inner }
     }
 }
 
 impl<T> Deref for Dispatch<T>
 where
-    T: Dispatcher + ?Sized
+    T: Dispatcher + ?Sized,
 {
     type Target = T;
     fn deref(&self) -> &T {
@@ -173,10 +173,16 @@ pub trait Dispatcher: Any + Send + Sync {
         Signal::empty()
     }
 
-    fn allows_observers(&self) -> bool { false }
+    fn allows_observers(&self) -> bool {
+        false
+    }
 
-    fn get_name(&self) -> Option<&str> { None }
-    fn set_name(&self) -> Result<()> { Err(Error::NOT_SUPPORTED) }
+    fn get_name(&self) -> Option<&str> {
+        None
+    }
+    fn set_name(&self) -> Result<()> {
+        Err(Error::NOT_SUPPORTED)
+    }
 
     fn on_zero_handles(&self) {}
 }
@@ -194,7 +200,10 @@ pub struct LocalObserver<'local, 'dispatch, S: StateObserver + 'local> {
 }
 
 impl<'local, 'dispatch, S: StateObserver + Send + Any> LocalObserver<'local, 'dispatch, S> {
-    pub fn new(observer: &'local mut S, dispatch: &'dispatch mut Dispatch<Dispatcher>) -> Option<LocalObserver<'local, 'dispatch, S>> {
+    pub fn new(
+        observer: &'local mut S,
+        dispatch: &'dispatch mut Dispatch<Dispatcher>,
+    ) -> Option<LocalObserver<'local, 'dispatch, S>> {
         let slot = unsafe { dispatch.add_observer(observer as *mut _)? };
 
         Some(LocalObserver {
