@@ -46,6 +46,14 @@ impl PciDevice {
     pub fn header_type(&self) -> u8 {
         self.slot.config_read(0x00, 0xc + 0x2) as u8
     }
+
+    pub fn read_cmd(&self) -> u16 {
+        self.slot.config_read(0x00, 0x04)
+    }
+
+    pub fn write_cmd(&mut self, cmd: u16) {
+        self.slot.config_write(0x00, 0x04, cmd as u32);
+    }
 }
 
 #[derive(Debug)]
@@ -69,6 +77,23 @@ impl PciSlot {
             addr_port.write(address);
 
             ((config_port.read() >> ((offset & 2) * 8)) & 0xffff) as u16
+        }
+    }
+
+    fn config_write(&mut self, func: u8, offset: u8, val: u32) {
+        let address = (self.bus << 16)
+        | (self.slot << 11)
+        | ((func as u32) << 8)
+        | ((offset as u32) & 0xfc)
+        | 0x80000000u32;
+
+        let mut addr_port: Port<u32> = Port::new(0xcf8);
+        let mut config_port: Port<u32> = Port::new(0xcfc);
+
+        unsafe {
+            addr_port.write(address);
+
+            config_port.write(val);
         }
     }
 

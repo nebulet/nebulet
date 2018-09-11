@@ -34,21 +34,53 @@ impl BumpAllocator {
         allocator
     }
 
+    // fn fill_physical_pool(&mut self, size: usize) {
+    //     if let Some(region) = self.regions.iter_mut().find(|region| region.range.end.start_address() - region.range.start.start_address() > size as u64) {
+    //         let frame_size = region.range.start.size();
+
+    //         let new_region_end = region.range.start + (((size as u64) + frame_size) / frame_size);
+
+    //         self.physical_pool = MemoryRegion {
+    //             range: PhysFrame::range(
+    //                 region.range.start,
+    //                 new_region_end,
+    //             ),
+    //             region_type: region.region_type,
+    //         };
+
+    //         region.range.start = new_region_end;
+    //     } else if Some(region) = self.regions.iter_mut().find(|region| region.range.end.start_address() - region.range.start.start_address() == size as u64) {
+    //         self.physical_pool = region;
+    //     }
+    // }
+
     fn fill_physical_pool(&mut self, size: usize) {
-        if let Some(region) = self.regions.iter_mut().find(|region| region.range.end.start_address() - region.range.start.start_address() >= size as u64) {
-            let frame_size = region.range.start.size();
+        for i in 0..self.regions.len() {
+            if self.regions[i].region_type != MemoryRegionType::Usable {
+                continue;
+            }
 
-            let new_region_end = region.range.start + (((size as u64) + frame_size) / frame_size);
+            if self.regions[i].range.end.start_address() - self.regions[i].range.start.start_address() > size as u64 {
+                let frame_size = self.regions[i].range.start.size();
 
-            self.physical_pool = MemoryRegion {
-                range: PhysFrame::range(
-                    region.range.start,
-                    new_region_end,
-                ),
-                region_type: region.region_type,
-            };
+                let new_region_end = self.regions[i].range.start + (((size as u64) + frame_size) / frame_size);
 
-            region.range.start = new_region_end;
+                self.physical_pool = MemoryRegion {
+                    range: PhysFrame::range(
+                        self.regions[i].range.start,
+                        new_region_end,
+                    ),
+                    region_type: self.regions[i].region_type,
+                };
+
+                self.regions[i].range.start = new_region_end;
+            } else if self.regions[i].range.end.start_address() - self.regions[i].range.start.start_address() == size as u64 {
+                self.physical_pool = MemoryRegion {
+                    range: self.regions[i].range,
+                    region_type: self.regions[i].region_type,
+                };
+                self.regions[i].region_type = MemoryRegionType::Reserved;
+            }
         }
     }
 
@@ -100,16 +132,19 @@ impl FrameAllocator for BumpAllocator {
         let frame_size = self.physical_pool.range.start.size();
         let frame_count = ((size as u64) + frame_size) / frame_size;
 
+        // println!("debug {}:{}", file!(), line!());
         if self.physical_pool.range.start + frame_count < self.physical_pool.range.end {
+            // println!("debug {}:{}", file!(), line!());
             let old_start = self.physical_pool.range.start;
 
             self.physical_pool.range.start += frame_count;
-
+            println!("debug {}:{}", file!(), line!());
             Some(PhysFrame::range(
                 old_start,
                 self.physical_pool.range.start,
             ))
         } else {
+            println!("debug {}:{}", file!(), line!());
             None
         }
     }

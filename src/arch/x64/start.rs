@@ -45,11 +45,17 @@ entry_point!(arch_start);
 fn find_pci_devices() {
     for bus in 0..=255 {
         let bus = pci::PciBus::new(bus);
-        bus.scan(|device| {
+        bus.scan(|mut device| {
             if device.vendor == 0x8086 && device.device == 0x100e {
                 println!("device bar: {:#x}", device.base_address());
                 println!("header: {:#x}", device.header_type());
                 println!("{:#x?}", device);
+                println!("enabling memory access");
+                let mut cmd = device.read_cmd();
+                println!("cmd: {:b}", cmd);
+                cmd |= 1 << 2;
+                cmd |= 1 << 0;
+                device.write_cmd(cmd);
             }
         });
     }

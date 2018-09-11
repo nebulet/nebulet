@@ -29,12 +29,13 @@ pub fn main() {
         println!("path: {:?}", file.path);
     }
 
-    let keyboard_driver = tar.iter().find(|file| file.path == "ps2.wasm").unwrap();
+    let keyboard_driver = tar.iter().find(|file| file.path == "e1000.wasm").unwrap();
 
-    println!("ps2 driver size: {}", keyboard_driver.data.len());
-    println!("Found ps2 driver");
+    println!("e1000 driver size: {}", keyboard_driver.data.len());
+    println!("Found e1000 driver");
 
-    let (_, rx) = sip::Channel::create().unwrap();
+    let (_tx, rx) = sip::Channel::create().unwrap();
+
 
     launch(keyboard_driver.data, rx);
 }

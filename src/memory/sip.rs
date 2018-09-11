@@ -169,21 +169,18 @@ impl WasmMemory {
     /// of the wasm linear memory.
     /// 
     /// Returns the offset of the mapped region in the wasm linear memory.
-    pub fn physical_map(&self, phys_addr: u64, count: usize) -> Result<usize> {
+    pub fn physical_map(&self, phys_addr: u64, size: usize) -> Result<usize> {
         let old_count = self.page_count();
 
-        let expand_by = count * Self::WASM_PAGE_SIZE;
-        self.region.grow_from_phys_addr(expand_by, phys_addr as _)
+        self.region.grow_from_phys_addr(size, phys_addr as _)
             .map(|_| old_count * Self::WASM_PAGE_SIZE)
     }
 
     /// Request a physically continuous memory region
-    pub fn physical_alloc(&self, page_count: usize) -> Result<(u64, u32)> {
+    pub fn physical_alloc(&self, size: usize) -> Result<(u64, u32)> {
         let old_count = self.page_count();
 
-        let expand_by = page_count * Self::WASM_PAGE_SIZE;
-
-        self.region.grow_physically_contiguous(expand_by)
+        self.region.grow_physically_contiguous(size)
             .map(|phys_addr| (phys_addr.as_u64(), (old_count * Self::WASM_PAGE_SIZE) as u32))
     }
 

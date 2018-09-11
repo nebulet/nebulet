@@ -317,12 +317,18 @@ impl LazyRegion {
     pub fn grow_from_phys_addr(&self, by: usize, phys_addr: usize) -> Result<()> {
         let mut mapper = unsafe { PageMapper::new() };
 
-        let size = self.size.fetch_add(by, Ordering::SeqCst) as u64;
+        let rounded_up_size = (((by - 1) / (1 << 16)) + 1) * (1 << 16);
+
+        let size = self.size.fetch_add(rounded_up_size, Ordering::SeqCst) as u64;
+
+        println!("phys_addr: {:#x}, by: {:#x}", phys_addr, by);
 
         let phys_addr = PhysAddr::new(phys_addr as u64);
 
-        let start_page = Page::containing_address(self.start + size);
-        let end_page = Page::containing_address(self.start + size + by as u64);
+        let working_mem_start = self.start + size;
+
+        let start_page = Page::containing_address(working_mem_start);
+        let end_page = Page::containing_address(working_mem_start + by as u64);
         let start_frame = PhysFrame::containing_address(phys_addr);
         let end_frame = PhysFrame::containing_address(phys_addr + by as u64);
 
@@ -331,22 +337,28 @@ impl LazyRegion {
 
         for (page, frame) in iter {
             mapper.map_to(page, frame, self.flags)
-                .map_err(|_| internal_error!())?
+                .map_err(|err| {
+                    println!("{:?}", err);
+                    internal_error!()
+                })?
                 .flush();
         }
+
+        println!("{:?}", mapper.translate(end_page - 1));
 
         Ok(())
     }
 
     pub fn grow_physically_contiguous(&self, by: usize) -> Result<PhysAddr> {
         let mut mapper = unsafe { PageMapper::new() };
-
         let range = memory::allocate_contiguous(by)
             .ok_or(Error::NO_RESOURCES)?;
 
         let physical_start = range.start.start_address();
 
-        let size = self.size.fetch_add(by, Ordering::SeqCst) as u64;
+        let rounded_up_size = (((by - 1) / (1 << 16)) + 1) * (1 << 16);
+
+        let size = self.size.fetch_add(rounded_up_size, Ordering::SeqCst) as u64;
 
         let start_page = Page::containing_address(self.start + size);
         let end_page = Page::containing_address(self.start + size + by as u64);

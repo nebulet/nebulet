@@ -3,10 +3,10 @@ use nabi::{Result, Error};
 use nebulet_derive::nebulet_abi;
 
 #[nebulet_abi]
-pub fn physical_map(phys_address: u64, page_count: u32, data: &UserData) -> Result<u32> {
+pub fn physical_map(phys_address: u64, size: u32, data: &UserData) -> Result<u32> {
     let memory = &data.instance.memories[0];
 
-    memory.physical_map(phys_address, page_count as usize)
+    memory.physical_map(phys_address, size as usize)
         .map(|addr| addr as u32)
 }
 
@@ -18,10 +18,10 @@ pub fn physical_map(phys_address: u64, page_count: u32, data: &UserData) -> Resu
 // }
 
 #[nebulet_abi]
-pub fn physical_alloc(page_count: u32, physical_addr_out: u32, data: &UserData) -> Result<u32> {
+pub fn physical_alloc(size: u32, physical_addr_out: u32, data: &UserData) -> Result<u32> {
     let memory = &data.instance.memories[0];
 
-    let (physical_addr, sip_addr) = memory.physical_alloc(page_count as usize)?;
+    let (physical_addr, sip_addr) = memory.physical_alloc(size as usize)?;
 
     {
         let physical_addr_out = memory.carve_mut::<u64>(physical_addr_out)

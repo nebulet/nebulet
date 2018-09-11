@@ -7,7 +7,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "e1000"
 version = "0.1.0"
 dependencies = [
- "sip 0.1.0 (git+https://github.com/nebulet/libsip)",
+ "sip 0.1.0",
 ]
 
 [[package]]
@@ -28,7 +28,14 @@ dependencies = [
 [[package]]
 name = "sip"
 version = "0.1.0"
-source = "git+https://github.com/nebulet/libsip#463f628f930102d8fc5bca0af5b8ce323256cded"
+source = "git+https://github.com/nebulet/libsip#3434f0a51586f4555091d47387c37e19985c21f0"
+dependencies = [
+ "nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)",
+]
+
+[[package]]
+name = "sip"
+version = "0.1.0"
 dependencies = [
  "nebulet_abi 0.1.0 (git+https://github.com/nebulet/abi)",
 ]
