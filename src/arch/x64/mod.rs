@@ -28,4 +28,6 @@ pub mod memory;
 
 pub mod pci;
 
+// pub mod acpi;
+
 global_asm!(include_str!("routines.asm"));

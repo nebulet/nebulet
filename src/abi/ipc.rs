@@ -85,7 +85,8 @@ pub fn channel_recv(channel_handle: UserHandle<Channel>, buffer_offset: u32, buf
     if write_buf.len() < msg.data().len() {
         Err(Error::BUFFER_TOO_SMALL)
     } else {
-        write_buf.copy_from_slice(msg.data());
+        let data = msg.data();
+        write_buf[..data.len()].copy_from_slice(data);
 
         Ok(0)
     }

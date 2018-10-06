@@ -22,7 +22,6 @@
     fnbox,
     integer_atomics,
     platform_intrinsics,
-    panic_handler,
     range_contains,
     stmt_expr_attributes,
     get_type_id,
@@ -49,6 +48,7 @@ extern crate nabi;
 extern crate raw_cpuid;
 extern crate rand_core;
 extern crate rand;
+extern crate acpi;
 
 extern crate cranelift_wasm;
 extern crate cranelift_native;

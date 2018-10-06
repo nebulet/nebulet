@@ -1,7 +1,4 @@
 #![no_main]
-#![feature(
-    iterator_find_map,
-)]
 
 #[macro_use]
 extern crate sip;
@@ -29,15 +26,13 @@ pub fn main() {
         println!("path: {:?}", file.path);
     }
 
-    let keyboard_driver = tar.iter().find(|file| file.path == "e1000.wasm").unwrap();
+    // let keyboard_driver = tar.iter().find(|file| file.path == "e1000.wasm").unwrap();
 
-    println!("e1000 driver size: {}", keyboard_driver.data.len());
-    println!("Found e1000 driver");
+    // let (_tx, rx) = sip::Channel::create().unwrap();
 
-    let (_tx, rx) = sip::Channel::create().unwrap();
+    // // tx.send(b"hello, world").unwrap();
 
-
-    launch(keyboard_driver.data, rx);
+    // launch(keyboard_driver.data, rx);
 }
 
 fn launch(wasm_data: &[u8], chan: sip::ReadChannel) {

@@ -56,6 +56,8 @@ fn find_pci_devices() {
                 cmd |= 1 << 2;
                 cmd |= 1 << 0;
                 device.write_cmd(cmd);
+                let cmd = device.read_cmd();
+                println!("cmd: {:b}", cmd);
             }
         });
     }

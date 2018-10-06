@@ -51,7 +51,7 @@ dependencies = [
 name = "vga"
 version = "0.1.0"
 dependencies = [
- "sip 0.1.0 (git+https://github.com/nebulet/libsip)",
+ "sip 0.1.0",
 ]
 
 [metadata]

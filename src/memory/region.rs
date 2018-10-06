@@ -317,9 +317,13 @@ impl LazyRegion {
     pub fn grow_from_phys_addr(&self, by: usize, phys_addr: usize) -> Result<()> {
         let mut mapper = unsafe { PageMapper::new() };
 
-        let rounded_up_size = (((by - 1) / (1 << 16)) + 1) * (1 << 16);
+        let rounded_up_size_wasm = (((by - 1) / (1 << 16)) + 1) * (1 << 16);
+        let rounded_up_size = {
+            let rem = by % 4096;
+            by + 4096 - rem
+        };
 
-        let size = self.size.fetch_add(rounded_up_size, Ordering::SeqCst) as u64;
+        let size = self.size.fetch_add(rounded_up_size_wasm, Ordering::SeqCst) as u64;
 
         println!("phys_addr: {:#x}, by: {:#x}", phys_addr, by);
 
@@ -328,9 +332,9 @@ impl LazyRegion {
         let working_mem_start = self.start + size;
 
         let start_page = Page::containing_address(working_mem_start);
-        let end_page = Page::containing_address(working_mem_start + by as u64);
+        let end_page = Page::containing_address(working_mem_start + rounded_up_size as u64);
         let start_frame = PhysFrame::containing_address(phys_addr);
-        let end_frame = PhysFrame::containing_address(phys_addr + by as u64);
+        let end_frame = PhysFrame::containing_address(phys_addr + rounded_up_size as u64);
 
         let iter = Page::range(start_page, end_page)
             .zip(PhysFrame::range(start_frame, end_frame));
@@ -344,6 +348,7 @@ impl LazyRegion {
                 .flush();
         }
 
+        println!("page_num: {}", end_page - start_page);
         println!("{:?}", mapper.translate(end_page - 1));
 
         Ok(())
@@ -351,24 +356,33 @@ impl LazyRegion {
 
     pub fn grow_physically_contiguous(&self, by: usize) -> Result<PhysAddr> {
         let mut mapper = unsafe { PageMapper::new() };
-        let range = memory::allocate_contiguous(by)
+
+        let rounded_up_size_wasm = (((by - 1) / (1 << 16)) + 1) * (1 << 16);
+        let rounded_up_size = {
+            let rem = by % 4096;
+            by + 4096 - rem
+        };
+
+        let range = memory::allocate_contiguous(rounded_up_size)
             .ok_or(Error::NO_RESOURCES)?;
 
         let physical_start = range.start.start_address();
 
-        let rounded_up_size = (((by - 1) / (1 << 16)) + 1) * (1 << 16);
+        let size = self.size.fetch_add(rounded_up_size_wasm, Ordering::SeqCst) as u64;
 
-        let size = self.size.fetch_add(rounded_up_size, Ordering::SeqCst) as u64;
+        let working_mem_start = self.start + size;
 
-        let start_page = Page::containing_address(self.start + size);
-        let end_page = Page::containing_address(self.start + size + by as u64);
+        let start_page = Page::containing_address(working_mem_start);
+        let end_page = Page::containing_address(working_mem_start + rounded_up_size);
 
         let iter = Page::range(start_page, end_page)
             .zip(range);
 
         for (page, frame) in iter {
             mapper.map_to(page, frame, self.flags)
-                .map_err(|_| internal_error!())?
+                .map_err(|_| {
+                    internal_error!()
+                })?
                 .flush();
         }
 

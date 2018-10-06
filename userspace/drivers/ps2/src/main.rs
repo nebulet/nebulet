@@ -17,11 +17,12 @@ pub fn main() {
         println!("ps2: {}", info);
     }));
 
-    println!("ps2 driver loaded");
-
     let keyboard = driver::KeyboardDriver::open();
 
+    println!("ps2 driver loaded");
+
     for key in keyboard.keys() {
+        println!("{:?}", key);
         if let keyboard::DecodedKey::Unicode(character) = key {
             print!("{}", character);
         }

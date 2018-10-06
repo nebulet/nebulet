@@ -64,6 +64,7 @@ spin = "0.4.9"
 bitflags = "1.0"
 bit_field = "0.9.0"
 hashmap_core = "0.1.8"
+acpi = { git = "https://github.com/rust-osdev/acpi" }
 
 # lib/
 [dependencies.nebulet-derive]
