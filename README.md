@@ -1,3 +1,17 @@
+# Read this (from the creator of Nebulet)
+
+>  Hi everyone,
+> 
+> It's been a while since I've looked at this repository.
+>
+> Nebulet is not in active development, and hasn't been for a bit more than a year. There are a few reasons for this, but the main one is that I felt it had fulfilled its purpose: to demonstrate that microkernels that run managed code in kernel-mode are viable (before spectre/meltdown ruined things), at least to some extent. (Additionally, it helped me get internships, jobs, etc)
+>
+> As it stands right now, I don't have the time or the motivation to work on Nebulet. My interests have moved on to other things, primarily the space industry (please message me if anyone who reads this works in the space industry, looking for internships/co-ops).
+>
+> If someone would like to take on the Nebulet banner and continue to work on it, I'd be happy to pass it on. Otherwise, it'll probably sit here for the foreseeable future and will likely be archived at some point.
+>
+> \- Lachlan Sneff
+
 # Nebulet
 
 [![Join the chat at https://gitter.im/nebulet/nebulet](https://badges.gitter.im/nebulet/nebulet.svg)](https://gitter.im/nebulet/nebulet?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
